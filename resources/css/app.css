@@ -25,6 +25,10 @@
 
   --income: #15803d;
   --expense: #dc2626;
+
+  /* Cột biểu đồ thu/chi: đã chạy validate_palette (mù màu, độ sáng, tương phản) cho cả hai nền. */
+  --chart-income: #15803d;
+  --chart-expense: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +47,9 @@
 
     --income: #4ade80;
     --expense: #f87171;
+
+    --chart-income: #21b04f;
+    --chart-expense: #d42a2a;
   }
 }
 
@@ -59,6 +66,8 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-chart-income: var(--chart-income);
+  --color-chart-expense: var(--chart-expense);
 }
 
 /* Vài lớp dùng lại khắp nơi (Tailwind 4: khai bằng @utility để @apply được). Vùng chạm tối thiểu 44px, xem plan/06 mục 1. */

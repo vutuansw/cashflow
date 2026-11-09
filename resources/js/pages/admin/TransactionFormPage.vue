@@ -1,0 +1,334 @@
+<script setup>
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { Camera, History, ImagePlus, ReceiptText, RotateCcw, Trash2, X } from 'lucide-vue-next';
+import AdminShell from '../../layouts/AdminShell.vue';
+import CategoryIcon from '../../components/CategoryIcon.vue';
+import FormField from '../../components/FormField.vue';
+import MoneyInput from '../../components/MoneyInput.vue';
+import PhotoViewer from '../../components/PhotoViewer.vue';
+import { adminApi } from '../../lib/api.js';
+import { useForm, ignore } from '../../lib/form.js';
+import { previewUrl, shrinkImage } from '../../lib/image.js';
+import { formatDate, formatDateTime } from '../../lib/time.js';
+import { fold } from '../../lib/text.js';
+import { toast } from '../../lib/notice.js';
+
+// Tạo/sửa phiếu thu chi, xem plan/03 mục 2 và wireframe M2 màn 2. Phần AI đọc bill tự điền làm ở M3.
+const route = useRoute();
+const router = useRouter();
+const code = computed(() => route.params.group);
+const id = computed(() => (route.params.id ? Number(route.params.id) : null));
+const MAX_PHOTOS = 10;
+
+const options = ref({ categories: [], campaigns: [], contacts: [] });
+const detail = ref(null);
+const ready = ref(false);
+const { state, submit } = useForm();
+
+const pad = (n) => String(n).padStart(2, '0');
+const now = new Date();
+const form = reactive({
+    type: route.query.loai === 'thu' ? 'income' : 'expense',
+    amount: null,
+    category_id: null,
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    contact_id: null,
+    payer_name: '',
+    campaign_id: null,
+    title: '',
+    description: '',
+    show_on_timeline: true,
+});
+const titleTouched = ref(false);
+
+// Ảnh: ảnh cũ (từ máy chủ) và ảnh mới chọn (File + URL xem trước).
+const photos = ref([]); // [{ id?, url, file? }]
+const removedPhotoIds = ref([]);
+const bills = ref([]); // [{ id?, url, file? }]
+const removedBillIds = ref([]);
+const viewing = ref(null);
+
+const categories = computed(() => options.value.categories.filter((c) => c.type === form.type));
+const category = computed(() => options.value.categories.find((c) => c.id === form.category_id));
+const isIncome = computed(() => form.type === 'income');
+const deleted = computed(() => Boolean(detail.value?.deleted_at));
+
+// Người đóng / người nhận: gõ tên, gợi ý từ danh bạ (tìm không dấu); không chọn thì lưu tên tự do.
+const personQuery = ref('');
+const personOpen = ref(false);
+const personMatches = computed(() => {
+    const q = fold(personQuery.value);
+    if (!q) return options.value.contacts.slice(0, 8);
+    return options.value.contacts.filter((c) => c.search.includes(q)).slice(0, 8);
+});
+const personName = computed(() => options.value.contacts.find((c) => c.id === form.contact_id)?.name ?? form.payer_name.trim());
+
+function pickContact(c) {
+    form.contact_id = c.id;
+    form.payer_name = '';
+    personQuery.value = c.name;
+    personOpen.value = false;
+}
+function onPersonInput(value) {
+    personQuery.value = value;
+    form.contact_id = null;
+    form.payer_name = value;
+    personOpen.value = true;
+}
+function closePerson() {
+    setTimeout(() => (personOpen.value = false), 150);
+}
+
+// Tiêu đề tự gợi ý "{Loại} {tên}" cho tới khi người dùng tự sửa.
+const suggestedTitle = computed(() => [category.value?.name, personName.value].filter(Boolean).join(' '));
+watch(suggestedTitle, (v) => {
+    if (!titleTouched.value) form.title = v;
+});
+
+watch(() => form.type, () => {
+    if (!categories.value.some((c) => c.id === form.category_id)) form.category_id = categories.value[0]?.id ?? null;
+    if (!isIncome.value) form.campaign_id = null;
+});
+watch(() => form.campaign_id, (v) => {
+    const campaign = options.value.campaigns.find((c) => c.id === v);
+    if (campaign) {
+        form.category_id = campaign.category_id;
+        if (!form.amount && campaign.amount_per_member) form.amount = campaign.amount_per_member;
+    }
+});
+
+onMounted(async () => {
+    options.value = await adminApi(code.value, '/transactions/options');
+    if (id.value) {
+        const d = await adminApi(code.value, `/transactions/${id.value}`);
+        detail.value = d;
+        const at = new Date(d.occurred_at);
+        Object.assign(form, {
+            type: d.type,
+            amount: d.amount,
+            category_id: d.category_id,
+            date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`,
+            time: `${pad(at.getHours())}:${pad(at.getMinutes())}`,
+            contact_id: d.contact_id,
+            payer_name: d.payer_name ?? '',
+            campaign_id: d.campaign_id,
+            title: d.title,
+            description: d.description ?? '',
+            show_on_timeline: d.show_on_timeline,
+        });
+        // Loại đã ẩn vẫn phải chọn được cho phiếu cũ.
+        if (d.category && !options.value.categories.some((c) => c.id === d.category_id)) {
+            options.value.categories.push({ ...d.category, type: d.type });
+        }
+        personQuery.value = d.person ?? '';
+        titleTouched.value = true;
+        photos.value = d.photos.map((p) => ({ id: p.id, url: p.sm, lg: p.lg }));
+        bills.value = d.bills.map((b) => ({ id: b.id, url: b.url, lg: b.url }));
+    } else {
+        form.category_id = categories.value[0]?.id ?? null;
+        if (route.query.chien_dich) form.campaign_id = Number(route.query.chien_dich);
+    }
+    ready.value = true;
+});
+
+onBeforeUnmount(() => [...photos.value, ...bills.value].forEach((p) => p.file && URL.revokeObjectURL(p.url)));
+
+async function addPhotos(event) {
+    const files = [...event.target.files].slice(0, MAX_PHOTOS - photos.value.length);
+    event.target.value = '';
+    if (event.target.files?.length > files.length) toast(`Mỗi phiếu tối đa ${MAX_PHOTOS} ảnh.`, 'error');
+    for (const file of files) {
+        const small = await shrinkImage(file);
+        photos.value.push({ file: small, url: previewUrl(small), lg: previewUrl(small) });
+    }
+}
+function removePhoto(i) {
+    const [p] = photos.value.splice(i, 1);
+    if (p.id) removedPhotoIds.value.push(p.id);
+    else URL.revokeObjectURL(p.url);
+}
+async function addBill(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const small = await shrinkImage(file);
+    bills.value.push({ file: small, url: previewUrl(small), lg: previewUrl(small) });
+}
+function removeBill(i) {
+    const [b] = bills.value.splice(i, 1);
+    if (b.id) removedBillIds.value.push(b.id);
+    else URL.revokeObjectURL(b.url);
+}
+
+function payload() {
+    const data = new FormData();
+    data.append('type', form.type);
+    data.append('amount', form.amount ?? '');
+    data.append('category_id', form.category_id ?? '');
+    data.append('occurred_at', `${form.date} ${form.time || '00:00'}`);
+    data.append('title', form.title.trim());
+    data.append('description', form.description);
+    data.append('contact_id', form.contact_id ?? '');
+    data.append('payer_name', form.contact_id ? '' : form.payer_name.trim());
+    data.append('campaign_id', isIncome.value && form.campaign_id ? form.campaign_id : '');
+    data.append('show_on_timeline', form.show_on_timeline ? '1' : '0');
+    photos.value.filter((p) => p.file).forEach((p) => data.append('photos[]', p.file));
+    removedPhotoIds.value.forEach((x) => data.append('remove_photo_ids[]', x));
+    // Giữ đúng thứ tự trên màn hình: ảnh cũ "p:id", ảnh mới "n:thứ tự".
+    let n = 0;
+    photos.value.forEach((p) => data.append('photo_order[]', p.id ? `p:${p.id}` : `n:${n++}`));
+    const newBill = bills.value.find((b) => b.file);
+    if (newBill) data.append('bill', newBill.file);
+    removedBillIds.value.forEach((x) => data.append('remove_bill_ids[]', x));
+    return data;
+}
+
+async function save() {
+    const saved = await submit(() =>
+        adminApi(code.value, id.value ? `/transactions/${id.value}` : '/transactions', { method: 'POST', body: payload() }),
+    ).catch(ignore);
+    if (!saved) return;
+    toast(id.value ? 'Đã lưu thay đổi.' : `Đã lưu ${isIncome.value ? 'phiếu thu' : 'phiếu chi'}.`);
+    router.push(`/${code.value}/quan-tri/phieu`);
+}
+
+async function remove() {
+    if (!confirm('Xóa phiếu này? Phiếu đã xóa khôi phục được trong 30 ngày.')) return;
+    await adminApi(code.value, `/transactions/${id.value}`, { method: 'DELETE' });
+    toast('Đã xóa phiếu.');
+    router.push(`/${code.value}/quan-tri/phieu`);
+}
+
+async function restore() {
+    detail.value = await adminApi(code.value, `/transactions/${id.value}/restore`, { method: 'POST' });
+    toast('Đã khôi phục phiếu.');
+}
+
+const errorOf = (key) => state.errors[key] ?? Object.entries(state.errors).find(([k]) => k.startsWith(`${key}.`))?.[1];
+const actionLabel = { created: 'Tạo phiếu', updated: 'Sửa', deleted: 'Xóa', restored: 'Khôi phục' };
+const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' : 'Sửa phiếu chi') : isIncome.value ? 'Phiếu thu mới' : 'Phiếu chi mới'));
+</script>
+
+<template>
+    <AdminShell :title="title">
+        <div v-if="!ready" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</div>
+
+        <form v-else class="mx-auto max-w-xl space-y-4 pb-24 lg:pb-0" @submit.prevent="save">
+            <div v-if="deleted" class="flex items-center justify-between gap-3 rounded-xl border border-expense/40 bg-expense/5 p-3 text-sm">
+                <span>Phiếu đã xóa, khôi phục được tới {{ formatDate(detail.restorable_until) }}.</span>
+                <button type="button" class="btn-outline !min-h-10 shrink-0" @click="restore"><RotateCcw class="size-4" /> Khôi phục</button>
+            </div>
+
+            <!-- Thu / Chi -->
+            <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center font-semibold" role="radiogroup" aria-label="Thu hay chi">
+                <button type="button" role="radio" :aria-checked="isIncome" class="min-h-10 rounded-lg" :class="isIncome ? 'bg-card text-income shadow' : 'text-muted-foreground'" @click="form.type = 'income'">Thu</button>
+                <button type="button" role="radio" :aria-checked="!isIncome" class="min-h-10 rounded-lg" :class="!isIncome ? 'bg-card text-expense shadow' : 'text-muted-foreground'" @click="form.type = 'expense'">Chi</button>
+            </div>
+
+            <FormField label="Số tiền" required :error="state.errors.amount">
+                <MoneyInput v-model="form.amount" class="!text-2xl !font-semibold" :class="{ 'field-error': state.errors.amount }" placeholder="0" autofocus />
+            </FormField>
+
+            <div>
+                <p class="mb-1.5 text-sm font-medium">Loại<span class="text-expense"> *</span></p>
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="c in categories" :key="c.id" type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium" :class="form.category_id === c.id ? 'border-transparent text-white' : 'border-border bg-card'" :style="form.category_id === c.id ? { backgroundColor: c.color || '#15803d' } : {}" @click="form.category_id = c.id">
+                        <CategoryIcon :name="c.icon" :color="form.category_id === c.id ? '#ffffff' : c.color" size="size-6" class="!bg-transparent" /> {{ c.name }}
+                    </button>
+                    <RouterLink :to="`/${code}/quan-tri/loai-thu-chi`" class="inline-flex min-h-10 items-center rounded-full px-3 text-sm text-primary">+ Loại khác</RouterLink>
+                </div>
+                <p v-if="state.errors.category_id" class="mt-1 text-sm text-expense">{{ state.errors.category_id }}</p>
+            </div>
+
+            <FormField v-if="isIncome && options.campaigns.length" label="Chiến dịch" :error="state.errors.campaign_id">
+                <select v-model="form.campaign_id" class="field">
+                    <option :value="null">Không thuộc chiến dịch</option>
+                    <option v-for="c in options.campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+            </FormField>
+
+            <div class="grid grid-cols-2 gap-2">
+                <FormField label="Ngày" required :error="state.errors.occurred_at"><input v-model="form.date" type="date" class="field" required /></FormField>
+                <FormField label="Giờ"><input v-model="form.time" type="time" class="field" /></FormField>
+            </div>
+
+            <div class="relative">
+                <FormField :label="isIncome ? 'Người đóng' : 'Người nhận / được thăm'" :error="state.errors.contact_id || state.errors.payer_name" :hint="form.contact_id ? 'Trong danh bạ' : personQuery ? 'Tên tự do, không có trong danh bạ' : 'Gõ để tìm trong danh bạ, không dấu cũng được'">
+                    <input :value="personQuery" class="field" autocomplete="off" placeholder="Tên người" role="combobox" :aria-expanded="personOpen" @input="onPersonInput($event.target.value)" @focus="personOpen = true" @blur="closePerson" />
+                </FormField>
+                <ul v-if="personOpen && personMatches.length" class="absolute inset-x-0 top-[4.75rem] z-10 max-h-64 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+                    <li v-for="c in personMatches" :key="c.id">
+                        <button type="button" class="block min-h-11 w-full px-3 text-left hover:bg-muted" @mousedown.prevent="pickContact(c)">{{ c.name }}</button>
+                    </li>
+                </ul>
+            </div>
+
+            <FormField v-model="form.title" label="Tiêu đề" :error="state.errors.title" :placeholder="suggestedTitle || 'Vd: Thăm ốm bạn Lan'" maxlength="150" hint="Tự gợi ý từ loại và tên, sửa được." @input="titleTouched = true" />
+
+            <FormField label="Mô tả" :error="state.errors.description">
+                <textarea v-model="form.description" rows="3" class="field" maxlength="5000" placeholder="Ghi chú thêm, hiện trên timeline"></textarea>
+            </FormField>
+
+            <!-- Ảnh sự kiện -->
+            <div>
+                <p class="mb-1.5 text-sm font-medium">Ảnh sự kiện <span class="font-normal text-muted-foreground">(hiện trên timeline, tối đa {{ MAX_PHOTOS }})</span></p>
+                <div class="grid grid-cols-4 gap-2">
+                    <div v-for="(p, i) in photos" :key="p.id ?? p.url" class="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                        <button type="button" class="size-full" @click="viewing = { list: photos, start: i }"><img :src="p.url" alt="" class="size-full object-cover" /></button>
+                        <button type="button" class="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh" @click="removePhoto(i)"><X class="size-4" /></button>
+                    </div>
+                    <label v-if="photos.length < MAX_PHOTOS" class="grid aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed border-border text-muted-foreground hover:bg-muted">
+                        <span class="flex flex-col items-center gap-1 text-xs"><ImagePlus class="size-6" />Thêm ảnh</span>
+                        <input type="file" accept="image/*" multiple class="sr-only" @change="addPhotos" />
+                    </label>
+                </div>
+                <p v-if="errorOf('photos')" class="mt-1 text-sm text-expense">{{ errorOf('photos') }}</p>
+            </div>
+
+            <!-- Ảnh bill chứng từ -->
+            <div class="card p-3">
+                <p class="flex items-center gap-2 text-sm font-medium"><ReceiptText class="size-4" /> Ảnh bill chứng từ</p>
+                <p class="text-xs text-muted-foreground">Chỉ quản trị viên xem được, không hiện trên timeline.</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                    <div v-for="(b, i) in bills" :key="b.id ?? b.url" class="relative h-24 w-16 overflow-hidden rounded-lg bg-muted">
+                        <button type="button" class="size-full" @click="viewing = { list: bills, start: i }"><img :src="b.url" alt="Ảnh bill" class="size-full object-cover" /></button>
+                        <button type="button" class="absolute right-0.5 top-0.5 grid size-6 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh bill" @click="removeBill(i)"><X class="size-3.5" /></button>
+                    </div>
+                    <label v-if="!bills.some((b) => b.file)" class="grid h-24 w-16 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-muted">
+                        <Camera class="size-5" />
+                        <input type="file" accept="image/*" class="sr-only" @change="addBill" />
+                    </label>
+                </div>
+                <p v-if="state.errors.bill" class="mt-1 text-sm text-expense">{{ state.errors.bill }}</p>
+            </div>
+
+            <label class="flex min-h-11 items-center gap-3">
+                <input v-model="form.show_on_timeline" type="checkbox" class="size-5 accent-[var(--primary)]" />
+                <span><span class="block font-medium">Hiện trên timeline</span><span class="text-sm text-muted-foreground">Tắt nếu là khoản nội bộ; vẫn tính vào số dư.</span></span>
+            </label>
+
+            <!-- Lịch sử sửa -->
+            <section v-if="detail?.histories?.length" class="card p-4">
+                <h2 class="flex items-center gap-2 font-semibold"><History class="size-4" /> Lịch sử</h2>
+                <ol class="mt-2 space-y-2 text-sm">
+                    <li v-for="h in detail.histories" :key="h.id">
+                        <p><span class="font-medium">{{ actionLabel[h.action] }}</span> · {{ h.user ?? 'Hệ thống' }} · <span class="text-muted-foreground">{{ formatDateTime(h.at) }}</span></p>
+                        <ul v-if="h.changes.length" class="mt-0.5 space-y-0.5 pl-3 text-muted-foreground">
+                            <li v-for="(c, i) in h.changes" :key="i">{{ c.field }}: <template v-if="c.from !== null">{{ c.from }} → </template>{{ c.to }}</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+
+            <button v-if="id && !deleted" type="button" class="btn w-full text-expense hover:bg-expense/10" @click="remove"><Trash2 class="size-4" /> Xóa phiếu</button>
+
+            <div class="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-card p-3 lg:static lg:border-0 lg:bg-transparent lg:p-0">
+                <button type="submit" class="w-full" :class="isIncome ? 'btn-primary' : 'btn-danger'" :disabled="state.busy || deleted">{{ state.busy ? 'Đang lưu…' : id ? 'Lưu thay đổi' : isIncome ? 'Lưu phiếu thu' : 'Lưu phiếu chi' }}</button>
+            </div>
+        </form>
+
+        <PhotoViewer v-if="viewing" :photos="viewing.list.map((p) => ({ lg: p.lg }))" :start="viewing.start" @close="viewing = null" />
+    </AdminShell>
+</template>

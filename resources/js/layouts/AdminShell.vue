@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { UserRound } from 'lucide-vue-next';
+import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
+import Sheet from '../components/Sheet.vue';
 import { adminMenu, adminTabs } from '../lib/nav.js';
 import { session } from '../lib/session.js';
 
@@ -13,6 +14,14 @@ const code = computed(() => route.params.group);
 const group = computed(() => session.me?.groups.find((g) => g.code === code.value));
 const menu = computed(() => adminMenu(code.value));
 const tabs = computed(() => adminTabs(code.value));
+
+// Nút + giữa thanh tab mở bảng chọn: Đọc bill / Phiếu thu / Phiếu chi (wireframe M2).
+const creating = ref(false);
+const createOptions = computed(() => [
+    { label: 'Đọc bill chuyển khoản', text: 'Chụp hoặc chọn ảnh bill, AI điền sẵn. Có ở bản cập nhật tới.', icon: ScanText, to: null },
+    { label: 'Phiếu thu', text: 'Tiền vào quỹ: đóng quỹ, ủng hộ…', icon: ArrowDownLeft, to: `/${code.value}/quan-tri/phieu/moi?loai=thu`, tone: 'text-income' },
+    { label: 'Phiếu chi', text: 'Tiền ra: liên hoan, thăm ốm, hiếu hỉ…', icon: ArrowUpRight, to: `/${code.value}/quan-tri/phieu/moi?loai=chi`, tone: 'text-expense' },
+]);
 
 function active(item) {
     return item.exact ? route.path === item.to : route.path.startsWith(item.to);
@@ -27,6 +36,7 @@ function active(item) {
                 <span class="block truncate font-semibold">{{ group?.name }}</span>
                 <span class="text-sm text-muted-foreground">{{ group?.role_label }} · Đổi nhóm</span>
             </RouterLink>
+            <button type="button" class="btn-primary mt-4" @click="creating = true"><Plus class="size-5" /> Tạo phiếu</button>
             <nav class="mt-4 space-y-1">
                 <RouterLink v-for="item in menu" :key="item.to" :to="item.to" class="flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted" :class="{ 'bg-primary/10 text-primary': active(item) }">
                     <component :is="item.icon" class="size-5" /> {{ item.label }}
@@ -49,11 +59,25 @@ function active(item) {
         </div>
 
         <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">
-            <RouterLink v-for="tab in tabs" :key="tab.to" :to="tab.to" class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium" :class="active(tab) && !tab.primary ? 'text-primary' : 'text-muted-foreground'">
-                <span v-if="tab.primary" class="-mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg"><component :is="tab.icon" class="size-6" /></span>
-                <component :is="tab.icon" v-else class="size-5" />
-                <span>{{ tab.label }}</span>
-            </RouterLink>
+            <template v-for="tab in tabs" :key="tab.to">
+                <button v-if="tab.primary" type="button" class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted-foreground" @click="creating = true">
+                    <span class="-mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg"><component :is="tab.icon" class="size-6" /></span>
+                    <span>{{ tab.label }}</span>
+                </button>
+                <RouterLink v-else :to="tab.to" class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium" :class="active(tab) ? 'text-primary' : 'text-muted-foreground'">
+                    <component :is="tab.icon" class="size-5" />
+                    <span>{{ tab.label }}</span>
+                </RouterLink>
+            </template>
         </nav>
+
+        <Sheet :open="creating" title="Tạo phiếu" @close="creating = false">
+            <div class="space-y-2">
+                <component :is="opt.to ? 'RouterLink' : 'div'" v-for="opt in createOptions" :key="opt.label" :to="opt.to" class="flex items-center gap-3 rounded-2xl border border-border p-3" :class="opt.to ? 'hover:bg-muted' : 'opacity-60'" @click="opt.to && (creating = false)">
+                    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-muted" :class="opt.tone"><component :is="opt.icon" class="size-6" /></span>
+                    <span><span class="block font-semibold">{{ opt.label }}</span><span class="text-sm text-muted-foreground">{{ opt.text }}</span></span>
+                </component>
+            </div>
+        </Sheet>
     </div>
 </template>

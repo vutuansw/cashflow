@@ -8,7 +8,9 @@ Toàn bộ thiết kế nằm trong [`plan/`](plan/plan.md). Đổi thiết kế
 
 ## Trạng thái
 
-Xong **M0 — Khởi tạo** và **M1 — Tài khoản & nhóm** (xem [plan/07](plan/07-lo-trinh-va-trien-khai.plan.md)): đăng ký nhóm, đăng nhập bằng SĐT, quên/đổi mật khẩu, chọn và tạo thêm nhóm, cài đặt nhóm, loại thu chi, danh bạ (thêm, dán hàng loạt từ Excel), cấp tài khoản và vai trò. Phiếu thu chi, timeline, chiến dịch, SePay, AI đọc bill, `/system` chưa làm.
+Xong **M0 — Khởi tạo**, **M1 — Tài khoản & nhóm** và phần lớn **M2 — Thu chi & timeline** (xem [plan/07](plan/07-lo-trinh-va-trien-khai.plan.md)): đăng ký nhóm, đăng nhập bằng SĐT, danh bạ, cấp tài khoản; phiếu thu chi kèm ảnh sự kiện và ảnh bill (chỉ QTV xem), lịch sử sửa, xóa/khôi phục 30 ngày; timeline công khai/riêng tư có gộp phiếu chiến dịch theo ngày, tim, bình luận; thống kê và trang Tổng quan; ảnh bìa/đại diện, Open Graph. Chiến dịch + SePay (M4), AI đọc bill (M3), báo cáo/PWA/`/system` (M5) chưa làm.
+
+Dữ liệu mẫu: `php artisan db:seed --class=DemoSeeder` tạo nhóm `nhomdemo` (công khai) và `chidoan-a12` (riêng tư). Tài khoản mẫu ghi ở đầu [DemoSeeder](database/seeders/DemoSeeder.php).
 
 ## Công nghệ
 

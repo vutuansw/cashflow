@@ -88,7 +88,8 @@ class TransactionPresenter
                     'action' => $h->action,
                     'user' => $h->user?->name,
                     'at' => $h->created_at?->toIso8601String(),
-                    'changes' => self::describeChanges($h->changes, $categories),
+                    // Lúc tạo phiếu chỉ cần ghi "Tạo phiếu"; ảnh chụp toàn bộ trường vẫn lưu trong changes.
+                    'changes' => $h->action === 'updated' ? self::describeChanges($h->changes, $categories) : [],
                 ];
             })->values(),
             'restorable_until' => $t->deleted_at?->copy()->addDays(config('cashflow.restore_days'))->toIso8601String(),

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 
 // Ô số tiền: hiện 1.500.000, trả về số nguyên. Bàn phím số trên điện thoại.
+defineOptions({ inheritAttrs: false });
 const props = defineProps({ modelValue: [Number, String, null] });
 const emit = defineEmits(['update:modelValue']);
 
