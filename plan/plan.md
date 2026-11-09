@@ -58,9 +58,9 @@ Không dùng Anthropic SDK: đọc bill đi qua OpenRouter giống `www/farm`.
 | 8 | AI đọc bill | **OpenRouter**, dùng lại cách của `www/farm` (`google/gemini-3.1-flash-lite`, dự phòng `google/gemini-3.7-flash`). AI chỉ điền form, người dùng bấm Lưu. **Không giới hạn** lượt mặc định; `/system` đặt được hạn mức từng nhóm, luôn ghi nhận lượt và chi phí. |
 | 9 | Ảnh bill | Lưu làm **chứng từ, chỉ QTV xem**. Timeline chỉ hiện ảnh sự kiện. |
 | 10 | Timeline | Có **thả tim + bình luận**, chỉ người đăng nhập thuộc nhóm. Khách xem link public chỉ thấy số tim và bình luận. QTV ẩn/xóa bình luận. |
-| 11 | Quản trị nền tảng | `quynhom.hipotech.vn/system`, tài khoản quản trị riêng nằm trong `cashflow_admin`. |
+| 11 | Quản trị nền tảng | `quynhom.hipotech.vn/system`, tài khoản quản trị riêng nằm trong `cashflow_system`. |
 | 12 | Tính năng thêm ở bản đầu | Xuất Excel, PWA, số dư đầu kỳ, thông báo email cho QTV. |
-| 13 | Database | `cashflow_groups` (dữ liệu khách hàng, dùng chung, phân tách bằng `group_id`) và `cashflow_admin` (quản trị dịch vụ). |
+| 13 | Database | `cashflow_groups` (dữ liệu khách hàng, dùng chung, phân tách bằng `group_id`) và `cashflow_system` (quản trị dịch vụ). |
 | 14 | Domain | `quynhom.hipotech.vn`, thư mục server `www/cashflow`. |
 
 ## 3. Kiến trúc
@@ -74,7 +74,7 @@ flowchart LR
     SEPAY[SePay webhook] --> WH[/api/webhooks/sepay/{code}/]
     WH --> API
     API --> G[(cashflow_groups: users, groups, danh bạ, phiếu, chiến dịch, timeline)]
-    API --> A[(cashflow_admin: quản trị viên HIPOTECH, dịch vụ nhóm, nhật ký)]
+    API --> A[(cashflow_system: quản trị viên HIPOTECH, dịch vụ nhóm, nhật ký)]
     API --> OR[OpenRouter: đọc bill]
     API --> Q[Hàng đợi database: email, xử lý ảnh]
     SPA --> QR[qr.sepay.vn: ảnh QR]

@@ -5,11 +5,11 @@ Hai connection trong `config/database.php`:
 | Connection | Database | Chứa |
 | --- | --- | --- |
 | `groups` (mặc định) | `cashflow_groups` | Dữ liệu khách hàng: tài khoản, nhóm, danh bạ, phiếu thu chi, chiến dịch, SePay, timeline. Mọi nhóm dùng chung, phân tách bằng `group_id`. Bảng hệ thống của Laravel (sessions, jobs, cache, failed_jobs) cũng ở đây. |
-| `admin` | `cashflow_admin` | Quản trị viên HIPOTECH, trạng thái dịch vụ của từng nhóm, nhật ký quản trị, thiết lập nền tảng. |
+| `system` | `cashflow_system` | Quản trị viên HIPOTECH, trạng thái dịch vụ của từng nhóm, nhật ký quản trị, thiết lập nền tảng. |
 
-Migration tách hai thư mục: `database/migrations` (groups) và `database/migrations/admin` (chạy `php artisan migrate --database=admin --path=database/migrations/admin`). Lệnh gộp `php artisan cashflow:migrate` chạy cả hai.
+Migration tách hai thư mục: `database/migrations` (groups) và `database/migrations/system` (chạy `php artisan migrate --database=system --path=database/migrations/system`). Lệnh gộp `php artisan cashflow:migrate` chạy cả hai.
 
-Không có khóa ngoại giữa hai database. `cashflow_admin.group_services.group_id` trỏ sang `cashflow_groups.groups.id` bằng quy ước, được giữ nhất quán trong service `GroupServiceManager`.
+Không có khóa ngoại giữa hai database. `cashflow_system.group_services.group_id` trỏ sang `cashflow_groups.groups.id` bằng quy ước, được giữ nhất quán trong service `GroupServiceManager`.
 
 Mọi bảng có `created_at`, `updated_at`. Tiền là `bigint unsigned` đơn vị đồng.
 
@@ -193,7 +193,7 @@ Số đã đóng = tổng `transactions.amount` cùng campaign_id + contact_id. 
 
 ---
 
-## 2. Database `cashflow_admin`
+## 2. Database `cashflow_system`
 
 ### admins
 

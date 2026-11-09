@@ -16,7 +16,7 @@ Mỗi mốc kết thúc bằng: test xanh, chạy thử trên trình duyệt ở
 
 ## 2. Kiểm thử
 
-- PHPUnit Feature + Unit, database test riêng `cashflow_groups_test`, `cashflow_admin_test` (MySQL thật, không SQLite, vì dùng hai connection và kiểu enum/json).
+- PHPUnit Feature + Unit, database test riêng `cashflow_groups_test`, `cashflow_system_test` (MySQL thật, không SQLite, vì dùng hai connection và kiểu enum/json).
 - Ca bắt buộc:
   - Cô lập nhóm: người nhóm A không đọc/sửa phiếu, danh bạ, ảnh, chiến dịch, hàng chờ của nhóm B (thử đổi id trên URL/API).
   - Phân quyền từng vai trò theo bảng ở [02](02-tai-khoan-va-phan-quyen.plan.md).
@@ -35,7 +35,7 @@ APP_URL=http://127.0.0.1:8000
 APP_LOCALE=vi
 DB_CONNECTION=groups
 DB_GROUPS_DATABASE=cashflow_groups
-DB_ADMIN_DATABASE=cashflow_admin
+DB_SYSTEM_DATABASE=cashflow_system
 PHONE_HASH_KEY=
 QUEUE_CONNECTION=database
 AI_DRIVER=fake
@@ -54,7 +54,7 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 | Thư mục | `/var/www/cashflow` |
 | Domain | `quynhom.hipotech.vn` (bản ghi A trỏ về VPS, SSL Let's Encrypt) |
 | PHP | `php8.4-fpm` dùng chung với chatbot, cần thêm `php8.4-gd` cho xử lý ảnh |
-| Database | `cashflow_groups`, `cashflow_admin`, user MySQL `cashflow` chỉ có quyền trên hai DB này |
+| Database | `cashflow_groups`, `cashflow_system`, user MySQL `cashflow` chỉ có quyền trên hai DB này |
 | Nginx | vhost riêng, `client_max_body_size 20m` (tải ảnh), root `public/` |
 | Hàng đợi | supervisor `cashflow-worker` (`queue:work --queue=default`) |
 | Cron | `schedule:run` mỗi phút: dọn bill mồ côi, xóa hẳn nhóm đã xóa quá 30 ngày, dọn phiếu xóa mềm quá 30 ngày |

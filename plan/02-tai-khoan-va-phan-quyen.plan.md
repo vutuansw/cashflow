@@ -3,7 +3,7 @@
 ## 1. Xác thực
 
 - SPA cùng domain, xác thực bằng **session cookie** của Laravel (guard `web`, provider `users` trên connection `groups`), CSRF qua cookie `XSRF-TOKEN`. Không cần token API.
-- Guard `system` riêng cho `/system`, provider `admins` trên connection `admin`, cookie session riêng (`cashflow_system_session`), không đăng nhập chéo.
+- Guard `system` riêng cho `/system`, provider `admins` trên connection `system`, cookie session riêng (`cashflow_system_session`), không đăng nhập chéo.
 - Đăng nhập: SĐT + mật khẩu. Tìm user theo `phone_hash`. Giới hạn 5 lần sai/phút theo SĐT + IP.
 - "Ghi nhớ đăng nhập" mặc định bật trên điện thoại (dùng như app).
 - Quên mật khẩu:
@@ -62,7 +62,7 @@ Thực hiện bằng Policy của Laravel + middleware `group.role:admin`. Phía
 
 ## 6. Trang quản trị nền tảng `/system`
 
-Dành cho nhân sự HIPOTECH, dữ liệu dịch vụ ở `cashflow_admin`.
+Dành cho nhân sự HIPOTECH, dữ liệu dịch vụ ở `cashflow_system`.
 
 | Màn hình | Chức năng |
 | --- | --- |
