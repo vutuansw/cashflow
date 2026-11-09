@@ -88,6 +88,22 @@ return [
         'photo_upload_max_kb' => 10 * 1024,
     ],
 
+    // Xử lý ảnh tải lên, xem plan/03 mục 3.
+    'images' => [
+        'large' => 1600,
+        'thumb' => 480,
+        'cover' => 1600,
+        'avatar' => 400,
+        'quality' => 80,
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+    ],
+
+    // Phiếu xóa mềm khôi phục được trong bao nhiêu ngày.
+    'restore_days' => 30,
+
+    // Cache số liệu tổng hợp của timeline/dashboard (giây).
+    'stats_cache_seconds' => 300,
+
     // Bao lâu thì service_status của nhóm (đọc từ cashflow_system) được cache.
     'service_status_cache_seconds' => 60,
 

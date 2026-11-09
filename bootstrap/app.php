@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureGroupRole;
+use App\Http\Middleware\EnsureGroupVisible;
 use App\Http\Middleware\RequireFreshPassword;
 use App\Http\Middleware\ResolveGroup;
 use Illuminate\Foundation\Application;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'group' => ResolveGroup::class,
             'group.role' => EnsureGroupRole::class,
+            'group.view' => EnsureGroupVisible::class,
             'password.fresh' => RequireFreshPassword::class,
         ]);
 

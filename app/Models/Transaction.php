@@ -23,6 +23,8 @@ class Transaction extends Model
         'created_by', 'updated_by', 'deleted_by',
     ];
 
+    protected $attributes = ['source' => 'manual', 'show_on_timeline' => true];
+
     protected function casts(): array
     {
         return [
@@ -31,6 +33,27 @@ class Transaction extends Model
             'occurred_at' => 'datetime',
             'show_on_timeline' => 'boolean',
         ];
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function billScans(): HasMany
+    {
+        return $this->hasMany(BillScan::class);
+    }
+
+    /** Tên người đóng/nhận để hiển thị: người trong danh bạ, hoặc tên gõ tự do. */
+    public function personName(): ?string
+    {
+        return $this->contact?->full_name ?? $this->payer_name;
     }
 
     public function category(): BelongsTo

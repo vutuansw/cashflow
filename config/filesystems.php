@@ -38,6 +38,16 @@ return [
             'report' => false,
         ],
 
+        // Ảnh của các nhóm: ảnh sự kiện, bill chứng từ, ảnh bìa/đại diện. Không
+        // có URL trực tiếp; chỉ phục vụ qua route /media có kiểm quyền (plan/03 mục 3).
+        'media' => [
+            'driver' => 'local',
+            'root' => env('MEDIA_ROOT', storage_path('app/private')),
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

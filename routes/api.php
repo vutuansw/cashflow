@@ -3,10 +3,14 @@
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\Group\InteractionController;
+use App\Http\Controllers\Group\TimelineController;
 use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
 use App\Http\Controllers\GroupAdmin\MemberController;
+use App\Http\Controllers\GroupAdmin\OverviewController;
 use App\Http\Controllers\GroupAdmin\SettingsController;
+use App\Http\Controllers\GroupAdmin\TransactionController;
 use App\Http\Controllers\GroupController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,12 +41,45 @@ Route::middleware('auth')->group(function () {
     });
 });
 
+// Trang nhóm /{ma-nhom}: phần đầu luôn trả (nhóm private chỉ tên và ảnh),
+// còn lại theo chế độ xem public/private. Xem plan/03 mục 4-6.
+Route::prefix('/g/{group}')->middleware('group')->group(function () {
+    Route::get('/', [TimelineController::class, 'show']);
+
+    Route::middleware('group.view')->group(function () {
+        Route::get('/summary', [TimelineController::class, 'summary']);
+        Route::get('/timeline', [TimelineController::class, 'feed']);
+        Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
+        Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
+    });
+
+    Route::middleware(['auth', 'password.fresh', 'group.role:member'])->group(function () {
+        Route::post('/posts/{transaction}/heart', [InteractionController::class, 'heart'])->whereNumber('transaction');
+        Route::post('/posts/{transaction}/comments', [InteractionController::class, 'storeComment'])->whereNumber('transaction');
+        Route::put('/comments/{comment}', [InteractionController::class, 'updateComment'])->whereNumber('comment');
+        Route::delete('/comments/{comment}', [InteractionController::class, 'destroyComment'])->whereNumber('comment');
+        Route::post('/comments/{comment}/hide', [InteractionController::class, 'hideComment'])->whereNumber('comment');
+    });
+});
+
 // Quản trị nhóm: trưởng nhóm và quản trị viên, xem plan/02 mục 3.
 Route::prefix('/g/{group}/admin')
     ->middleware(['auth', 'password.fresh', 'group', 'group.role:admin'])
     ->group(function () {
+        Route::get('/overview', OverviewController::class);
+
         Route::get('/settings', [SettingsController::class, 'show']);
         Route::put('/settings', [SettingsController::class, 'update']);
+        Route::post('/settings/images', [SettingsController::class, 'uploadImage']);
+        Route::delete('/settings/images/{kind}', [SettingsController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
+
+        Route::get('/transactions', [TransactionController::class, 'index']);
+        Route::get('/transactions/options', [TransactionController::class, 'options']);
+        Route::post('/transactions', [TransactionController::class, 'store']);
+        Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->withTrashed();
+        Route::post('/transactions/{transaction}', [TransactionController::class, 'update']);
+        Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
+        Route::post('/transactions/{transaction}/restore', [TransactionController::class, 'restore'])->withTrashed();
 
         Route::get('/categories', [CategoryController::class, 'index']);
         Route::post('/categories', [CategoryController::class, 'store']);

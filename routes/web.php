@@ -1,8 +1,17 @@
 <?php
 
+use App\Http\Controllers\Group\MediaController;
+use App\Http\Controllers\SpaController;
 use Illuminate\Support\Facades\Route;
 
+// Ảnh của nhóm: kiểm quyền rồi mới trả file, xem plan/03 mục 3.
+Route::prefix('/media/{group}')->middleware('group')->group(function () {
+    Route::get('/p/{photo}/{size}', [MediaController::class, 'photo'])->whereNumber('photo')->whereIn('size', ['sm', 'lg']);
+    Route::get('/b/{scan}', [MediaController::class, 'bill'])->whereNumber('scan');
+    Route::get('/brand/{kind}/{name}', [MediaController::class, 'brand'])->whereIn('kind', ['avatar', 'cover'])->where('name', '[a-z0-9-]+');
+});
+
 // Mọi đường dẫn giao diện do vue-router xử lý; chỉ trừ API và file tĩnh.
-Route::view('/{path?}', 'app')
-    ->where('path', '^(?!api/|up$|build/|storage/).*$')
+Route::get('/{path?}', SpaController::class)
+    ->where('path', '^(?!api/|up$|build/|storage/|media/).*$')
     ->name('spa');

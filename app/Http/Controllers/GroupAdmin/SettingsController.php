@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Services\GroupServiceStatus;
+use App\Services\Media\ImageStore;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -36,6 +38,31 @@ class SettingsController extends Controller
 
         $data['bank_account_name'] = isset($data['bank_account_name']) ? mb_strtoupper($data['bank_account_name']) : null;
         $group->update($data);
+
+        return $this->payload($request, $group);
+    }
+
+    /** Ảnh đại diện hoặc ảnh bìa trên trang nhóm. */
+    public function uploadImage(Request $request, Group $group, ImageStore $images)
+    {
+        $data = $request->validate([
+            'kind' => ['required', 'in:avatar,cover'],
+            'image' => ['required', 'file', 'mimes:'.implode(',', config('cashflow.images.mimes')), 'max:'.config('cashflow.limits.photo_upload_max_kb')],
+        ]);
+
+        $column = $data['kind'].'_path';
+        $old = $group->{$column};
+        $group->update([$column => $images->storeGroupImage($group, $request->file('image'), $data['kind'])]);
+        $images->delete([$old]);
+
+        return $this->payload($request, $group);
+    }
+
+    public function deleteImage(Request $request, Group $group, string $kind, ImageStore $images)
+    {
+        $column = $kind.'_path';
+        $images->delete([$group->{$column}]);
+        $group->update([$column => null]);
 
         return $this->payload($request, $group);
     }
@@ -86,6 +113,8 @@ class SettingsController extends Controller
             'code' => $group->code,
             'name' => $group->name,
             'description' => $group->description,
+            'avatar_url' => MediaUrl::brand($group, 'avatar'),
+            'cover_url' => MediaUrl::brand($group, 'cover'),
             'visibility' => $group->visibility,
             'opening_balance' => $group->opening_balance,
             'opening_balance_date' => $group->opening_balance_date?->toDateString(),
