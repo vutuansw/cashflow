@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@source '../../storage/framework/views/*.php';
+@source '../js/**/*.vue';
+
+/*
+| Token giao diện Quỹ nhóm, xem plan/06. Ngoài khối này không rải mã màu.
+| Màu nhấn xanh lá (thương hiệu, khoản thu), đỏ cho khoản chi. Có chế độ tối
+| theo hệ điều hành.
+*/
+:root {
+  color-scheme: light;
+  --app-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --background: #f6f7f6;
+  --foreground: #111827;
+  --card: #ffffff;
+  --muted: #eef1ef;
+  --muted-foreground: #4b5563;
+  --border: #d9dedb;
+
+  --primary: #15803d;          /* 5,0:1 với chữ trắng */
+  --primary-hover: #166534;
+  --primary-foreground: #ffffff;
+
+  --income: #15803d;
+  --expense: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0f1412;
+    --foreground: #e8ece9;
+    --card: #171d1a;
+    --muted: #1f2622;
+    --muted-foreground: #a3ada7;
+    --border: #2c3530;
+
+    --primary: #22c55e;
+    --primary-hover: #4ade80;
+    --primary-foreground: #052e16;
+
+    --income: #4ade80;
+    --expense: #f87171;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--app-font);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+}

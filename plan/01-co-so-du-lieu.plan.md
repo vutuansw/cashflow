@@ -179,7 +179,7 @@ Số đã đóng = tổng `transactions.amount` cùng campaign_id + contact_id. 
 | matched_campaign_id | null: chiến dịch nhận ra từ `transfer_code` trong nội dung |
 | suggested_contact_id | null: người đóng đoán từ tên trong nội dung |
 | status | enum(pending, approved, ignored) |
-| transaction_id | null: phiếu tạo ra khi duyệt |
+| (phiếu tạo ra) | không lưu cột ở đây; tra qua `transactions.sepay_transaction_id` (unique) để liên kết chỉ đi một chiều |
 | reviewed_by, reviewed_at | |
 
 ### reactions, comments — tương tác timeline

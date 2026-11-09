@@ -16,7 +16,7 @@ Mỗi mốc kết thúc bằng: test xanh, chạy thử trên trình duyệt ở
 
 ## 2. Kiểm thử
 
-- PHPUnit Feature + Unit, database test riêng `cashflow_groups_test`, `cashflow_system_test` (MySQL thật, không SQLite, vì dùng hai connection và kiểu enum/json).
+- PHPUnit Feature + Unit, database test riêng `cashflow_test_groups`, `cashflow_test_system` (TestCase từ chối chạy nếu tên database không bắt đầu bằng `cashflow_test_`) (MySQL thật, không SQLite, vì dùng hai connection và kiểu enum/json).
 - Ca bắt buộc:
   - Cô lập nhóm: người nhóm A không đọc/sửa phiếu, danh bạ, ảnh, chiến dịch, hàng chờ của nhóm B (thử đổi id trên URL/API).
   - Phân quyền từng vai trò theo bảng ở [02](02-tai-khoan-va-phan-quyen.plan.md).
