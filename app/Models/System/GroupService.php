@@ -17,6 +17,8 @@ class GroupService extends Model
         'max_photos_mb', 'reviewed_by', 'reviewed_at', 'note',
     ];
 
+    protected $attributes = ['review_status' => 'pending_review', 'service_status' => 'active'];
+
     protected function casts(): array
     {
         return [

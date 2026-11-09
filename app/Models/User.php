@@ -22,6 +22,9 @@ class User extends Authenticatable
 
     protected $fillable = ['name', 'phone', 'email', 'password', 'must_change_password', 'avatar_path', 'status'];
 
+    /** Giá trị mặc định giống migration, để model vừa tạo đọc được ngay (strict mode). */
+    protected $attributes = ['must_change_password' => false, 'status' => 'active'];
+
     protected $hidden = ['password', 'remember_token', 'phone', 'phone_hash'];
 
     protected function casts(): array

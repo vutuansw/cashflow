@@ -33,3 +33,8 @@ export async function api(path, { method = 'GET', body, headers = {} } = {}) {
     }
     return data;
 }
+
+/** API quản trị của nhóm đang xem: adminApi('chidoan-a12', '/contacts'). */
+export function adminApi(code, path, options) {
+    return api(`/g/${encodeURIComponent(code)}/admin${path}`, options);
+}

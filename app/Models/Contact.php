@@ -21,6 +21,8 @@ class Contact extends Model
 
     protected $fillable = ['full_name', 'phone', 'birthday', 'address', 'note', 'user_id', 'status', 'sort_order'];
 
+    protected $attributes = ['status' => 'active', 'sort_order' => 0];
+
     protected $hidden = ['phone', 'phone_hash', 'address'];
 
     protected function casts(): array

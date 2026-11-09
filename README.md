@@ -8,7 +8,7 @@ Toàn bộ thiết kế nằm trong [`plan/`](plan/plan.md). Đổi thiết kế
 
 ## Trạng thái
 
-Đang ở mốc **M0 — Khởi tạo** (xem [plan/07](plan/07-lo-trinh-va-trien-khai.plan.md)): khung Laravel 13 + Vue 3 + Tailwind 4, hai database, migration đủ bảng, mã hóa SĐT, lọc dữ liệu theo nhóm. Chưa có màn hình nghiệp vụ.
+Xong **M0 — Khởi tạo** và **M1 — Tài khoản & nhóm** (xem [plan/07](plan/07-lo-trinh-va-trien-khai.plan.md)): đăng ký nhóm, đăng nhập bằng SĐT, quên/đổi mật khẩu, chọn và tạo thêm nhóm, cài đặt nhóm, loại thu chi, danh bạ (thêm, dán hàng loạt từ Excel), cấp tài khoản và vai trò. Phiếu thu chi, timeline, chiến dịch, SePay, AI đọc bill, `/system` chưa làm.
 
 ## Công nghệ
 

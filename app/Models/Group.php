@@ -26,6 +26,8 @@ class Group extends Model
         'notify_emails', 'notify_settings',
     ];
 
+    protected $attributes = ['visibility' => 'public', 'opening_balance' => 0];
+
     protected $hidden = ['bank_account_no', 'sepay_api_key'];
 
     protected function casts(): array

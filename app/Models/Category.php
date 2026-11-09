@@ -13,6 +13,8 @@ class Category extends Model
 
     protected $fillable = ['type', 'name', 'icon', 'color', 'is_system', 'sort_order', 'archived_at'];
 
+    protected $attributes = ['is_system' => false, 'sort_order' => 0];
+
     protected function casts(): array
     {
         return [
