@@ -11,6 +11,7 @@ use App\Services\Media\ImageStore;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /** Cài đặt nhóm, chuyển trưởng nhóm, xóa nhóm. Xem plan/02 mục 3, plan/06 mục 3. */
@@ -63,6 +64,32 @@ class SettingsController extends Controller
         $column = $kind.'_path';
         $images->delete([$group->{$column}]);
         $group->update([$column => null]);
+
+        return $this->payload($request, $group);
+    }
+
+    /**
+     * Bật/tắt nhận biến động số dư qua SePay. Bật thì sinh API key ngẫu nhiên
+     * 40 ký tự để dán vào cấu hình webhook bên my.sepay.vn (plan/05 mục 2).
+     */
+    public function sepay(Request $request, Group $group)
+    {
+        $data = $request->validate(['enabled' => ['required', 'boolean'], 'rotate' => ['nullable', 'boolean']]);
+
+        if (! $data['enabled']) {
+            $group->forceFill(['sepay_api_key' => null])->save();
+        } elseif ($group->sepay_api_key === null || ($data['rotate'] ?? false)) {
+            $group->forceFill(['sepay_api_key' => Str::random(40)])->save();
+        }
+
+        return $this->payload($request, $group);
+    }
+
+    /** Bật/tắt từng loại email thông báo. */
+    public function notifications(Request $request, Group $group)
+    {
+        $data = $request->validate(['sepay' => ['required', 'boolean']]);
+        $group->update(['notify_settings' => array_merge($group->notify_settings ?? [], $data)]);
 
         return $this->payload($request, $group);
     }
@@ -122,6 +149,13 @@ class SettingsController extends Controller
             'bank_account_no' => $group->bank_account_no,
             'bank_account_name' => $group->bank_account_name,
             'notify_emails' => $group->notify_emails ?? [],
+            'notify_settings' => ['sepay' => ($group->notify_settings['sepay'] ?? true) !== false],
+            'sepay' => [
+                'enabled' => $group->sepay_api_key !== null,
+                'api_key' => $group->sepay_api_key,
+                'webhook_url' => url("/api/webhooks/sepay/{$group->code}"),
+                'last_hook_at' => $group->sepay_last_hook_at?->toIso8601String(),
+            ],
             'my_role' => $member->role->value,
         ];
     }

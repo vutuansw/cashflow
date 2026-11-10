@@ -6,6 +6,7 @@ use App\Models\BillScan;
 use App\Models\Category;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\SepayTransaction;
 use App\Models\Transaction;
 use App\Models\TransactionHistory;
 use App\Models\TransactionPhoto;
@@ -48,16 +49,23 @@ class TransactionWriter
         try {
             $transaction = DB::connection('groups')->transaction(function () use ($group, $user, $data, $stored, $billPath) {
                 $scan = $this->scan($data['bill_scan_id'] ?? null);
+                $sepay = empty($data['sepay_transaction_id']) ? null : SepayTransaction::lockForUpdate()->find($data['sepay_transaction_id']);
+                if ($sepay !== null && ($sepay->status !== 'pending' || Transaction::withTrashed()->where('sepay_transaction_id', $sepay->id)->exists())) {
+                    throw ValidationException::withMessages(['sepay_transaction_id' => 'Giao dịch SePay này đã được duyệt hoặc bỏ qua.']);
+                }
 
                 $transaction = Transaction::forceCreate($this->attributes($data) + [
                     'group_id' => $group->id,
-                    'source' => $scan?->status === 'done' && $scan->model !== null ? 'ai_bill' : 'manual',
+                    'source' => $sepay ? 'sepay' : ($scan?->status === 'done' && $scan->model !== null ? 'ai_bill' : 'manual'),
+                    'sepay_transaction_id' => $sepay?->id,
                     'created_by' => $user->id,
                     'updated_by' => $user->id,
                 ]);
 
                 $this->attachPhotos($transaction, $stored, 0);
                 $this->attachBill($transaction, $user, $scan, $billPath);
+
+                $sepay?->forceFill(['status' => 'approved', 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
 
                 $this->log($transaction, $user, 'created', ['after' => $this->snapshot($transaction)]);
 
@@ -160,9 +168,15 @@ class TransactionWriter
     public function delete(Transaction $transaction, User $user): void
     {
         DB::connection('groups')->transaction(function () use ($transaction, $user) {
-            $transaction->forceFill(['deleted_by' => $user->id])->save();
+            // Phiếu từ SePay: bỏ liên kết để giao dịch quay về hàng chờ (plan/05 mục 4);
+            // nhớ id trong lịch sử để khôi phục phiếu thì gắn lại.
+            $sepayId = $transaction->sepay_transaction_id;
+            $transaction->forceFill(['deleted_by' => $user->id, 'sepay_transaction_id' => null])->save();
             $transaction->delete();
-            $this->log($transaction, $user, 'deleted', null);
+            if ($sepayId) {
+                SepayTransaction::whereKey($sepayId)->update(['status' => 'pending', 'reviewed_by' => null, 'reviewed_at' => null]);
+            }
+            $this->log($transaction, $user, 'deleted', $sepayId ? ['sepay_transaction_id' => $sepayId] : null);
         });
 
         $this->stats->forget($transaction->group_id);
@@ -180,7 +194,17 @@ class TransactionWriter
 
         DB::connection('groups')->transaction(function () use ($transaction, $user) {
             $transaction->restore();
-            $transaction->forceFill(['deleted_by' => null, 'updated_by' => $user->id])->save();
+            $attributes = ['deleted_by' => null, 'updated_by' => $user->id];
+
+            // Gắn lại giao dịch SePay nếu nó vẫn đang chờ (chưa ai duyệt thành phiếu khác).
+            $sepayId = TransactionHistory::where('transaction_id', $transaction->id)->where('action', 'deleted')->latest('id')->value('changes')['sepay_transaction_id'] ?? null;
+            $sepay = $sepayId ? SepayTransaction::lockForUpdate()->find($sepayId) : null;
+            if ($sepay?->status === 'pending' && ! Transaction::withTrashed()->where('sepay_transaction_id', $sepay->id)->exists()) {
+                $attributes['sepay_transaction_id'] = $sepay->id;
+                $sepay->forceFill(['status' => 'approved', 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
+            }
+
+            $transaction->forceFill($attributes)->save();
             $this->log($transaction, $user, 'restored', null);
         });
 

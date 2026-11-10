@@ -3,13 +3,16 @@
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\Group\CampaignPageController;
 use App\Http\Controllers\Group\InteractionController;
 use App\Http\Controllers\Group\TimelineController;
 use App\Http\Controllers\GroupAdmin\BillScanController;
+use App\Http\Controllers\GroupAdmin\CampaignController;
 use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
 use App\Http\Controllers\GroupAdmin\MemberController;
 use App\Http\Controllers\GroupAdmin\OverviewController;
+use App\Http\Controllers\GroupAdmin\SepayQueueController;
 use App\Http\Controllers\GroupAdmin\SettingsController;
 use App\Http\Controllers\GroupAdmin\TransactionController;
 use App\Http\Controllers\GroupController;
@@ -52,6 +55,8 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/timeline', [TimelineController::class, 'feed']);
         Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
         Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
+        Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
+        Route::get('/campaigns/{slug}/qr.png', [CampaignPageController::class, 'qr'])->where('slug', '[a-z0-9-]+');
     });
 
     Route::middleware(['auth', 'password.fresh', 'group.role:member'])->group(function () {
@@ -73,6 +78,25 @@ Route::prefix('/g/{group}/admin')
         Route::put('/settings', [SettingsController::class, 'update']);
         Route::post('/settings/images', [SettingsController::class, 'uploadImage']);
         Route::delete('/settings/images/{kind}', [SettingsController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
+
+        Route::post('/settings/sepay', [SettingsController::class, 'sepay']);
+        Route::put('/settings/notifications', [SettingsController::class, 'notifications']);
+
+        Route::get('/campaigns', [CampaignController::class, 'index']);
+        Route::get('/campaigns/options', [CampaignController::class, 'options']);
+        Route::post('/campaigns', [CampaignController::class, 'store']);
+        Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])->whereNumber('campaign');
+        Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->whereNumber('campaign');
+        Route::delete('/campaigns/{campaign}', [CampaignController::class, 'destroy'])->whereNumber('campaign');
+        Route::post('/campaigns/{campaign}/cash', [CampaignController::class, 'cash'])->whereNumber('campaign');
+
+        Route::get('/sepay', [SepayQueueController::class, 'index']);
+        Route::get('/sepay/count', [SepayQueueController::class, 'count']);
+        Route::post('/sepay/approve', [SepayQueueController::class, 'approveMany']);
+        Route::get('/sepay/{sepay}', [SepayQueueController::class, 'show'])->whereNumber('sepay');
+        Route::post('/sepay/{sepay}/approve', [SepayQueueController::class, 'approve'])->whereNumber('sepay');
+        Route::post('/sepay/{sepay}/ignore', [SepayQueueController::class, 'ignore'])->whereNumber('sepay');
+        Route::post('/sepay/{sepay}/restore', [SepayQueueController::class, 'restore'])->whereNumber('sepay');
 
         Route::post('/bill-scans', [BillScanController::class, 'store']);
         Route::get('/bill-scans/{scan}', [BillScanController::class, 'show'])->whereNumber('scan');

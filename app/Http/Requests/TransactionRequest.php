@@ -6,6 +6,7 @@ use App\Models\BillScan;
 use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Contact;
+use App\Models\SepayTransaction;
 use App\Models\Transaction;
 use App\Models\TransactionPhoto;
 use Illuminate\Foundation\Http\FormRequest;
@@ -31,7 +32,7 @@ class TransactionRequest extends FormRequest
             // Ô tiền gửi lên có thể còn dấu chấm hàng nghìn: "1.500.000".
             $merge['amount'] = preg_replace('/\D/', '', $this->input('amount'));
         }
-        foreach (['campaign_id', 'contact_id', 'bill_scan_id'] as $key) {
+        foreach (['campaign_id', 'contact_id', 'bill_scan_id', 'sepay_transaction_id'] as $key) {
             if ($this->input($key) === '' || $this->input($key) === 'null') {
                 $merge[$key] = null;
             }
@@ -64,6 +65,7 @@ class TransactionRequest extends FormRequest
             'photo_order.*' => ['string', 'max:20'],
             'bill' => ['nullable', 'file', "mimes:{$mimes}", "max:{$maxKb}"],
             'bill_scan_id' => ['nullable', 'integer'],
+            'sepay_transaction_id' => ['nullable', 'integer'],
             'remove_bill_ids' => ['nullable', 'array'],
             'remove_bill_ids.*' => ['integer'],
         ];
@@ -103,6 +105,16 @@ class TransactionRequest extends FormRequest
                 $scan = BillScan::find($this->integer('bill_scan_id'));
                 if ($scan === null || ($scan->transaction_id !== null && $scan->transaction_id !== $current?->id)) {
                     $validator->errors()->add('bill_scan_id', 'Ảnh bill không còn hoặc đã gắn vào phiếu khác.');
+                }
+            }
+
+            // Duyệt giao dịch SePay qua form: chỉ khi tạo phiếu mới, đúng chiều tiền.
+            if ($this->filled('sepay_transaction_id')) {
+                $sepay = SepayTransaction::find($this->integer('sepay_transaction_id'));
+                if ($current !== null || $sepay === null || $sepay->status !== 'pending') {
+                    $validator->errors()->add('sepay_transaction_id', 'Giao dịch SePay này không còn chờ duyệt.');
+                } elseif (($sepay->transfer_type === 'in') !== ($this->input('type') === 'income')) {
+                    $validator->errors()->add('type', $sepay->transfer_type === 'in' ? 'Tiền vào tài khoản thì phải là phiếu thu.' : 'Tiền ra khỏi tài khoản thì phải là phiếu chi.');
                 }
             }
 

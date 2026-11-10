@@ -35,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
         // Đăng ký nhóm: 3 lần/giờ/IP, xem plan/02 mục 2.
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(3)->by($request->ip()));
 
+        // Webhook SePay: 120 request/phút mỗi nhóm, xem plan/05 mục 3.
+        RateLimiter::for('sepay', fn (Request $request) => Limit::perMinute(120)->by('sepay:'.$request->route('group')));
+
         ResetPassword::createUrlUsing(fn ($user, string $token) => url('/dat-lai-mat-khau').'?'.http_build_query([
             'token' => $token,
             'email' => $user->email,

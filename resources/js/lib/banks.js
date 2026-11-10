@@ -1,5 +1,5 @@
 // Mã ngân hàng theo tham số "bank" của qr.sepay.vn. Danh sách đầy đủ ở https://qr.sepay.vn/banks.json,
-// kiểm lại lúc làm tích hợp SePay (mốc M4, plan/05).
+// đã đối chiếu ngày 10/11/2026 (tham số bank nhận short_name).
 export const BANKS = [
     { code: 'Vietcombank', name: 'Vietcombank' },
     { code: 'VietinBank', name: 'VietinBank' },
@@ -18,7 +18,7 @@ export const BANKS = [
     { code: 'MSB', name: 'MSB' },
     { code: 'OCB', name: 'OCB' },
     { code: 'SeABank', name: 'SeABank' },
-    { code: 'LPBank', name: 'LPBank' },
+    { code: 'LienVietPostBank', name: 'LPBank (LienVietPostBank)' },
     { code: 'NamABank', name: 'Nam A Bank' },
     { code: 'KienLongBank', name: 'KienlongBank' },
     { code: 'BacABank', name: 'Bac A Bank' },
@@ -27,4 +27,9 @@ export const BANKS = [
     { code: 'VietABank', name: 'VietABank' },
     { code: 'NCB', name: 'NCB' },
     { code: 'VietBank', name: 'VietBank' },
+    { code: 'VietCapitalBank', name: 'Bản Việt (VietCapital)' },
+    { code: 'ShinhanBank', name: 'Shinhan Bank' },
+    { code: 'SCB', name: 'SCB' },
+    { code: 'GPBank', name: 'GPBank' },
+    { code: 'SaigonBank', name: 'Saigonbank' },
 ];

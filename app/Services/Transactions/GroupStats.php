@@ -6,8 +6,8 @@ use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Group;
 use App\Models\Transaction;
+use App\Services\Campaigns\CampaignProgress;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Số liệu tổng hợp cho thẻ tóm tắt trên timeline và trang Tổng quan.
@@ -88,19 +88,10 @@ class GroupStats
                 ->orderByDesc('id')
                 ->get();
 
-            return $campaigns->map(function (Campaign $c) {
-                $collected = (int) $this->base($c->group_id)->where('campaign_id', $c->id)->sum('amount');
+            $progress = app(CampaignProgress::class);
 
-                $members = DB::connection('groups')->table('campaign_members as cm')
-                    ->where('cm.campaign_id', $c->id)
-                    ->where('cm.exempt', false)
-                    ->leftJoinSub(
-                        $this->base($c->group_id)->where('campaign_id', $c->id)
-                            ->selectRaw('contact_id, SUM(amount) as paid')->groupBy('contact_id')->toBase(),
-                        'p', 'p.contact_id', '=', 'cm.contact_id',
-                    )
-                    ->selectRaw('COUNT(*) as total, SUM(CASE WHEN COALESCE(p.paid, 0) >= COALESCE(cm.expected_amount, ?, 1) THEN 1 ELSE 0 END) as paid', [$c->amount_per_member])
-                    ->first();
+            return $campaigns->map(function (Campaign $c) use ($progress) {
+                $p = $progress->of($c);
 
                 return [
                     'id' => $c->id,
@@ -110,9 +101,10 @@ class GroupStats
                     'amount_per_member' => $c->amount_per_member,
                     'target_amount' => $c->target_amount,
                     'ends_on' => $c->ends_on?->toDateString(),
-                    'collected' => $collected,
-                    'members_total' => (int) ($members->total ?? 0),
-                    'members_paid' => (int) ($members->paid ?? 0),
+                    'collected' => $p['collected'],
+                    'expected_total' => $p['expected_total'],
+                    'members_total' => $p['members_total'],
+                    'members_paid' => $p['members_paid'],
                 ];
             })->all();
         });
