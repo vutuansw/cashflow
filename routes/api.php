@@ -6,12 +6,14 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Group\CampaignPageController;
 use App\Http\Controllers\Group\InteractionController;
+use App\Http\Controllers\Group\JoinController;
 use App\Http\Controllers\Group\MemberProfileController;
 use App\Http\Controllers\Group\TimelineController;
 use App\Http\Controllers\GroupAdmin\BillScanController;
 use App\Http\Controllers\GroupAdmin\CampaignController;
 use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
+use App\Http\Controllers\GroupAdmin\JoinRequestController;
 use App\Http\Controllers\GroupAdmin\MemberController;
 use App\Http\Controllers\GroupAdmin\OverviewController;
 use App\Http\Controllers\GroupAdmin\PaymentClaimController;
@@ -57,6 +59,11 @@ Route::middleware('auth')->group(function () {
 Route::prefix('/g/{group}')->middleware('group')->group(function () {
     Route::get('/', [TimelineController::class, 'show']);
 
+    // Link đăng ký vào nhóm /{ma-nhom}/register, xem plan/13.
+    Route::get('/join', [JoinController::class, 'show']);
+    Route::post('/join/register', [JoinController::class, 'register'])->middleware(['guest', 'throttle:register']);
+    Route::post('/join', [JoinController::class, 'store'])->middleware(['auth', 'password.fresh', 'throttle:10,1']);
+
     Route::middleware('group.view')->group(function () {
         Route::get('/summary', [TimelineController::class, 'summary']);
         Route::get('/timeline', [TimelineController::class, 'feed']);
@@ -92,6 +99,7 @@ Route::prefix('/g/{group}/admin')
 
         Route::post('/settings/sepay', [SettingsController::class, 'sepay']);
         Route::put('/settings/notifications', [SettingsController::class, 'notifications']);
+        Route::put('/settings/join-link', [SettingsController::class, 'joinLink']);
 
         Route::get('/campaigns', [CampaignController::class, 'index']);
         Route::get('/campaigns/options', [CampaignController::class, 'options']);
@@ -139,9 +147,14 @@ Route::prefix('/g/{group}/admin')
         Route::post('/contacts/import/file', [ContactController::class, 'importFile']);
         Route::get('/contacts/import/template', [ContactController::class, 'importTemplate']);
 
-        Route::get('/reports/{type}', [ReportController::class, 'show'])->whereIn('type', ['so-quy', 'theo-loai', 'theo-thang', 'campaign']);
+        Route::get('/reports/{type}', [ReportController::class, 'show'])->whereIn('type', ['ledger', 'by-category', 'by-month', 'campaign']);
         Route::put('/contacts/{contact}', [ContactController::class, 'update']);
         Route::delete('/contacts/{contact}', [ContactController::class, 'destroy']);
+
+        Route::get('/join-requests', [JoinRequestController::class, 'index']);
+        Route::post('/join-requests/approve', [JoinRequestController::class, 'approveMany']);
+        Route::post('/join-requests/{joinRequest}/approve', [JoinRequestController::class, 'approve'])->whereNumber('joinRequest');
+        Route::post('/join-requests/{joinRequest}/reject', [JoinRequestController::class, 'reject'])->whereNumber('joinRequest');
 
         Route::get('/members', [MemberController::class, 'index']);
         Route::post('/members', [MemberController::class, 'store']);

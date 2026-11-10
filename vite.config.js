@@ -14,6 +14,12 @@ export default defineConfig({
                 bunny('Inter', {
                     weights: [400, 500, 600, 700],
                 }),
+                // Chữ tiêu đề landing page (plan/14). Chỉ trang chủ dùng nên không preload.
+                bunny('Be Vietnam Pro', {
+                    weights: [700, 800],
+                    subsets: ['latin', 'vietnamese'],
+                    preload: false,
+                }),
             ],
         }),
         vue({

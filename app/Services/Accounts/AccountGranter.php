@@ -71,7 +71,7 @@ class AccountGranter
     {
         $lines = [
             "WePo - {$group->name}",
-            'Đăng nhập: '.rtrim((string) config('app.url'), '/').'/dang-nhap',
+            'Đăng nhập: '.rtrim((string) config('app.url'), '/').'/login',
             "Số điện thoại: {$user->phone}",
         ];
 

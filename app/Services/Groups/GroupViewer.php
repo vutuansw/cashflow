@@ -4,6 +4,7 @@ namespace App\Services\Groups;
 
 use App\Enums\GroupRole;
 use App\Models\Group;
+use App\Models\GroupJoinRequest;
 use App\Models\GroupMember;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -74,12 +75,16 @@ class GroupViewer
         return [
             'logged_in' => $this->user !== null,
             'is_member' => $this->isMember(),
-            // Để dựng link "trang của tôi" /{ma-nhom}/thanh-vien/{member_id}. Xem plan/08 mục 10b.
+            // Để dựng link "trang của tôi" /{ma-nhom}/members/{member_id}. Xem plan/08 mục 10b.
             'member_id' => $this->member?->id,
             'role' => $this->role()?->value,
             'role_label' => $this->role()?->label(),
             'can_interact' => $this->canInteract(),
             'can_manage' => $this->canManage(),
+            // Đã xin vào nhóm qua link, đang chờ QTV duyệt (plan/13).
+            'join_pending' => $this->user !== null && ! $this->isMember()
+                && GroupJoinRequest::query()->where('group_id', $this->group->id)->where('user_id', $this->user->id)->where('status', 'pending')->exists(),
+            'join_link_enabled' => $this->group->join_link_enabled,
         ];
     }
 }

@@ -15,12 +15,12 @@ const route = useRoute();
 const code = computed(() => route.params.group);
 
 const types = [
-    { v: 'so-quy', l: 'Sổ quỹ' },
-    { v: 'theo-loai', l: 'Theo loại' },
-    { v: 'theo-thang', l: 'Theo tháng' },
+    { v: 'ledger', l: 'Sổ quỹ' },
+    { v: 'by-category', l: 'Theo loại' },
+    { v: 'by-month', l: 'Theo tháng' },
     { v: 'campaign', l: 'Chiến dịch' },
 ];
-const type = ref(route.query.loai ?? 'so-quy');
+const type = ref(route.query.report ?? 'ledger');
 // Kỳ báo cáo như màn danh sách phiếu: Tháng / Năm lùi tiến bằng ‹ ›, hoặc "Tùy chọn" nhập từ ngày đến ngày.
 const period = usePeriod(route.query, { kinds: ['month', 'year'] });
 const custom = ref(false);
@@ -82,7 +82,7 @@ watch([type, query], () => {
 </script>
 
 <template>
-    <AdminShell title="Báo cáo" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
+    <AdminShell title="Báo cáo" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/admin/more` }]" mobile-only>
         <SegmentedControl v-model="type" :options="types" label="Loại báo cáo" />
 
         <section class="card mt-3 space-y-3 p-3">
@@ -105,7 +105,7 @@ watch([type, query], () => {
         <p v-else-if="error" class="mt-3 rounded-xl bg-expense/10 p-3 text-sm text-expense">{{ error }}</p>
 
         <!-- Sổ quỹ -->
-        <section v-else-if="data && type === 'so-quy'" class="mt-3 space-y-3">
+        <section v-else-if="data && type === 'ledger'" class="mt-3 space-y-3">
             <div class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                 <div class="card p-3"><p class="text-muted-foreground">Đầu kỳ</p><p class="font-semibold tabular-nums">{{ formatMoney(data.opening) }}</p></div>
                 <div class="card p-3"><p class="text-muted-foreground">Thu</p><p class="font-semibold tabular-nums text-income">{{ formatMoney(data.income) }}</p></div>
@@ -128,7 +128,7 @@ watch([type, query], () => {
         </section>
 
         <!-- Theo loại -->
-        <section v-else-if="data && type === 'theo-loai'" class="mt-3 space-y-3">
+        <section v-else-if="data && type === 'by-category'" class="mt-3 space-y-3">
             <div v-for="t in [{ k: 'income', l: 'Thu', c: 'text-income' }, { k: 'expense', l: 'Chi', c: 'text-expense' }]" :key="t.k" class="card p-3">
                 <p class="flex justify-between font-semibold"><span>{{ t.l }}</span><span class="tabular-nums" :class="t.c">{{ formatMoney(data[t.k].total) }}</span></p>
                 <table class="mt-2 w-full text-sm">
@@ -146,7 +146,7 @@ watch([type, query], () => {
         </section>
 
         <!-- Theo tháng -->
-        <section v-else-if="data && type === 'theo-thang'" class="card mt-3 overflow-x-auto p-3">
+        <section v-else-if="data && type === 'by-month'" class="card mt-3 overflow-x-auto p-3">
             <table class="w-full text-sm">
                 <thead><tr class="text-left text-muted-foreground"><th class="py-1 font-medium">Tháng</th><th class="py-1 text-right font-medium">Thu</th><th class="py-1 text-right font-medium">Chi</th><th class="py-1 text-right font-medium">Chênh lệch</th></tr></thead>
                 <tbody class="tabular-nums">

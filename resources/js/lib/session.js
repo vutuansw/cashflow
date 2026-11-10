@@ -36,10 +36,10 @@ export function canManage(code) {
 
 /** Sau đăng nhập: về trang được yêu cầu, hoặc vào thẳng nhóm nếu chỉ có một nhóm. */
 export function homePath(me = session.me) {
-    if (!me) return '/dang-nhap';
+    if (!me) return '/login';
     if (me.groups.length === 1) {
         const g = me.groups[0];
-        return ['owner', 'admin'].includes(g.role) ? `/${g.code}/quan-tri` : `/${g.code}`;
+        return ['owner', 'admin'].includes(g.role) ? `/${g.code}/admin` : `/${g.code}`;
     }
-    return '/nhom';
+    return '/groups';
 }

@@ -61,8 +61,9 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 | Ảnh | `storage/app/private/groups`, nằm ngoài thư mục deploy được ghi đè |
 | Sao lưu | mysqldump hai DB hằng ngày + rsync thư mục ảnh; **sao lưu riêng `APP_KEY` và `PHONE_HASH_KEY`** |
 | Deploy | `bash /var/www/wepo/deploy/deploy.sh` bằng root: git pull, composer/npm khi file khóa đổi, build, `cashflow:migrate --force` khi có migration, `optimize`, restart worker |
+| Tự deploy | Giống chatbot: mỗi lần push lên `main`, GitHub Actions ([.github/workflows/deploy.yml](../.github/workflows/deploy.yml)) SSH vào server chạy `deploy.sh`. Cần 3 secret `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` trong repo `vutuansw/cashflow` (thêm 10/11/2026) |
 
-`deploy/README.md` hướng dẫn dựng server lần đầu, giống chatbot.
+[deploy/README.md](../deploy/README.md) ghi cách cập nhật bằng tay và cách bật tự deploy.
 
 **Đã dựng ngày 10/11/2026** trên VPS `farmgo.vn` (chung FarmGo, chatbot):
 - Composer riêng `/opt/composer/composer.phar`, vì bản chung 2.1 quá cũ cho Laravel 13.

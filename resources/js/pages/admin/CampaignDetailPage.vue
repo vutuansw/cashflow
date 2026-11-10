@@ -41,7 +41,7 @@ const tabs = computed(() => [
     { v: 'paid', l: 'Đã đủ' },
     { v: 'exempt', l: 'Miễn' },
 ].map((t) => ({ ...t, count: groups.value[t.v].length })));
-const publicUrl = computed(() => `${location.origin}/${code.value}/chien-dich/${data.value?.slug}`);
+const publicUrl = computed(() => `${location.origin}/${code.value}/campaigns/${data.value?.slug}`);
 
 function copyReminder() {
     const lines = [...groups.value.unpaid, ...groups.value.partial].map((p, i) => `${i + 1}. ${p.name}${p.status === 'partial' ? ` (còn thiếu ${formatMoney(p.expected - p.paid)})` : ''}`);
@@ -62,9 +62,9 @@ async function saveCash() {
 </script>
 
 <template>
-    <AdminShell :title="data?.name ?? 'Chiến dịch'" :crumbs="[{ label: 'Chiến dịch', to: `/${code}/quan-tri/chien-dich` }]">
+    <AdminShell :title="data?.name ?? 'Chiến dịch'" :crumbs="[{ label: 'Chiến dịch', to: `/${code}/admin/campaigns` }]">
         <template #actions>
-            <RouterLink v-if="data" :to="`/${code}/quan-tri/chien-dich/${id}/sua`" class="icon-btn" aria-label="Sửa chiến dịch"><Pencil class="size-5" /></RouterLink>
+            <RouterLink v-if="data" :to="`/${code}/admin/campaigns/${id}/edit`" class="icon-btn" aria-label="Sửa chiến dịch"><Pencil class="size-5" /></RouterLink>
         </template>
         <p v-if="!data" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
         <div v-else class="space-y-3">

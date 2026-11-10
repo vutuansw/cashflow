@@ -18,8 +18,12 @@
     <meta property="og:image" content="{{ $meta['image'] }}">
     <meta name="twitter:card" content="summary_large_image">
     @endif
+    @if ($meta['demo_group'] ?? null)
+    <meta name="wepo-demo-group" content="{{ $meta['demo_group'] }}">
+    @endif
     <meta name="theme-color" content="#15803d">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">

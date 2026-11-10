@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Trang đóng quỹ /{ma-nhom}/chien-dich/{slug}: tiến độ, QR chuyển khoản, ai
+ * Trang đóng quỹ /{ma-nhom}/campaigns/{slug}: tiến độ, QR chuyển khoản, ai
  * đã đóng / chưa đóng (chỉ tên, không bao giờ có SĐT). Ai xem được timeline
  * thì xem được, gửi được bill đã chuyển khoản. Xem plan/05 mục 1, 5, 5b.
  */

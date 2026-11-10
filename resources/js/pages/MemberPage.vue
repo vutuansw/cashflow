@@ -10,8 +10,9 @@ import ProfileHeader from '../components/ProfileHeader.vue';
 import Sheet from '../components/Sheet.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
-// Trang thành viên /{ma-nhom}/thanh-vien/{id}, bố cục như trang cá nhân Facebook: phần đầu (ảnh bìa, avatar,
+// Trang thành viên /{ma-nhom}/members/{id}, bố cục như trang cá nhân Facebook: phần đầu (ảnh bìa, avatar,
 // tên), cột trái "Giới thiệu", cột phải "Hoạt động" (phiếu người đó đóng hoặc nhận). Xem plan/08 mục 1, 2, 5.
 const route = useRoute();
 const router = useRouter();
@@ -39,7 +40,7 @@ async function load() {
     }
 }
 
-const login = () => router.push({ path: '/dang-nhap', query: { next: route.fullPath } });
+const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
 const open = (url) => url && (viewing.value = [{ lg: url }]);
 
 function copyLink() {
@@ -74,14 +75,18 @@ watch([code, id], load);
         </div>
 
         <template v-else-if="member">
-            <ProfileHeader :member="member" :role="member.role_label" :context="group?.name" @cover="open(member.cover_url)" @avatar="open(member.avatar_url)">
+            <ProfileHeader :member="member" :role="member.role_label" :context="group?.name" :context-to="`/${code}`" @cover="open(member.cover_url)" @avatar="open(member.avatar_url)">
                 <template #badge><span v-if="member.removed" class="chip !bg-amber-100 !text-amber-800">Đã rời nhóm</span></template>
-                <RouterLink v-if="member.is_me" to="/ca-nhan" class="btn-pill" aria-label="Chỉnh sửa trang cá nhân" title="Chỉnh sửa trang cá nhân"><Pencil class="size-[18px]" /></RouterLink>
+                <RouterLink v-if="member.is_me" to="/profile" class="btn-pill" aria-label="Chỉnh sửa trang cá nhân" title="Chỉnh sửa trang cá nhân"><Pencil class="size-[18px]" /></RouterLink>
             </ProfileHeader>
 
             <!-- Điện thoại: Giới thiệu rồi Hoạt động. Máy tính: Giới thiệu cột trái (dính khi cuộn), Hoạt động cột phải. -->
             <div class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-                <MemberIntro class="lg:sticky lg:top-18" :member="member" :stats="profile.stats" :group-name="group?.name" :code="code" />
+                <!-- Máy tính: chân trang dưới thẻ Giới thiệu (cột trái dính khi cuộn), vì dòng hoạt động cuộn vô tận. -->
+                <div class="lg:sticky lg:top-18">
+                    <MemberIntro :member="member" :stats="profile.stats" :group-name="group?.name" :code="code" />
+                    <SiteFooter class="hidden !pt-3 lg:block" />
+                </div>
                 <MemberFeed :code="code" :member-id="member.id" :viewer="group?.viewer" @login="login" />
             </div>
         </template>
@@ -90,7 +95,7 @@ watch([code, id], load);
         <Sheet :open="menu" :title="member?.name" @close="menu = false">
             <div class="grid gap-3">
                 <button type="button" class="btn-outline" @click="copyLink"><Link2 class="size-4" /> Chép link trang này</button>
-                <RouterLink v-if="member?.is_me" to="/ca-nhan" class="btn-outline"><Pencil class="size-4" /> Chỉnh sửa trang cá nhân</RouterLink>
+                <RouterLink v-if="member?.is_me" to="/profile" class="btn-outline"><Pencil class="size-4" /> Chỉnh sửa trang cá nhân</RouterLink>
                 <RouterLink :to="`/${code}`" class="btn-outline"><House class="size-4" /> Về trang nhóm</RouterLink>
             </div>
         </Sheet>

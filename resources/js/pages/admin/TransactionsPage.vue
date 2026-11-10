@@ -21,21 +21,21 @@ const route = useRoute();
 const router = useRouter();
 const code = computed(() => route.params.group);
 
-// Bộ lọc nằm trên URL (?ky=month&moc=2026-11&thu_chi=...) để bấm ‹ từ màn chi tiết quay về vẫn giữ nguyên.
+// Bộ lọc nằm trên URL (?period=month&at=2026-11&type=...) để bấm ‹ từ màn chi tiết quay về vẫn giữ nguyên.
 const q = route.query;
 const period = usePeriod(q);
 const filters = ref({
-    type: q.thu_chi ?? '',
-    category_id: q.loai ?? '',
-    source: q.nguon ?? '',
-    q: q.tim ?? '',
+    type: q.type ?? '',
+    category_id: q.category ?? '',
+    source: q.source ?? '',
+    q: q.q ?? '',
 });
-const trashed = ref(q.da_xoa === '1');
+const trashed = ref(q.trashed === '1');
 
 function syncQuery() {
     const f = filters.value;
     const query = Object.fromEntries(Object.entries({
-        ...period.toQuery(), thu_chi: f.type, loai: f.category_id, nguon: f.source, tim: f.q, da_xoa: trashed.value ? '1' : '',
+        ...period.toQuery(), type: f.type, category: f.category_id, source: f.source, q: f.q, trashed: trashed.value ? '1' : '',
     }).filter(([, v]) => v !== '' && v !== null));
     router.replace({ query });
 }
@@ -125,7 +125,7 @@ const sourceLabel = { manual: 'Nhập tay', ai_bill: 'AI đọc bill', sepay: 'S
 <template>
     <AdminShell :title="trashed ? 'Phiếu đã xóa' : 'Phiếu thu chi'">
         <template #actions>
-            <RouterLink :to="`/${code}/quan-tri/phieu/moi?loai=chi`" class="btn-primary hidden !min-h-10 sm:inline-flex"><Plus class="size-4" /> Phiếu mới</RouterLink>
+            <RouterLink :to="`/${code}/admin/transactions/new?type=expense`" class="btn-primary hidden !min-h-10 sm:inline-flex"><Plus class="size-4" /> Phiếu mới</RouterLink>
         </template>
 
         <FilterBar v-model:q="filters.q" placeholder="Tìm tiêu đề, tên người" :chips="activeChips" :total="meta?.total ?? null" unit="phiếu" title="Lọc phiếu" @remove="removeChip" @reset="resetFilters">
@@ -165,7 +165,7 @@ const sourceLabel = { manual: 'Nhập tay', ai_bill: 'AI đọc bill', sepay: 'S
 
         <ul class="card mt-3 divide-y divide-border">
             <li v-for="row in rows" :key="row.id">
-                <component :is="trashed ? 'div' : 'RouterLink'" :to="trashed ? undefined : `/${code}/quan-tri/phieu/${row.id}`" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': !trashed }">
+                <component :is="trashed ? 'div' : 'RouterLink'" :to="trashed ? undefined : `/${code}/admin/transactions/${row.id}`" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': !trashed }">
                     <CategoryIcon :name="row.category?.icon" :color="row.category?.color" />
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-medium">{{ row.title }}</p>
@@ -187,7 +187,7 @@ const sourceLabel = { manual: 'Nhập tay', ai_bill: 'AI đọc bill', sepay: 'S
             </li>
             <li v-if="!loading && !rows.length" class="p-6 text-center text-sm text-muted-foreground">
                 {{ trashed ? 'Không có phiếu nào đã xóa.' : 'Chưa có phiếu nào khớp bộ lọc.' }}
-                <RouterLink v-if="!trashed" :to="`/${code}/quan-tri/phieu/moi?loai=chi`" class="mt-2 block font-semibold text-primary">Tạo phiếu đầu tiên</RouterLink>
+                <RouterLink v-if="!trashed" :to="`/${code}/admin/transactions/new?type=expense`" class="mt-2 block font-semibold text-primary">Tạo phiếu đầu tiên</RouterLink>
             </li>
         </ul>
 

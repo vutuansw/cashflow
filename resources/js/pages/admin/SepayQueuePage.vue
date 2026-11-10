@@ -17,7 +17,7 @@ const route = useRoute();
 const router = useRouter();
 const code = computed(() => route.params.group);
 // Hai nguồn: "sepay" (tài khoản nhóm báo về) và "bill" (thành viên gửi ảnh bill). Giữ trên URL để Back quay đúng tab.
-const source = ref(route.query.loai === 'bill' ? 'bill' : 'sepay');
+const source = ref(route.query.source === 'bill' ? 'bill' : 'sepay');
 const status = ref('pending');
 const items = ref(null);
 const counts = ref({});
@@ -39,7 +39,7 @@ async function load() {
 onMounted(async () => {
     const c = await adminApi(code.value, '/sepay/count').catch(() => null);
     // Không có giao dịch SePay chờ mà có bill thành viên thì mở thẳng tab bill.
-    if (c && !route.query.loai && !c.sepay && c.claims) source.value = 'bill';
+    if (c && !route.query.source && !c.sepay && c.claims) source.value = 'bill';
     load();
     sepayOn.value = (await adminApi(code.value, '/settings').catch(() => null))?.sepay?.enabled ?? true;
 });
@@ -47,7 +47,7 @@ watch(status, load);
 watch(source, (v) => {
     items.value = null;
     status.value === 'pending' ? load() : (status.value = 'pending');
-    router.replace({ query: { ...route.query, loai: v === 'bill' ? 'bill' : undefined } });
+    router.replace({ query: { ...route.query, source: v === 'bill' ? 'bill' : undefined } });
 });
 
 // Chiến dịch đoán (nội dung không có mã) không đưa vào Duyệt cả loạt, QTV duyệt từng cái.
@@ -82,7 +82,7 @@ async function approveAll() {
 }
 
 // Mở form phiếu điền sẵn để chọn lại người, loại, thêm ảnh (tiền ra luôn đi đường này).
-const openForm = (t) => router.push(`/${code.value}/quan-tri/phieu/moi?sepay=${t.id}`);
+const openForm = (t) => router.push(`/${code.value}/admin/transactions/new?sepay=${t.id}`);
 
 async function ignore() {
     const path = source.value === 'bill' ? '/claims' : '/sepay';
@@ -117,7 +117,7 @@ async function approveClaim(c, mode) {
         busy.value = null;
     }
 }
-const openClaimForm = (c) => router.push(`/${code.value}/quan-tri/phieu/moi?claim=${c.id}`);
+const openClaimForm = (c) => router.push(`/${code.value}/admin/transactions/new?claim=${c.id}`);
 const aiText = (c) =>
     ({ processing: 'AI đang đọc bill…', failed: 'AI không đọc được bill', none: 'Không có ảnh' })[c.ai.state] ??
     (c.ai.amount ? null : 'Ảnh không giống bill chuyển khoản');
@@ -128,7 +128,7 @@ const aiText = (c) =>
         <div v-if="!sepayOn && source === 'sepay'" class="card mb-3 flex items-center gap-3 p-3 text-sm">
             <Settings class="size-5 shrink-0 text-muted-foreground" />
             <span class="flex-1">Bật SePay để tiền chuyển khoản vào tài khoản nhóm tự hiện ở đây.</span>
-            <RouterLink :to="`/${code}/quan-tri/cai-dat#sepay`" class="font-semibold text-primary">Cài đặt</RouterLink>
+            <RouterLink :to="`/${code}/admin/settings#sepay`" class="font-semibold text-primary">Cài đặt</RouterLink>
         </div>
 
         <!-- Nguồn (chuyển khoản / bill thành viên) và trạng thái: ô chọn liền khối như các màn lọc khác -->
@@ -170,7 +170,7 @@ const aiText = (c) =>
 
                 <div v-if="status === 'pending' && c.duplicate" class="mt-2 rounded-lg border p-2 text-xs" :class="c.duplicate.level === 'strong' ? 'border-expense/40 bg-expense/5' : 'border-amber-400/60 bg-amber-50 dark:bg-amber-950/30'">
                     <p class="flex items-start gap-1"><Copy class="mt-0.5 size-3.5 shrink-0" /><span>{{ c.duplicate.level === 'strong' ? 'Trùng mã giao dịch với' : 'Có thể trùng với' }} {{ c.duplicate.label }}.</span></p>
-                    <RouterLink v-if="c.duplicate.transaction_id" :to="`/${code}/quan-tri/phieu/${c.duplicate.transaction_id}`" class="mt-1 inline-block font-semibold text-primary">Xem phiếu</RouterLink>
+                    <RouterLink v-if="c.duplicate.transaction_id" :to="`/${code}/admin/transactions/${c.duplicate.transaction_id}`" class="mt-1 inline-block font-semibold text-primary">Xem phiếu</RouterLink>
                 </div>
                 <p v-if="c.ignore_reason" class="mt-2 text-xs text-muted-foreground">Lý do bỏ qua: {{ c.ignore_reason }}</p>
 
@@ -191,7 +191,7 @@ const aiText = (c) =>
                 <div v-else-if="status === 'ignored'" class="mt-3">
                     <button type="button" class="btn-outline !min-h-10 w-full text-sm" @click="restore(c)"><RotateCcw class="size-4" /> Đưa về hàng chờ</button>
                 </div>
-                <RouterLink v-else-if="c.transaction_id" :to="`/${code}/quan-tri/phieu/${c.transaction_id}`" class="mt-2 inline-block text-sm font-medium text-primary">Xem phiếu</RouterLink>
+                <RouterLink v-else-if="c.transaction_id" :to="`/${code}/admin/transactions/${c.transaction_id}`" class="mt-2 inline-block text-sm font-medium text-primary">Xem phiếu</RouterLink>
             </article>
 
             <p v-if="!items.length" class="card p-6 text-center text-sm text-muted-foreground">{{ status === 'pending' ? 'Không có bill nào chờ duyệt. Thành viên gửi bill ở trang đóng quỹ của chiến dịch.' : 'Chưa có bill nào.' }}</p>
@@ -229,7 +229,7 @@ const aiText = (c) =>
                 <div v-else-if="status === 'ignored'" class="mt-3">
                     <button type="button" class="btn-outline !min-h-10 w-full text-sm" @click="restore(t)"><RotateCcw class="size-4" /> Đưa về hàng chờ</button>
                 </div>
-                <RouterLink v-else-if="t.transaction_id" :to="`/${code}/quan-tri/phieu/${t.transaction_id}`" class="mt-2 inline-block text-sm font-medium text-primary">Xem phiếu</RouterLink>
+                <RouterLink v-else-if="t.transaction_id" :to="`/${code}/admin/transactions/${t.transaction_id}`" class="mt-2 inline-block text-sm font-medium text-primary">Xem phiếu</RouterLink>
             </article>
 
             <p v-if="!items.length" class="card p-6 text-center text-sm text-muted-foreground">{{ status === 'pending' ? 'Không có giao dịch nào chờ duyệt.' : 'Chưa có giao dịch nào.' }}</p>

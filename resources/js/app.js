@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
+import { legacyRedirect } from './lib/legacyUrls.js';
 import { loadSystemMe } from './lib/systemApi.js';
 import './lib/install.js';
 import { canManage, homePath, loadMe, session } from './lib/session.js';
@@ -14,44 +15,48 @@ const router = createRouter({
     history: createWebHistory(),
     routes: [
         { path: '/', component: () => import('./pages/HomePage.vue') },
-        { path: '/dang-nhap', component: () => import('./pages/auth/LoginPage.vue'), meta: { guest: true } },
-        { path: '/dang-ky', component: () => import('./pages/auth/RegisterPage.vue'), meta: { guest: true } },
-        { path: '/quen-mat-khau', component: () => import('./pages/auth/ForgotPasswordPage.vue'), meta: { guest: true } },
-        { path: '/dat-lai-mat-khau', component: () => import('./pages/auth/ResetPasswordPage.vue'), meta: { guest: true } },
-        { path: '/doi-mat-khau', component: () => import('./pages/auth/ChangePasswordPage.vue'), meta: { auth: true } },
-        { path: '/nhom', component: () => import('./pages/GroupPickerPage.vue'), meta: { auth: true } },
-        { path: '/ca-nhan', component: () => import('./pages/ProfilePage.vue'), meta: { auth: true } },
+        { path: '/login', component: () => import('./pages/auth/LoginPage.vue'), meta: { guest: true } },
+        { path: '/register', component: () => import('./pages/auth/RegisterPage.vue'), meta: { guest: true } },
+        { path: '/forgot-password', component: () => import('./pages/auth/ForgotPasswordPage.vue'), meta: { guest: true } },
+        { path: '/reset-password', component: () => import('./pages/auth/ResetPasswordPage.vue'), meta: { guest: true } },
+        { path: '/change-password', component: () => import('./pages/auth/ChangePasswordPage.vue'), meta: { auth: true } },
+        // Tạo nhóm: khách mở được, trang tự báo cần tạo tài khoản trước (plan/11).
+        { path: '/groups/new', component: () => import('./pages/GroupNewPage.vue') },
+        { path: '/groups', component: () => import('./pages/GroupPickerPage.vue'), meta: { auth: true } },
+        { path: '/profile', component: () => import('./pages/ProfilePage.vue'), meta: { auth: true } },
 
-        { path: '/:group/quan-tri', component: () => import('./pages/admin/OverviewPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/danh-ba', component: () => import('./pages/admin/ContactsPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/danh-ba/nhap', component: () => import('./pages/admin/ContactImportPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/tai-khoan', component: () => import('./pages/admin/MembersPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/loai-thu-chi', component: () => import('./pages/admin/CategoriesPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/cai-dat', component: () => import('./pages/admin/SettingsPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/them', component: () => import('./pages/admin/MorePage.vue'), meta: admin },
-        { path: '/:group/quan-tri/phieu', component: () => import('./pages/admin/TransactionsPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/phieu/moi', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/phieu/:id(\\d+)', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/tao-phieu', redirect: (to) => `/${to.params.group}/quan-tri/phieu/moi?loai=chi` },
-        { path: '/:group/quan-tri/cho-duyet', component: () => import('./pages/admin/SepayQueuePage.vue'), meta: admin },
-        { path: '/:group/quan-tri/chien-dich', component: () => import('./pages/admin/CampaignsPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/chien-dich/moi', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/chien-dich/:id(\\d+)', component: () => import('./pages/admin/CampaignDetailPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/chien-dich/:id(\\d+)/sua', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/bao-cao', component: () => import('./pages/admin/ReportsPage.vue'), meta: admin },
+        { path: '/:group/admin', component: () => import('./pages/admin/OverviewPage.vue'), meta: admin },
+        { path: '/:group/admin/contacts', component: () => import('./pages/admin/ContactsPage.vue'), meta: admin },
+        { path: '/:group/admin/contacts/import', component: () => import('./pages/admin/ContactImportPage.vue'), meta: admin },
+        { path: '/:group/admin/accounts', component: () => import('./pages/admin/MembersPage.vue'), meta: admin },
+        { path: '/:group/admin/categories', component: () => import('./pages/admin/CategoriesPage.vue'), meta: admin },
+        { path: '/:group/admin/settings', component: () => import('./pages/admin/SettingsPage.vue'), meta: admin },
+        { path: '/:group/admin/more', component: () => import('./pages/admin/MorePage.vue'), meta: admin },
+        { path: '/:group/admin/transactions', component: () => import('./pages/admin/TransactionsPage.vue'), meta: admin },
+        { path: '/:group/admin/transactions/new', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
+        { path: '/:group/admin/transactions/:id(\\d+)', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
+        { path: '/:group/admin/sepay-queue', component: () => import('./pages/admin/SepayQueuePage.vue'), meta: admin },
+        { path: '/:group/admin/campaigns', component: () => import('./pages/admin/CampaignsPage.vue'), meta: admin },
+        { path: '/:group/admin/campaigns/new', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
+        { path: '/:group/admin/campaigns/:id(\\d+)', component: () => import('./pages/admin/CampaignDetailPage.vue'), meta: admin },
+        { path: '/:group/admin/campaigns/:id(\\d+)/edit', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
+        { path: '/:group/admin/reports', component: () => import('./pages/admin/ReportsPage.vue'), meta: admin },
 
-        { path: '/system/dang-nhap', component: () => import('./pages/system/LoginPage.vue'), meta: { system: 'guest' } },
+        { path: '/system/login', component: () => import('./pages/system/LoginPage.vue'), meta: { system: 'guest' } },
         { path: '/system', component: () => import('./pages/system/OverviewPage.vue'), meta: { system: true } },
-        { path: '/system/nhom', component: () => import('./pages/system/GroupsPage.vue'), meta: { system: true } },
-        { path: '/system/nhom/moi', component: () => import('./pages/system/GroupCreatePage.vue'), meta: { system: true } },
-        { path: '/system/nhom/:id(\\d+)', component: () => import('./pages/system/GroupDetailPage.vue'), meta: { system: true } },
-        { path: '/system/chi-phi-ai', component: () => import('./pages/system/AiCostsPage.vue'), meta: { system: true } },
-        { path: '/system/nhat-ky', component: () => import('./pages/system/AuditLogsPage.vue'), meta: { system: true } },
-        { path: '/system/quan-tri-vien', component: () => import('./pages/system/AdminsPage.vue'), meta: { system: true } },
-        { path: '/:group/thong-ke', component: () => import('./pages/GroupStatsPage.vue') },
-        { path: '/:group/chien-dich/:slug', component: () => import('./pages/CampaignPage.vue') },
-        { path: '/:group/thanh-vien', component: () => import('./pages/GroupMembersPage.vue') },
-        { path: '/:group/thanh-vien/:id(\\d+)', component: () => import('./pages/MemberPage.vue') },
+        { path: '/system/groups', component: () => import('./pages/system/GroupsPage.vue'), meta: { system: true } },
+        { path: '/system/groups/new', component: () => import('./pages/system/GroupCreatePage.vue'), meta: { system: true } },
+        { path: '/system/groups/:id(\\d+)', component: () => import('./pages/system/GroupDetailPage.vue'), meta: { system: true } },
+        { path: '/system/ai-costs', component: () => import('./pages/system/AiCostsPage.vue'), meta: { system: true } },
+        { path: '/system/audit-logs', component: () => import('./pages/system/AuditLogsPage.vue'), meta: { system: true } },
+        { path: '/system/admins', component: () => import('./pages/system/AdminsPage.vue'), meta: { system: true } },
+        { path: '/system/account', component: () => import('./pages/system/AccountPage.vue'), meta: { system: true } },
+        // Link đăng ký vào nhóm (plan/13). "register" không thể là mã nhóm nên /register vẫn là trang đăng ký thường.
+        { path: '/:group/register', component: () => import('./pages/auth/JoinGroupPage.vue') },
+        { path: '/:group/stats', component: () => import('./pages/GroupStatsPage.vue') },
+        { path: '/:group/campaigns/:slug', component: () => import('./pages/CampaignPage.vue') },
+        { path: '/:group/members', component: () => import('./pages/GroupMembersPage.vue') },
+        { path: '/:group/members/:id(\\d+)', component: () => import('./pages/MemberPage.vue') },
         { path: '/:group', component: () => import('./pages/GroupHomePage.vue') },
         { path: '/:pathMatch(.*)*', component: () => import('./pages/NotFoundPage.vue') },
     ],
@@ -71,19 +76,23 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+    // URL tiếng Việt cũ → URL mới (plan/12). Đặt đầu tiên vì /dang-nhap sẽ khớp nhầm route /:group.
+    const moved = legacyRedirect(to);
+    if (moved) return moved;
+
     // Khu /system dùng phiên đăng nhập riêng, không dính tới tài khoản nhóm.
     if (to.meta.system) {
         const admin = await loadSystemMe();
         if (to.meta.system === 'guest') return admin ? '/system' : true;
-        return admin ? true : { path: '/system/dang-nhap', query: { next: to.fullPath } };
+        return admin ? true : { path: '/system/login', query: { next: to.fullPath } };
     }
 
     await loadMe();
     const me = session.me;
 
     if (to.meta.guest && me) return homePath(me);
-    if (to.meta.auth && !me) return { path: '/dang-nhap', query: { next: to.fullPath } };
-    if (me?.must_change_password && to.path !== '/doi-mat-khau') return '/doi-mat-khau';
+    if (to.meta.auth && !me) return { path: '/login', query: { next: to.fullPath } };
+    if (me?.must_change_password && to.path !== '/change-password') return '/change-password';
     if (to.meta.admin && !canManage(to.params.group)) return `/${to.params.group}`;
     return true;
 });

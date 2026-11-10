@@ -32,7 +32,7 @@ const moreDesktop = computed(() => Math.max(0, total.value - people.value.length
                         <h1 class="text-2xl font-bold leading-tight sm:text-[2rem]">{{ group.name }}</h1>
                         <p class="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                             <component :is="group.visibility === 'public' ? Globe : Lock" class="size-4 shrink-0" />
-                            <span>Nhóm {{ group.visibility === 'public' ? 'Công khai' : 'Riêng tư' }}<template v-if="group.members_count"> · <RouterLink :to="`/${code}/thanh-vien`" class="font-semibold text-foreground hover:underline">{{ group.members_count }} thành viên</RouterLink></template></span>
+                            <span>Nhóm {{ group.visibility === 'public' ? 'Công khai' : 'Riêng tư' }}<template v-if="group.members_count"> · <RouterLink :to="`/${code}/members`" class="font-semibold text-foreground hover:underline">{{ group.members_count }} thành viên</RouterLink></template></span>
                         </p>
                     </div>
                     <div v-if="$slots.account" class="shrink-0 pt-0.5 sm:pt-1.5">
@@ -44,12 +44,12 @@ const moreDesktop = computed(() => Math.max(0, total.value - people.value.length
                     <!-- Hàng avatar thành viên -->
                     <div v-if="people.length" class="flex min-w-0 items-center">
                         <div class="flex -space-x-2">
-                            <component :is="p.member_id ? 'RouterLink' : 'span'" v-for="(p, i) in people" :key="i" :to="p.member_id ? `/${code}/thanh-vien/${p.member_id}` : undefined" class="relative rounded-full ring-2 ring-card hover:z-10" :class="{ 'hidden sm:block': i >= MOBILE }" :title="p.name" :aria-label="p.name">
+                            <component :is="p.member_id ? 'RouterLink' : 'span'" v-for="(p, i) in people" :key="i" :to="p.member_id ? `/${code}/members/${p.member_id}` : undefined" class="relative rounded-full ring-2 ring-card hover:z-10" :class="{ 'hidden sm:block': i >= MOBILE }" :title="p.name" :aria-label="p.name">
                                 <UserAvatar :url="p.avatar_url" :name="p.name" class="!size-8 text-xs sm:!size-9" />
                             </component>
                             <!-- Số người còn lại: vòng tròn cùng cỡ, nằm cuối dãy như Facebook -->
-                            <RouterLink v-if="moreMobile" :to="`/${code}/thanh-vien`" class="relative grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card hover:z-10 hover:text-foreground sm:hidden" aria-label="Xem tất cả thành viên">+{{ moreMobile }}</RouterLink>
-                            <RouterLink v-if="moreDesktop" :to="`/${code}/thanh-vien`" class="relative hidden size-9 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card hover:z-10 hover:text-foreground sm:grid" aria-label="Xem tất cả thành viên">+{{ moreDesktop }}</RouterLink>
+                            <RouterLink v-if="moreMobile" :to="`/${code}/members`" class="relative grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card hover:z-10 hover:text-foreground sm:hidden" aria-label="Xem tất cả thành viên">+{{ moreMobile }}</RouterLink>
+                            <RouterLink v-if="moreDesktop" :to="`/${code}/members`" class="relative hidden size-9 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-2 ring-card hover:z-10 hover:text-foreground sm:grid" aria-label="Xem tất cả thành viên">+{{ moreDesktop }}</RouterLink>
                         </div>
                     </div>
                     <div v-if="$slots.default" class="ml-auto flex shrink-0 items-center gap-2">

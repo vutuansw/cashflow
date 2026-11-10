@@ -23,7 +23,7 @@ async function save() {
 
 async function signOut() {
     await logout();
-    router.replace('/dang-nhap');
+    router.replace('/login');
 }
 </script>
 

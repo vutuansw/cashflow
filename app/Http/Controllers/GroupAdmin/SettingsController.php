@@ -83,6 +83,15 @@ class SettingsController extends Controller
         return $this->payload($request, $group);
     }
 
+    /** Bật/tắt link đăng ký vào nhóm /{ma-nhom}/register (plan/13). */
+    public function joinLink(Request $request, Group $group)
+    {
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+        $group->update(['join_link_enabled' => $data['enabled']]);
+
+        return $this->payload($request, $group);
+    }
+
     /** Bật/tắt từng loại email thông báo. */
     public function notifications(Request $request, Group $group)
     {
@@ -152,6 +161,10 @@ class SettingsController extends Controller
                 'api_key' => $group->sepay_api_key,
                 'webhook_url' => url("/api/webhooks/sepay/{$group->code}"),
                 'last_hook_at' => $group->sepay_last_hook_at?->toIso8601String(),
+            ],
+            'join_link' => [
+                'enabled' => $group->join_link_enabled,
+                'url' => url("/{$group->code}/register"),
             ],
             'my_role' => $member->role->value,
         ];

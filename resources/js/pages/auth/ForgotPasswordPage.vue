@@ -22,6 +22,6 @@ async function send() {
             <FormField v-model="phone" label="Số điện thoại" type="tel" inputmode="tel" :error="state.errors.phone" required />
             <button class="btn-primary w-full" :disabled="state.busy">Gửi yêu cầu</button>
         </form>
-        <RouterLink to="/dang-nhap" class="mt-6 inline-block text-sm font-medium text-primary">Quay lại đăng nhập</RouterLink>
+        <RouterLink to="/login" class="mt-6 inline-block text-sm font-medium text-primary">Quay lại đăng nhập</RouterLink>
     </AuthLayout>
 </template>

@@ -167,10 +167,10 @@ class TimelineTest extends TestCase
 
         $this->get('/nhomdemo')->assertOk()
             ->assertSee('<meta name="robots" content="noindex">', false)
-            ->assertSee('<meta property="og:title" content="Nhóm Demo · WePo">', false);
+            ->assertSee('<meta property="og:title" content="Nhóm Demo - WePo">', false);
 
         $this->get('/')->assertOk()->assertDontSee('noindex');
-        $this->get('/khong-co-nhom')->assertOk()->assertSee('<title>WePo</title>', false);
+        $this->get('/khong-co-nhom')->assertOk()->assertSee('<title>Quản lý quỹ nhóm cùng nhau - WePo</title>', false);
     }
 
     public function test_anh_bia_cong_khai_ca_nhom_private(): void

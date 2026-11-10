@@ -24,7 +24,7 @@ watch(month, load);
                     <thead><tr class="text-left text-muted-foreground"><th class="p-3 font-medium">Nhóm</th><th class="p-3 text-right font-medium">Lượt</th><th class="p-3 text-right font-medium">Đọc lại</th><th class="p-3 text-right font-medium">Lỗi</th><th class="p-3 text-right font-medium">Token</th><th class="p-3 text-right font-medium">Chi phí</th></tr></thead>
                     <tbody class="tabular-nums">
                         <tr v-for="r in data.rows" :key="r.group_id" class="border-t border-border">
-                            <td class="p-3"><RouterLink :to="`/system/nhom/${r.group_id}`" class="font-medium hover:underline">{{ r.name }}</RouterLink> <span class="font-mono text-xs text-muted-foreground">/{{ r.code }}</span></td>
+                            <td class="p-3"><RouterLink :to="`/system/groups/${r.group_id}`" class="font-medium hover:underline">{{ r.name }}</RouterLink> <span class="font-mono text-xs text-muted-foreground">/{{ r.code }}</span></td>
                             <td class="p-3 text-right">{{ r.scans }}</td>
                             <td class="p-3 text-right">{{ r.fallbacks }}</td>
                             <td class="p-3 text-right">{{ r.failed }}</td>

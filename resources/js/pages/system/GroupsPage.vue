@@ -44,7 +44,7 @@ const resetFilters = () => Object.assign(f, { review: '', service: '', deleted: 
 
 <template>
     <SystemShell title="Nhóm">
-        <template #actions><RouterLink to="/system/nhom/moi" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo nhóm</RouterLink></template>
+        <template #actions><RouterLink to="/system/groups/new" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo nhóm</RouterLink></template>
         <FilterBar v-model:q="f.q" placeholder="Mã, tên nhóm hoặc SĐT trưởng nhóm" :chips="chips" :total="meta?.total ?? null" unit="nhóm" title="Lọc nhóm" @remove="removeChip" @reset="resetFilters">
             <FilterOptions v-model="f.review" title="Trạng thái duyệt" :options="[{ v: '', l: 'Tất cả' }, ...Object.entries(reviewLabel).map(([v, l]) => ({ v, l }))]" />
             <FilterOptions v-model="f.service" title="Dịch vụ" :options="[{ v: '', l: 'Tất cả' }, ...Object.entries(serviceLabel).map(([v, l]) => ({ v, l }))]" />
@@ -52,7 +52,7 @@ const resetFilters = () => Object.assign(f, { review: '', service: '', deleted: 
         </FilterBar>
         <ul class="card mt-3 divide-y divide-border">
             <li v-for="g in rows ?? []" :key="g.id">
-                <RouterLink :to="`/system/nhom/${g.id}`" class="flex items-center gap-3 p-3 hover:bg-muted/50">
+                <RouterLink :to="`/system/groups/${g.id}`" class="flex items-center gap-3 p-3 hover:bg-muted/50">
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-medium">{{ g.name }} <span class="font-mono text-xs text-muted-foreground">/{{ g.code }}</span></p>
                         <p class="text-xs text-muted-foreground">{{ g.owner_name }} · tạo {{ formatDate(g.created_at) }} · {{ g.visibility === 'public' ? 'công khai' : 'riêng tư' }}</p>

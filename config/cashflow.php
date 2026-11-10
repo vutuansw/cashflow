@@ -15,7 +15,24 @@ return [
 
     'brand' => [
         'name' => env('APP_NAME', 'WePo'),
+        // Tiêu đề trang mặc định: "<tagline> - <name>".
+        'tagline' => 'Quản lý quỹ nhóm cùng nhau',
         'description' => 'Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Landing page trang chủ
+    |--------------------------------------------------------------------------
+    |
+    | Xem plan/14. demo_group: mã nhóm công khai cho nút "Xem nhóm mẫu", để trống
+    | thì ẩn nút. Server thật tạo nhóm demo bằng tay, không chạy DemoSeeder.
+    |
+    */
+    'landing' => [
+        'demo_group' => env('LANDING_DEMO_GROUP'),
+        'description' => 'Mỗi khoản thu chi là một bài đăng trên dòng thời gian của nhóm. Đóng quỹ bằng mã QR, ngân hàng báo về là WePo tự ghi sổ, AI đọc bill và tự làm báo cáo.',
+        'image' => '/landing/og.png',
     ],
 
     /*
@@ -59,6 +76,7 @@ return [
             'build', 'storage', 'media', 'assets', 'fonts', 'icons', 'images', 'offline',
             'manifest', 'sw', 'favicon', 'robots', 'sitemap', 'admin', 'quan-tri', 'webhooks',
             'sepay', 'login', 'logout', 'register', 'www', 'mail', 'help', 'huong-dan',
+            'groups', 'profile', 'forgot-password', 'reset-password', 'change-password',
         ],
     ],
 

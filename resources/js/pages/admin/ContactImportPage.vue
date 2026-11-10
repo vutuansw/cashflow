@@ -50,7 +50,7 @@ async function save() {
     try {
         const res = await submit(() => adminApi(code.value, '/contacts/import', { method: 'POST', body: { rows: rows.value } }));
         toast(`Đã thêm ${res.created} người vào danh bạ.`);
-        router.push(`/${code.value}/quan-tri/danh-ba`);
+        router.push(`/${code.value}/admin/contacts`);
     } catch (e) {
         // 422 trả lại các dòng kèm lỗi mới nhất.
         if (e?.status === 422) await recheck();
@@ -59,7 +59,7 @@ async function save() {
 </script>
 
 <template>
-    <AdminShell title="Nhập nhanh danh bạ" :crumbs="[{ label: 'Danh bạ', to: `/${code}/quan-tri/danh-ba` }]">
+    <AdminShell title="Nhập nhanh danh bạ" :crumbs="[{ label: 'Danh bạ', to: `/${code}/admin/contacts` }]">
         <template v-if="rows === null">
             <div class="card space-y-2 p-4 text-sm">
                 <p class="font-medium">Mỗi dòng một người, theo thứ tự cột:</p>

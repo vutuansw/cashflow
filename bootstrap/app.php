@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureGroupRole;
 use App\Http\Middleware\EnsureGroupVisible;
+use App\Http\Middleware\EnsureSystemSessionFresh;
 use App\Http\Middleware\RequireFreshPassword;
 use App\Http\Middleware\ResolveGroup;
 use App\Http\Middleware\SystemCsrf;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             UseSystemSession::class,
             StartSession::class,
             SystemCsrf::class,
+            EnsureSystemSessionFresh::class,
             SubstituteBindings::class,
         ]);
         $middleware->prependToPriorityList(StartSession::class, UseSystemSession::class);

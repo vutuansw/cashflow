@@ -158,7 +158,7 @@ class CampaignService
 
     private function slug(string $name): string
     {
-        $base = Str::slug(Str::ascii($name)) ?: 'chien-dich';
+        $base = Str::slug(Str::ascii($name)) ?: 'campaign';
         $base = substr($base, 0, 70);
         $slug = $base;
         $i = 2;

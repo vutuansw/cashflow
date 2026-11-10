@@ -11,19 +11,27 @@
   - Không có email → màn hình hướng dẫn "Liên hệ trưởng nhóm / quản trị viên để đặt lại". QTV có nút **Đặt lại mật khẩu** → sinh mật khẩu tạm, `must_change_password = true`.
 - `must_change_password = true` thì sau đăng nhập bắt buộc đổi mật khẩu trước khi làm gì khác.
 
-## 2. Đăng ký nhóm (trưởng nhóm)
+## 2. Đăng ký tài khoản và tạo nhóm
 
-Form một trang, mobile-first:
+Hai bước riêng, hai màn hình riêng (tách ra ở [11](11-tach-dang-ky-tai-khoan-va-nhom.plan.md)).
 
-| Phần | Trường |
-| --- | --- |
-| Bạn là ai | Họ tên*, SĐT*, Email*, Mật khẩu* |
-| Nhóm | Tên nhóm*, Mã nhóm* (tự gợi ý từ tên, kiểm tra trùng ngay khi gõ), Chế độ xem* (Công khai / Riêng tư), Số dư quỹ hiện có (số dư đầu kỳ, mặc định 0) |
+### 2.1. Đăng ký tài khoản `/register`
 
-- SĐT đã có tài khoản → báo "SĐT này đã có tài khoản, đăng nhập để tạo thêm nhóm".
-- Sau khi tạo: nhóm hoạt động ngay; tạo `group_services` với `review_status = pending_review`; seed loại thu chi mặc định; trưởng nhóm được thêm vào danh bạ và `group_members` với vai trò `owner`; chuyển tới màn hình **Bắt đầu nhanh** (3 bước: thêm danh bạ → thêm thông tin ngân hàng → tạo phiếu/chiến dịch đầu tiên).
-- Người đã đăng nhập tạo thêm nhóm từ `/nhom` (tối đa theo `platform_settings`, mặc định 5).
+- Trường: Họ tên*, SĐT*, Email (không bắt buộc), Mật khẩu*. `POST /api/register` tạo tài khoản, đăng nhập luôn, **không** tạo nhóm.
+- Không có email thì quên mật khẩu phải nhờ trưởng nhóm/QTV (mục 1).
+- SĐT đã có tài khoản (kể cả tài khoản do trưởng nhóm cấp) → báo "Số điện thoại này đã có tài khoản", kèm link Đăng nhập và Quên mật khẩu.
+- Nhận `?next=` như trang đăng nhập. Xong thì về `next`, không có thì về `/groups` (chưa thuộc nhóm nào: gợi ý tạo nhóm hoặc gửi SĐT cho trưởng nhóm để được thêm vào).
 - Chống spam: giới hạn 3 lần đăng ký/giờ/IP, trường honeypot.
+
+### 2.2. Tạo nhóm `/groups/new`
+
+| Trường |
+| --- |
+| Tên nhóm*, Mã nhóm* (tự gợi ý từ tên, kiểm tra trùng ngay khi gõ), Chế độ xem* (Công khai / Riêng tư), Số dư quỹ hiện có (số dư đầu kỳ, mặc định 0) |
+
+- Khách chưa đăng nhập vẫn mở được trang: hiện cảnh báo "Bạn cần tạo tài khoản trước" + nút Tạo tài khoản / Đăng nhập (mang `next=/groups/new`), form khóa lại.
+- `POST /api/groups` (phải đăng nhập), tối đa số nhóm/tài khoản theo `platform_settings` (mặc định 5), 10 lần/giờ.
+- Sau khi tạo: nhóm hoạt động ngay; tạo `group_services` với `review_status = pending_review`; seed loại thu chi mặc định; người tạo được thêm vào danh bạ và `group_members` với vai trò `owner`; chuyển tới màn hình **Bắt đầu nhanh** (3 bước: thêm danh bạ → thêm thông tin ngân hàng → tạo phiếu/chiến dịch đầu tiên).
 
 ## 3. Vai trò trong nhóm
 
@@ -53,12 +61,13 @@ Thực hiện bằng Policy của Laravel + middleware `group.role:admin`. Phía
   - SĐT đã có tài khoản WePo (ở nhóm khác) → chỉ gắn tài khoản đó vào nhóm, không đổi mật khẩu của họ.
   - Chưa có → tạo tài khoản, mật khẩu tạm 8 ký tự, hiện **một lần** kèm nút "Sao chép lời nhắn" (gồm link đăng nhập, SĐT, mật khẩu tạm) để QTV gửi qua Zalo.
   - Chọn vai trò: Thành viên / Quản trị viên. **Chỉ trưởng nhóm** cấp được vai trò Quản trị viên (chốt khi làm M1, cho khớp quy tắc "phong/hạ QTV chỉ trưởng nhóm" ở mục 3). Quản trị viên chỉ cấp, đặt lại mật khẩu, thu hồi tài khoản Thành viên.
+- **Tự xin vào qua link** `/{ma-nhom}/register` (cách vào nhóm thứ hai, xem [plan/13](13-link-dang-ky-vao-nhom.plan.md)): người dùng tự tạo tài khoản hoặc dùng tài khoản sẵn có, nằm ở khối "N người chờ duyệt" đầu trang Danh bạ. Duyệt thì vào nhóm với vai trò Thành viên, gắn vào dòng danh bạ trùng SĐT hoặc tạo dòng mới. Link bật/tắt trong Cài đặt nhóm, mặc định bật.
 - Thu hồi tài khoản khỏi nhóm: xóa `group_members` (tài khoản vẫn dùng được ở nhóm khác).
 - Đánh dấu "Đã rời nhóm": giữ lịch sử, không còn trong danh sách phải đóng của chiến dịch mới.
 
 ## 5. Chọn nhóm
 
-`/nhom`: danh sách nhóm của tài khoản (ảnh, tên, vai trò, số dư nếu là QTV). Chỉ một nhóm thì vào thẳng. Đăng nhập từ link nhóm thì quay lại đúng nhóm đó.
+`/groups`: danh sách nhóm của tài khoản (ảnh, tên, vai trò, số dư nếu là QTV). Chỉ một nhóm thì vào thẳng. Đăng nhập từ link nhóm thì quay lại đúng nhóm đó.
 
 ## 6. Trang quản trị nền tảng `/system`
 

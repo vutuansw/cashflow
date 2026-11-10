@@ -32,13 +32,13 @@ class AppServiceProvider extends ServiceProvider
         // Bắt sớm lỗi gán thuộc tính sai tên và truy cập quan hệ chưa nạp (N+1) khi dev.
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        // Đăng ký nhóm: 3 lần/giờ/IP, xem plan/02 mục 2.
+        // Đăng ký tài khoản: 3 lần/giờ/IP, xem plan/02 mục 2.
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(3)->by($request->ip()));
 
         // Webhook SePay: 120 request/phút mỗi nhóm, xem plan/05 mục 3.
         RateLimiter::for('sepay', fn (Request $request) => Limit::perMinute(120)->by('sepay:'.$request->route('group')));
 
-        ResetPassword::createUrlUsing(fn ($user, string $token) => url('/dat-lai-mat-khau').'?'.http_build_query([
+        ResetPassword::createUrlUsing(fn ($user, string $token) => url('/reset-password').'?'.http_build_query([
             'token' => $token,
             'email' => $user->email,
         ]));
@@ -47,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
             ->subject('Đặt lại mật khẩu WePo')
             ->greeting("Chào {$user->name},")
             ->line('Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản WePo.')
-            ->action('Đặt lại mật khẩu', url('/dat-lai-mat-khau').'?'.http_build_query(['token' => $token, 'email' => $user->email]))
+            ->action('Đặt lại mật khẩu', url('/reset-password').'?'.http_build_query(['token' => $token, 'email' => $user->email]))
             ->line('Link có hiệu lực trong 60 phút. Nếu bạn không yêu cầu, cứ bỏ qua email này.')
             ->salutation('WePo'));
     }

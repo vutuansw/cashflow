@@ -165,7 +165,7 @@ class GroupController extends Controller
             'group' => $this->summary($group, $this->service($group)),
             'owner_existing' => $tempPassword === null,
             'temp_password' => $tempPassword,
-            'login_url' => url('/dang-nhap'),
+            'login_url' => url('/login'),
         ], 201);
     }
 

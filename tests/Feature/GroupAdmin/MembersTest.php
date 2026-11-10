@@ -34,6 +34,7 @@ class MembersTest extends TestCase
         $this->assertSame(8, strlen($password));
         $this->assertStringContainsString($password, $response->json('share_message'));
         $this->assertStringContainsString('0912000111', $response->json('share_message'));
+        $this->assertStringContainsString('/login', $response->json('share_message'));
 
         $this->app['auth']->forgetGuards();
         $this->postJson('/api/logout');

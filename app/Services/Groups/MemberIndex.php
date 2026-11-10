@@ -8,7 +8,7 @@ use App\Support\MediaUrl;
 
 /**
  * Tra nhanh "tên này là thành viên nào" để dựng link trang thành viên
- * /{ma-nhom}/thanh-vien/{memberId} và ảnh đại diện. Chỉ tài khoản đang thuộc
+ * /{ma-nhom}/members/{memberId} và ảnh đại diện. Chỉ tài khoản đang thuộc
  * nhóm; người trong danh bạ chưa có tài khoản thì không có trang. Xem plan/08
  * mục 1 và 6.
  *

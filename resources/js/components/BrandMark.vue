@@ -1,14 +1,10 @@
-<script setup>
-import { PiggyBank } from 'lucide-vue-next';
-</script>
-
 <template>
-    <!-- Logo chữ WePo kèm dòng phụ "Quỹ nhóm" cho người mới biết app làm gì (plan/09). -->
+    <!-- Logo chữ WePo kèm dòng phụ "Quản lý quỹ nhóm cùng nhau" cho người mới biết app làm gì (plan/09). -->
     <RouterLink to="/" class="inline-flex items-center gap-2">
-        <span class="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><PiggyBank class="size-5" /></span>
-        <span class="flex flex-col leading-none">
-            <span class="font-semibold tracking-tight">WePo</span>
-            <span class="mt-0.5 text-xs text-muted-foreground">Quỹ nhóm</span>
+        <img src="/brand/wepo-mark.svg" alt="" class="size-10 shrink-0" />
+        <span class="flex flex-col items-start leading-none">
+            <img src="/brand/wepo-wordmark.svg" alt="WePo" class="h-4.5 w-auto" />
+            <span class="mt-0.5 whitespace-nowrap text-xs font-medium text-primary">Quản lý quỹ nhóm cùng nhau</span>
         </span>
     </RouterLink>
 </template>

@@ -50,7 +50,7 @@ async function destroy() {
     const ok = await submit(() => systemApi(`/groups/${id.value}`, { method: 'DELETE', body: { confirm_code: confirmCode.value } }).then(() => true)).catch(ignore);
     if (ok) {
         toast('Đã xóa nhóm. Dữ liệu xóa hẳn sau 30 ngày.');
-        router.push('/system/nhom');
+        router.push('/system/groups');
     }
 }
 const restore = () => act('/restore', {}, 'Đã khôi phục nhóm.');
@@ -58,7 +58,7 @@ const reviewLabel = { pending_review: 'Chờ duyệt', approved: 'Đã duyệt',
 </script>
 
 <template>
-    <SystemShell :title="g?.name ?? 'Nhóm'" :crumbs="[{ label: 'Nhóm', to: '/system/nhom' }]">
+    <SystemShell :title="g?.name ?? 'Nhóm'" :crumbs="[{ label: 'Nhóm', to: '/system/groups' }]">
         <p v-if="!g" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
         <div v-else class="grid gap-3 lg:grid-cols-2">
             <section class="card space-y-2 p-4 text-sm">

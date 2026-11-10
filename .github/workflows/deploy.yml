@@ -1,0 +1,31 @@
+name: Deploy
+
+# Mỗi lần push lên main: SSH vào server và chạy deploy/deploy.sh, giống www/chatbot.
+# Khác chatbot: deploy.sh của WePo tự chạy cashflow:migrate --force khi có migration mới (plan/07 mục 4).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Push liên tiếp thì deploy lần lượt, không chạy chồng nhau.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy lên server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # deploy.sh phải chạy bằng root (build bằng Node của root, chown thư mục build).
+          script: |
+            if [ "$(id -u)" = 0 ]; then
+              bash /var/www/wepo/deploy/deploy.sh
+            else
+              sudo -n bash /var/www/wepo/deploy/deploy.sh
+            fi

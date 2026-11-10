@@ -30,8 +30,8 @@ const form = reactive({
 const exempt = reactive(new Set());
 const savedName = ref('');
 const crumbs = computed(() => [
-    { label: 'Chiến dịch', to: `/${code.value}/quan-tri/chien-dich` },
-    ...(id.value ? [{ label: savedName.value || 'Chi tiết', to: `/${code.value}/quan-tri/chien-dich/${id.value}` }] : []),
+    { label: 'Chiến dịch', to: `/${code.value}/admin/campaigns` },
+    ...(id.value ? [{ label: savedName.value || 'Chi tiết', to: `/${code.value}/admin/campaigns/${id.value}` }] : []),
 ]);
 const search = ref('');
 // Phần chọn người được miễn mặc định ẩn; tắt đi thì không ai được miễn.
@@ -75,7 +75,7 @@ async function save() {
     const saved = await submit(() => adminApi(code.value, id.value ? `/campaigns/${id.value}` : '/campaigns', { method: id.value ? 'PUT' : 'POST', body })).catch(ignore);
     if (!saved) return;
     toast(id.value ? 'Đã lưu chiến dịch.' : `Đã tạo chiến dịch, mã chuyển khoản ${saved.transfer_code}.`);
-    router.push(`/${code.value}/quan-tri/chien-dich/${saved.id}`);
+    router.push(`/${code.value}/admin/campaigns/${saved.id}`);
 }
 </script>
 
@@ -85,7 +85,7 @@ async function save() {
         <form v-else class="mx-auto max-w-xl space-y-4 pb-24 lg:pb-0" @submit.prevent="save">
             <p v-if="!options.has_bank" class="rounded-xl border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                 Nhóm chưa có tài khoản nhận quỹ nên trang đóng quỹ chưa hiện mã QR.
-                <RouterLink :to="`/${code}/quan-tri/cai-dat`" class="font-semibold underline">Thêm trong Cài đặt</RouterLink>
+                <RouterLink :to="`/${code}/admin/settings`" class="font-semibold underline">Thêm trong Cài đặt</RouterLink>
             </p>
             <FormField v-model="form.name" label="Tên chiến dịch" required maxlength="150" :error="state.errors.name" />
             <FormField label="Loại thu" required :error="state.errors.category_id">

@@ -22,9 +22,9 @@ onMounted(async () => {
 
 const s = computed(() => data.value?.summary);
 const steps = computed(() => [
-    { done: data.value?.setup.has_contacts, title: 'Thêm danh bạ thành viên', text: 'Dán danh sách từ Excel, Zalo cho nhanh.', to: `/${code.value}/quan-tri/danh-ba`, icon: BookUser },
-    { done: data.value?.setup.has_bank, title: 'Thêm tài khoản ngân hàng nhận quỹ', text: 'Để tạo mã QR đóng quỹ.', to: `/${code.value}/quan-tri/cai-dat`, icon: Landmark },
-    { done: data.value?.setup.has_transactions, title: 'Tạo phiếu thu chi đầu tiên', text: 'Bấm nút + ở giữa thanh dưới.', to: `/${code.value}/quan-tri/phieu/moi?loai=chi`, icon: ArrowLeftRight },
+    { done: data.value?.setup.has_contacts, title: 'Thêm danh bạ thành viên', text: 'Dán danh sách từ Excel, Zalo cho nhanh.', to: `/${code.value}/admin/contacts`, icon: BookUser },
+    { done: data.value?.setup.has_bank, title: 'Thêm tài khoản ngân hàng nhận quỹ', text: 'Để tạo mã QR đóng quỹ.', to: `/${code.value}/admin/settings`, icon: Landmark },
+    { done: data.value?.setup.has_transactions, title: 'Tạo phiếu thu chi đầu tiên', text: 'Bấm nút + ở giữa thanh dưới.', to: `/${code.value}/admin/transactions/new?type=expense`, icon: ArrowLeftRight },
 ]);
 const showSetup = computed(() => data.value && steps.value.some((x) => !x.done));
 
@@ -39,7 +39,7 @@ function compareText(now, before) {
 
 <template>
     <AdminShell title="Tổng quan">
-        <div v-if="route.query.moi" class="card mb-4 border-primary/40 bg-primary/5 p-4">
+        <div v-if="route.query.welcome" class="card mb-4 border-primary/40 bg-primary/5 p-4">
             <p class="font-semibold">Nhóm đã được tạo!</p>
             <p class="mt-1 text-sm text-muted-foreground">Link nhóm: wepo.hipotech.vn/{{ code }}. Làm 3 bước dưới đây để bắt đầu.</p>
         </div>
@@ -79,7 +79,7 @@ function compareText(now, before) {
                         <p class="text-sm text-muted-foreground">Số dư quỹ</p>
                         <p class="text-3xl font-semibold tabular-nums">{{ formatMoney(s.balance) }}</p>
                     </div>
-                    <RouterLink :to="`/${code}/thong-ke`" class="inline-flex min-h-11 items-center text-sm font-medium text-primary">Thống kê <ChevronRight class="size-4" /></RouterLink>
+                    <RouterLink :to="`/${code}/stats`" class="inline-flex min-h-11 items-center text-sm font-medium text-primary">Thống kê <ChevronRight class="size-4" /></RouterLink>
                 </div>
                 <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
                     <div class="rounded-xl bg-muted p-3">
@@ -96,7 +96,7 @@ function compareText(now, before) {
                 <MonthBars :months="s.months" :label-year="s.year" height="h-28" class="mt-4" />
             </section>
 
-            <RouterLink v-if="data.pending_sepay" :to="`/${code}/quan-tri/cho-duyet`" class="card flex items-center gap-3 border-amber-400/60 p-4 lg:col-span-2">
+            <RouterLink v-if="data.pending_sepay" :to="`/${code}/admin/sepay-queue`" class="card flex items-center gap-3 border-amber-400/60 p-4 lg:col-span-2">
                 <Inbox class="size-6 text-amber-600" />
                 <span class="flex-1"><span class="block font-semibold">{{ data.pending_sepay }} giao dịch chờ duyệt</span><span class="text-sm text-muted-foreground">Tiền chuyển khoản vào tài khoản nhóm</span></span>
                 <ChevronRight class="size-5 text-muted-foreground" />
@@ -118,11 +118,11 @@ function compareText(now, before) {
             <section class="card p-4">
                 <div class="flex items-center justify-between">
                     <h2 class="font-semibold">Phiếu mới nhất</h2>
-                    <RouterLink :to="`/${code}/quan-tri/phieu`" class="text-sm font-medium text-primary">Tất cả</RouterLink>
+                    <RouterLink :to="`/${code}/admin/transactions`" class="text-sm font-medium text-primary">Tất cả</RouterLink>
                 </div>
                 <ul class="mt-2 divide-y divide-border">
                     <li v-for="t in data.latest" :key="t.id">
-                        <RouterLink :to="`/${code}/quan-tri/phieu/${t.id}`" class="flex items-center gap-3 py-2">
+                        <RouterLink :to="`/${code}/admin/transactions/${t.id}`" class="flex items-center gap-3 py-2">
                             <CategoryIcon :name="t.category?.icon" :color="t.category?.color" size="size-9" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-medium">{{ t.title }}</span>

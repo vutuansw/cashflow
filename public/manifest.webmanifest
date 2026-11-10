@@ -3,7 +3,7 @@
   "short_name": "WePo",
   "description": "Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.",
   "lang": "vi",
-  "start_url": "/nhom?pwa=1",
+  "start_url": "/groups?pwa=1",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

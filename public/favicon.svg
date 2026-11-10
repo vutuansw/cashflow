@@ -1,1 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#15803d"/><text x="32" y="42" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#fff" text-anchor="middle">QN</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="242 135 540 540">
+  <defs>
+    <linearGradient id="gBack" x1="-240" y1="-178" x2="240" y2="185" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6fd889"/><stop offset=".45" stop-color="#1fae74"/><stop offset="1" stop-color="#0d7f83"/>
+    </linearGradient>
+    <linearGradient id="gInside" x1="0" y1="-146" x2="0" y2="4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0c7a58"/><stop offset="1" stop-color="#0a5f4a"/>
+    </linearGradient>
+    <linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="gYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde047"/><stop offset="1" stop-color="#facc15"/>
+    </linearGradient>
+    <linearGradient id="gFront" x1="-240" y1="-70" x2="240" y2="185" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3ccf7d"/><stop offset=".5" stop-color="#14a173"/><stop offset="1" stop-color="#0b7686"/>
+    </linearGradient>
+    <linearGradient id="gTab" x1="98" y1="-26" x2="258" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="gRay" x1="640" y1="160" x2="762" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffc928"/><stop offset="1" stop-color="#ffa20a"/>
+    </linearGradient>
+    <linearGradient id="gWe" x1="0" y1="700" x2="0" y2="880" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f7d60"/><stop offset="1" stop-color="#0a5541"/>
+    </linearGradient>
+    <linearGradient id="gPo" x1="0" y1="700" x2="0" y2="880" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6cdc4c"/><stop offset="1" stop-color="#14a44a"/>
+    </linearGradient>
+    <clipPath id="clipFront"><path d="M-176 -70 H176 Q240 -70 240 -6 V89 A96 96 0 0 1 144 185 H-144 A96 96 0 0 1 -240 89 V-6 Q-240 -70 -176 -70Z"/></clipPath>
+    <clipPath id="clipCards"><rect x="-202" y="-400" width="404" height="420"/></clipPath>
+  </defs>
+  
+  <g transform="translate(500 468) rotate(-5)">
+    <!-- thân sau -->
+    <rect x="-240" y="-178" width="480" height="363" rx="96" fill="url(#gBack)"/>
+    <!-- miệng ví -->
+    <rect x="-202" y="-146" width="404" height="150" rx="58" fill="url(#gInside)"/>
+    <!-- thẻ -->
+    <g>
+      <rect x="-138" y="-196" width="296" height="210" rx="42" fill="url(#gPurple)" transform="rotate(-20 10 -91)"/>
+      <rect x="-172" y="-150" width="346" height="210" rx="42" fill="url(#gYellow)" transform="rotate(-11 1 -45)"/>
+    </g>
+    <!-- bóng mép trước lên thẻ -->
+    <path d="M-206 -64 H206 V-50 H-206Z" fill="#0b6b4f" opacity=".22"/>
+    <!-- mặt trước -->
+    <path d="M-176 -70 H176 Q240 -70 240 -6 V89 A96 96 0 0 1 144 185 H-144 A96 96 0 0 1 -240 89 V-6 Q-240 -70 -176 -70Z" fill="url(#gFront)"/>
+    <!-- người -->
+    <mask id="mSide" maskUnits="userSpaceOnUse" x="-300" y="-100" width="600" height="300">
+      <rect x="-300" y="-100" width="600" height="300" fill="#fff"/>
+      <path d="M-94 108 Q-102 108 -102 100 V92 A52 46 0 0 1 2 92 V100 Q2 108 -6 108Z" fill="#000" stroke="#000" stroke-width="18" stroke-linejoin="round"/>
+    </mask>
+    <g fill="#fff">
+      <g mask="url(#mSide)">
+        <path d="M-154 108 Q-162 108 -162 100 V96 A40 36 0 0 1 -82 96 V100 Q-82 108 -90 108Z"/>
+        <path d="M-10 108 Q-18 108 -18 100 V96 A40 36 0 0 1 62 96 V100 Q62 108 54 108Z"/>
+      </g>
+      <path d="M-94 108 Q-102 108 -102 100 V92 A52 46 0 0 1 2 92 V100 Q2 108 -6 108Z"/>
+      <circle cx="-122" cy="24" r="21"/>
+      <circle cx="22" cy="24" r="21"/>
+      <circle cx="-50" cy="8" r="26"/>
+    </g>
+    <!-- khoá -->
+    <rect x="98" y="-14" width="160" height="148" rx="62" fill="#065f4a" opacity=".3" clip-path="url(#clipFront)"/>
+    <rect x="98" y="-26" width="160" height="148" rx="62" fill="url(#gTab)"/>
+    <circle cx="182" cy="48" r="31" fill="#e3f4ea"/>
+    <circle cx="182" cy="46" r="29" fill="#fff"/>
+  </g>
+  <path d="M649.68 228.52 L666.52 163.78 A15 15 0 0 0 637.08 158.42 L630.06 224.95 A10 10 0 0 0 649.68 228.52Z" fill="url(#gRay)"/>
+  <path d="M696.82 257.31 L742.23 214.97 A15 15 0 0 0 720.15 194.81 L682.1 243.87 A10 10 0 0 0 696.82 257.31Z" fill="url(#gRay)"/>
+  <path d="M707.58 305.88 L764.36 296.81 A15 15 0 0 0 757.12 267.82 L702.74 286.55 A10 10 0 0 0 707.58 305.88Z" fill="url(#gRay)"/>
+</svg>

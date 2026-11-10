@@ -37,13 +37,13 @@ class ReportController extends Controller
         $file = $wholeYear ? (string) $from->year : $from->format('Ymd').'-'.$to->format('Ymd');
 
         return match ($type) {
-            'so-quy' => $xlsx
+            'ledger' => $xlsx
                 ? $this->excel->ledger($group, $this->reports->ledger($group, $from, $to), $period, $file)
                 : $this->reports->ledger($group, $from, $to) + ['period' => $period],
-            'theo-loai' => $xlsx
+            'by-category' => $xlsx
                 ? $this->excel->categories($group, $this->reports->categories($from, $to), $period, $file)
                 : $this->reports->categories($from, $to) + ['period' => $period],
-            'theo-thang' => $xlsx
+            'by-month' => $xlsx
                 ? $this->excel->months($group, $this->reports->months($from, $to), $period, $file)
                 : $this->reports->months($from, $to) + ['period' => $period],
             'campaign' => $xlsx

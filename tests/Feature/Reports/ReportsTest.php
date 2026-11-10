@@ -45,7 +45,7 @@ class ReportsTest extends TestCase
         $group = $this->seedLedger();
         $this->actingAs($this->ownerOf($group));
 
-        $r = $this->getJson($this->adminUrl($group, 'reports/so-quy?from=2026-01-01&to=2026-03-31'))->assertOk()->json();
+        $r = $this->getJson($this->adminUrl($group, 'reports/ledger?from=2026-01-01&to=2026-03-31'))->assertOk()->json();
         $this->assertSame(3_000_000, $r['opening']);
         $this->assertSame([3_500_000, 2_700_000, 2_500_000], array_column($r['rows'], 'balance'));
         $this->assertSame(500_000, $r['income']);
@@ -59,12 +59,12 @@ class ReportsTest extends TestCase
         $group = $this->seedLedger();
         $this->actingAs($this->ownerOf($group));
 
-        $c = $this->getJson($this->adminUrl($group, 'reports/theo-loai?from=2026-01-01&to=2026-12-31'))->assertOk()->json();
+        $c = $this->getJson($this->adminUrl($group, 'reports/by-category?from=2026-01-01&to=2026-12-31'))->assertOk()->json();
         $this->assertSame(1_000_000, $c['expense']['total']);
         $this->assertSame(['Liên hoan', 'Thăm ốm'], array_column($c['expense']['rows'], 'category'));
         $this->assertSame(80.0, (float) $c['expense']['rows'][0]['percent']);
 
-        $m = $this->getJson($this->adminUrl($group, 'reports/theo-thang?from=2026-01-01&to=2026-03-31'))->assertOk()->json();
+        $m = $this->getJson($this->adminUrl($group, 'reports/by-month?from=2026-01-01&to=2026-03-31'))->assertOk()->json();
         $this->assertCount(3, $m['rows']);
         $this->assertSame(['income' => 500_000, 'expense' => 800_000, 'diff' => -300_000], array_intersect_key($m['rows'][0], array_flip(['income', 'expense', 'diff'])));
         $this->assertSame(0, $m['rows'][1]['expense']);
@@ -75,7 +75,7 @@ class ReportsTest extends TestCase
         $group = $this->seedLedger();
         $this->actingAs($this->ownerOf($group));
 
-        $response = $this->get($this->adminUrl($group, 'reports/so-quy?from=2026-01-01&to=2026-12-31&format=xlsx'))->assertOk();
+        $response = $this->get($this->adminUrl($group, 'reports/ledger?from=2026-01-01&to=2026-12-31&format=xlsx'))->assertOk();
         $response->assertDownload('wepo-chi-doan-a12-so-quy-2026.xlsx');
 
         $path = tempnam(sys_get_temp_dir(), 'qn').'.xlsx';
@@ -115,7 +115,7 @@ class ReportsTest extends TestCase
     public function test_thanh_vien_khong_xem_bao_cao(): void
     {
         $group = $this->makeGroup();
-        $this->actingAs($this->memberOf($group))->getJson($this->adminUrl($group, 'reports/so-quy'))->assertForbidden();
+        $this->actingAs($this->memberOf($group))->getJson($this->adminUrl($group, 'reports/ledger'))->assertForbidden();
     }
 
     public function test_nhap_danh_ba_tu_file_excel(): void

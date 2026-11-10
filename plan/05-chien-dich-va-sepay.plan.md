@@ -13,7 +13,7 @@ Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 **Mã nội dung chuyển khoản** (`transfer_code`): không bắt buộc nhập, để trống thì tự sinh; duy nhất toàn hệ thống, chỉ chữ in hoa và số (ngân hàng hay bỏ dấu cách, gạch, ký tự đặc biệt trong nội dung). QTV sửa được khi chưa có giao dịch nào.
 - Cách tự sinh (chốt 10/11/2026): ghép **trọn từng cụm** của mã nhóm (tách theo dấu `-`) cho tới khi đủ tối đa 8 ký tự, không cắt giữa chữ, rồi thêm 2 số cuối của năm. Vd `chi-doan-a12` năm 2026 → `CHIDOAN26`, `nhomdemo` → `NHOMDEMO26`. Cụm đầu dài hơn 8 ký tự thì lấy 8 ký tự đầu. Trùng mã đã có (vd chiến dịch thứ hai cùng năm) thì thêm một chữ cái: `CHIDOAN26B`, `CHIDOAN26C`…
 
-**Trang chiến dịch** `/{ma-nhom}/chien-dich/{slug}` — ai xem được timeline thì xem được:
+**Trang chiến dịch** `/{ma-nhom}/campaigns/{slug}` — ai xem được timeline thì xem được:
 
 ```
 ┌──────────────────────────────┐

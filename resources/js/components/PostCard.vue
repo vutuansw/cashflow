@@ -64,7 +64,7 @@ async function heart() {
             <button type="button" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 hover:bg-muted" @click="comment">
                 <MessageCircle class="size-5" /> {{ post.comments_count ? `${post.comments_count} bình luận` : 'Bình luận' }}
             </button>
-            <RouterLink v-if="viewer?.can_manage" :to="`/${code}/quan-tri/phieu/${post.id}`" class="ml-auto inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Pencil class="size-4" /> Sửa</RouterLink>
+            <RouterLink v-if="viewer?.can_manage" :to="`/${code}/admin/transactions/${post.id}`" class="ml-auto inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Pencil class="size-4" /> Sửa</RouterLink>
         </div>
         <PostComments ref="comments" :post="post" :code="code" :viewer="viewer" />
     </article>

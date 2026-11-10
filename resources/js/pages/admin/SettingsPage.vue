@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CoverArt from '../../components/CoverArt.vue';
+import SwitchToggle from '../../components/SwitchToggle.vue';
 import FormField from '../../components/FormField.vue';
 import MoneyInput from '../../components/MoneyInput.vue';
 import Sheet from '../../components/Sheet.vue';
@@ -97,6 +98,19 @@ async function rotateSepay() {
     form.sepay = res.sepay;
     toast('Đã tạo API key mới.');
 }
+// Link đăng ký vào nhóm, xem plan/13.
+const joinBusy = ref(false);
+async function toggleJoinLink(enabled) {
+    joinBusy.value = true;
+    try {
+        const res = await adminApi(code.value, '/settings/join-link', { method: 'PUT', body: { enabled } });
+        form.join_link = res.join_link;
+        toast(enabled ? 'Đã bật link đăng ký.' : 'Đã tắt link đăng ký.');
+    } finally {
+        joinBusy.value = false;
+    }
+}
+
 async function toggleNotify(value) {
     const res = await adminApi(code.value, '/settings/notifications', { method: 'PUT', body: { sepay: value } });
     form.notify_settings = res.notify_settings;
@@ -124,12 +138,12 @@ async function destroy() {
     if (!ok) return;
     await loadMe(true);
     toast('Đã xóa nhóm.');
-    router.replace('/nhom');
+    router.replace('/groups');
 }
 </script>
 
 <template>
-    <AdminShell title="Cài đặt nhóm" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
+    <AdminShell title="Cài đặt nhóm" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/admin/more` }]" mobile-only>
         <form v-if="loaded" class="space-y-6" @submit.prevent="save">
             <section class="card overflow-hidden">
                 <!-- Cùng tỉ lệ 3:1 và nền mặc định như đầu trang nhóm, để thấy đúng ảnh sẽ hiện thế nào -->
@@ -180,6 +194,21 @@ async function destroy() {
                 </FormField>
                 <FormField v-model="form.bank_account_no" label="Số tài khoản" inputmode="numeric" :error="state.errors.bank_account_no" />
                 <FormField v-model="form.bank_account_name" label="Tên chủ tài khoản" placeholder="NGUYEN VAN AN" :error="state.errors.bank_account_name" />
+            </section>
+
+            <!-- Link đăng ký vào nhóm, xem plan/13 -->
+            <section id="join-link" class="card space-y-3 p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="font-semibold">Cho đăng ký qua link</h2>
+                        <p class="text-sm text-muted-foreground">Ai có link tự tạo tài khoản và xin vào nhóm. Quản trị viên duyệt trong Danh bạ.</p>
+                    </div>
+                    <SwitchToggle :model-value="form.join_link?.enabled" label="Cho đăng ký qua link" :disabled="joinBusy" @update:model-value="toggleJoinLink" />
+                </div>
+                <div v-if="form.join_link?.enabled" class="flex gap-2">
+                    <input class="field font-mono text-sm" :value="form.join_link.url" readonly aria-label="Link đăng ký vào nhóm" />
+                    <button type="button" class="btn-outline shrink-0" @click="copyText(form.join_link.url, 'Đã chép link đăng ký.')">Chép</button>
+                </div>
             </section>
 
             <!-- SePay: tự nhận biến động số dư, xem plan/05 mục 2 -->

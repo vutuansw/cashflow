@@ -16,7 +16,7 @@ async function reset() {
     const res = await submit(() => api('/reset-password', { method: 'POST', body: form })).catch(ignore);
     if (!res) return;
     toast('Đã đặt lại mật khẩu, bạn đăng nhập lại nhé.');
-    router.replace('/dang-nhap');
+    router.replace('/login');
 }
 </script>
 

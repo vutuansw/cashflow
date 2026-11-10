@@ -122,3 +122,31 @@ select.chip {
 @utility icon-btn { @apply inline-grid size-11 place-items-center rounded-xl hover:bg-muted; }
 @utility card { @apply rounded-2xl border border-border bg-card; }
 @utility chip { @apply inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium; }
+
+/*
+| Landing page trang chủ, xem plan/14. Tiêu đề dùng Be Vietnam Pro, số thứ tự section
+| tô gradient xanh, thẻ nổi dùng token card/border nên theo được chế độ tối.
+*/
+@utility landing-display { font-family: 'Be Vietnam Pro', var(--app-font); letter-spacing: -0.02em; }
+@utility landing-eyebrow { @apply landing-display text-[13px] font-bold uppercase tracking-[0.12em]; }
+@utility landing-num {
+  @apply landing-display text-5xl leading-none font-extrabold sm:text-6xl;
+  background: linear-gradient(135deg, #86efac, #15803d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.5;
+}
+@utility landing-pop { @apply z-10 rounded-2xl border border-border bg-card text-foreground shadow-[0_16px_36px_-14px_rgb(10_60_40_/_0.3)]; }
+@utility landing-dots {
+  background-image: radial-gradient(color-mix(in srgb, var(--primary) 20%, transparent) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+@keyframes landing-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes landing-scan { 0%, 100% { top: 8%; } 50% { top: 86%; } }
+@utility landing-float { animation: landing-float 6s ease-in-out infinite; }
+@utility landing-float-slow { animation: landing-float 7.5s ease-in-out -2.5s infinite; }
+@utility landing-scan { animation: landing-scan 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-float, .landing-float-slow, .landing-scan { animation: none; }
+}

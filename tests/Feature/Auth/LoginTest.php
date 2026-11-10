@@ -82,8 +82,9 @@ class LoginTest extends TestCase
         $this->assertSame($message, $this->postJson('/api/forgot-password', ['phone' => '0999999999'])->json('message'));
 
         $token = null;
-        Notification::assertSentTo($user, ResetPassword::class, function ($n) use (&$token) {
+        Notification::assertSentTo($user, ResetPassword::class, function ($n) use (&$token, $user) {
             $token = $n->token;
+            $this->assertStringContainsString('/reset-password?', $n->toMail($user)->actionUrl);
 
             return true;
         });
@@ -92,17 +93,5 @@ class LoginTest extends TestCase
         $this->postJson('/api/reset-password', ['token' => $token, 'email' => 'an@example.com', 'password' => 'moi123456', 'password_confirmation' => 'moi123456'])
             ->assertOk();
         $this->postJson('/api/login', ['phone' => '0988777222', 'password' => 'moi123456'])->assertOk();
-    }
-
-    public function test_tao_them_nhom_va_gioi_han_so_nhom(): void
-    {
-        $user = User::factory()->create();
-        config(['cashflow.limits.groups_per_user' => 2]);
-
-        $this->actingAs($user)->postJson('/api/groups', ['name' => 'Nhóm 1', 'code' => 'nhom-mot', 'visibility' => 'public'])->assertCreated();
-        $this->postJson('/api/groups', ['name' => 'Nhóm 2', 'code' => 'nhom-hai', 'visibility' => 'public'])->assertCreated();
-        $this->postJson('/api/groups', ['name' => 'Nhóm 3', 'code' => 'nhom-ba', 'visibility' => 'public'])->assertJsonValidationErrors('name');
-
-        $this->getJson('/api/me')->assertJsonCount(2, 'data.groups');
     }
 }

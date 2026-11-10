@@ -7,8 +7,9 @@ import FilterBar from '../components/FilterBar.vue';
 import UserAvatar from '../components/UserAvatar.vue';
 import { api, ApiError } from '../lib/api.js';
 import { fold } from '../lib/text.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
-// Danh sách thành viên /{ma-nhom}/thanh-vien, mở từ "N thành viên" ở đầu trang nhóm (như mục Thành viên của nhóm
+// Danh sách thành viên /{ma-nhom}/members, mở từ "N thành viên" ở đầu trang nhóm (như mục Thành viên của nhóm
 // Facebook): ban quản trị trước, rồi mọi người; tìm theo tên không dấu. Người có tài khoản bấm vào ra trang thành
 // viên. Chỉ tên, ảnh, vai trò. Xem plan/08 mục 10e.
 const route = useRoute();
@@ -54,7 +55,7 @@ const sections = computed(() => [
         <div v-if="blocked" class="card m-4 p-6 text-center">
             <Lock class="mx-auto size-8 text-muted-foreground" />
             <p class="mt-3 font-semibold">Nhóm riêng tư</p>
-            <RouterLink :to="`/dang-nhap?next=/${code}/thanh-vien`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
+            <RouterLink :to="`/login?next=/${code}/members`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
         </div>
 
         <div v-else class="space-y-4 p-4">
@@ -67,7 +68,7 @@ const sections = computed(() => [
                 <h2 class="mb-2 px-1 text-sm font-semibold text-muted-foreground">{{ s.title }} · {{ s.items.length }}</h2>
                 <ul class="card divide-y divide-border">
                     <li v-for="(p, i) in s.items" :key="p.member_id ?? `${s.key}-${i}`">
-                        <component :is="p.member_id ? 'RouterLink' : 'div'" :to="p.member_id ? `/${code}/thanh-vien/${p.member_id}` : undefined" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': p.member_id }">
+                        <component :is="p.member_id ? 'RouterLink' : 'div'" :to="p.member_id ? `/${code}/members/${p.member_id}` : undefined" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': p.member_id }">
                             <UserAvatar :url="p.avatar_url" :name="p.name" class="!size-11 shrink-0" />
                             <div class="min-w-0 flex-1">
                                 <p class="truncate font-medium">{{ p.name }}</p>
@@ -79,5 +80,6 @@ const sections = computed(() => [
                 </ul>
             </section>
         </div>
+        <SiteFooter class="hidden lg:block" />
     </div>
 </template>

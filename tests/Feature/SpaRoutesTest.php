@@ -8,7 +8,7 @@ class SpaRoutesTest extends TestCase
 {
     public function test_moi_duong_dan_giao_dien_tra_khung_spa(): void
     {
-        foreach (['/', '/dang-nhap', '/chidoan-a12', '/chidoan-a12/quan-tri/phieu', '/system'] as $path) {
+        foreach (['/', '/login', '/groups/new', '/chidoan-a12', '/chidoan-a12/admin/transactions', '/chidoan-a12/quan-tri/phieu', '/system'] as $path) {
             $this->get($path)->assertOk()->assertSee('<div id="app"></div>', false);
         }
     }

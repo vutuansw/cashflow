@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowDownLeft, ArrowUpRight, Plus, ScanText } from 'lucide-vue-next';
+import { ArrowDownLeft, ArrowUpRight, LogOut, Plus, RefreshCw, ScanText, UserRound } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
+import DropdownMenu from '../components/DropdownMenu.vue';
 import Sheet from '../components/Sheet.vue';
 import BillReadingOverlay from '../components/BillReadingOverlay.vue';
 import BackButton from '../components/BackButton.vue';
@@ -12,8 +13,9 @@ import { readBill } from '../lib/billScan.js';
 import { toast } from '../lib/notice.js';
 import { pending, refreshPending } from '../lib/pending.js';
 import { adminMenu, adminTabs } from '../lib/nav.js';
-import { session } from '../lib/session.js';
+import { logout, session } from '../lib/session.js';
 import UserAvatar from '../components/UserAvatar.vue';
+import SiteFooter from '../components/SiteFooter.vue';
 
 // Khung trang quản trị nhóm, xem plan/06 mục 2: tab đáy trên điện thoại, sidebar trên máy tính.
 // crumbs: các cấp cha [{ label, to }] của màn con; mobileOnly: chỉ hiện nút ‹ trên điện thoại (desktop đã có sidebar).
@@ -24,14 +26,19 @@ const code = computed(() => route.params.group);
 const group = computed(() => session.me?.groups.find((g) => g.code === code.value));
 const menu = computed(() => adminMenu(code.value));
 const tabs = computed(() => adminTabs(code.value));
-const myPage = computed(() => (group.value?.member_id ? `/${code.value}/thanh-vien/${group.value.member_id}` : '/ca-nhan'));
+const myPage = computed(() => (group.value?.member_id ? `/${code.value}/members/${group.value.member_id}` : '/profile'));
+
+async function signOut() {
+    await logout();
+    router.replace('/login');
+}
 
 // Nút + giữa thanh tab mở bảng chọn: Đọc bill / Phiếu thu / Phiếu chi (wireframe M2).
 const creating = ref(false);
 const createOptions = computed(() => [
     { label: 'Đọc bill chuyển khoản', text: 'Chọn ảnh bill trong máy, AI điền sẵn phiếu.', icon: ScanText, bill: true },
-    { label: 'Phiếu thu', text: 'Tiền vào quỹ: đóng quỹ, ủng hộ…', icon: ArrowDownLeft, to: `/${code.value}/quan-tri/phieu/moi?loai=thu`, tone: 'text-income' },
-    { label: 'Phiếu chi', text: 'Tiền ra: liên hoan, thăm ốm, hiếu hỉ…', icon: ArrowUpRight, to: `/${code.value}/quan-tri/phieu/moi?loai=chi`, tone: 'text-expense' },
+    { label: 'Phiếu thu', text: 'Tiền vào quỹ: đóng quỹ, ủng hộ…', icon: ArrowDownLeft, to: `/${code.value}/admin/transactions/new?type=income`, tone: 'text-income' },
+    { label: 'Phiếu chi', text: 'Tiền ra: liên hoan, thăm ốm, hiếu hỉ…', icon: ArrowUpRight, to: `/${code.value}/admin/transactions/new?type=expense`, tone: 'text-expense' },
 ]);
 
 // Đọc bill: chọn ảnh ngay trong bảng (cần thao tác chạm của người dùng để mở thư viện ảnh), đọc xong mở form điền sẵn.
@@ -42,7 +49,7 @@ async function onBill(event) {
     creating.value = false;
     try {
         const scan = await readBill(code.value, file);
-        router.push(`/${code.value}/quan-tri/phieu/moi?scan=${scan.id}`);
+        router.push(`/${code.value}/admin/transactions/new?scan=${scan.id}`);
     } catch (e) {
         toast(Object.values(e.errors ?? {})[0]?.[0] ?? e.message ?? 'Không tải được ảnh bill.', 'error');
     }
@@ -50,7 +57,13 @@ async function onBill(event) {
 
 onMounted(() => refreshPending(code.value));
 watch(code, (c) => refreshPending(c));
-const badge = (item) => (item.to.endsWith('/cho-duyet') && pending.count ? (pending.count > 99 ? '99+' : pending.count) : null);
+const cap = (n) => (n > 99 ? '99+' : n);
+// Chấm đỏ: "Chờ duyệt" đếm giao dịch; "Danh bạ" (và tab "Thêm" trên điện thoại, nơi chứa Danh bạ) đếm người xin vào nhóm.
+function badge(item) {
+    if (item.to.endsWith('/sepay-queue')) return pending.count ? cap(pending.count) : null;
+    if (item.to.endsWith('/contacts') || item.to.endsWith('/admin/more')) return pending.joins ? cap(pending.joins) : null;
+    return null;
+}
 
 function active(item) {
     return item.exact ? route.path === item.to : route.path.startsWith(item.to);
@@ -61,7 +74,7 @@ function active(item) {
     <div class="min-h-dvh lg:flex">
         <aside class="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-card p-4 lg:flex">
             <BrandMark />
-            <RouterLink to="/nhom" class="mt-6 block rounded-xl bg-muted p-3">
+            <RouterLink to="/groups" class="mt-6 block rounded-xl bg-muted p-3">
                 <span class="block truncate font-semibold">{{ group?.name }}</span>
                 <span class="text-sm text-muted-foreground">{{ group?.role_label }} · Đổi nhóm</span>
             </RouterLink>
@@ -83,13 +96,22 @@ function active(item) {
                     <h1 class="truncate text-lg font-semibold">{{ title }}</h1>
                 </div>
                 <slot name="actions" />
-                <!-- Tài khoản đang đăng nhập: bấm vào ra trang của tôi trong nhóm. Xem plan/08 mục 10b. -->
-                <RouterLink :to="myPage" class="-mr-2 flex min-h-11 max-w-56 shrink-0 items-center gap-2 rounded-full p-1 font-medium hover:bg-muted lg:pr-3" :aria-label="`Trang của tôi: ${session.me?.name ?? ''}`">
-                    <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-9 text-sm" />
-                    <span class="hidden truncate lg:inline">{{ session.me?.name }}</span>
-                </RouterLink>
+                <!-- Tài khoản đang đăng nhập: bấm vào mở menu Xem trang cá nhân / Đổi nhóm / Đăng xuất. Xem plan/08 mục 10b. -->
+                <DropdownMenu label="Tài khoản" class="-mr-2 shrink-0">
+                    <template #trigger="{ open, toggle }">
+                        <button type="button" class="flex min-h-11 max-w-56 items-center gap-2 rounded-full p-1 font-medium hover:bg-muted lg:pr-3" :aria-expanded="open" aria-haspopup="menu" :aria-label="`Tài khoản: ${session.me?.name ?? ''}`" @click="toggle">
+                            <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-9 text-sm" />
+                            <span class="hidden truncate lg:inline">{{ session.me?.name }}</span>
+                        </button>
+                    </template>
+                    <RouterLink :to="myPage" class="menu-item" role="menuitem"><UserRound class="size-5" /> Xem trang cá nhân</RouterLink>
+                    <RouterLink to="/groups" class="menu-item" role="menuitem"><RefreshCw class="size-5" /> Đổi nhóm</RouterLink>
+                    <button type="button" class="menu-item text-expense" role="menuitem" @click="signOut"><LogOut class="size-5" /> Đăng xuất</button>
+                </DropdownMenu>
             </header>
             <main class="mx-auto max-w-4xl px-4 py-4 lg:px-8 lg:py-6"><InstallHint class="lg:hidden" /><slot /></main>
+            <!-- Máy tính: chân trang cuối nội dung. Điện thoại có thanh điều hướng dưới nên không hiện. -->
+            <SiteFooter class="hidden !pt-2 lg:block" />
         </div>
 
         <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">

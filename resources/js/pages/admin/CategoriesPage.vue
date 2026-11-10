@@ -71,7 +71,7 @@ async function move(items, index, delta) {
 </script>
 
 <template>
-    <AdminShell title="Loại thu chi" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
+    <AdminShell title="Loại thu chi" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/admin/more` }]" mobile-only>
         <section v-for="g in groups" :key="g.type" class="mb-6">
             <div class="mb-2 flex items-center justify-between">
                 <h2 class="font-semibold">{{ g.title }}</h2>

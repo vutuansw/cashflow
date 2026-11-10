@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router';
-import { Activity, Building2, CircleDollarSign, LayoutDashboard, LogOut, ScrollText, ShieldCheck } from 'lucide-vue-next';
+import { Activity, Building2, CircleDollarSign, LayoutDashboard, LogOut, ScrollText, ShieldCheck, UserRound } from 'lucide-vue-next';
 import { systemApi, systemSession } from '../lib/systemApi.js';
 import BackButton from '../components/BackButton.vue';
 import Breadcrumb from '../components/Breadcrumb.vue';
@@ -11,10 +11,10 @@ const route = useRoute();
 const router = useRouter();
 const menu = [
     { to: '/system', label: 'Tổng quan', icon: LayoutDashboard, exact: true },
-    { to: '/system/nhom', label: 'Nhóm', icon: Building2 },
-    { to: '/system/chi-phi-ai', label: 'Chi phí AI', icon: CircleDollarSign },
-    { to: '/system/nhat-ky', label: 'Nhật ký', icon: ScrollText },
-    { to: '/system/quan-tri-vien', label: 'Quản trị viên', icon: ShieldCheck },
+    { to: '/system/groups', label: 'Nhóm', icon: Building2 },
+    { to: '/system/ai-costs', label: 'Chi phí AI', icon: CircleDollarSign },
+    { to: '/system/audit-logs', label: 'Nhật ký', icon: ScrollText },
+    { to: '/system/admins', label: 'Quản trị viên', icon: ShieldCheck },
 ];
 const active = (item) => (item.exact ? route.path === item.to : route.path.startsWith(item.to));
 
@@ -22,7 +22,7 @@ async function logout() {
     await systemApi('/logout', { method: 'POST' }).catch(() => {});
     systemSession.admin = null;
     systemSession.csrf = null;
-    router.push('/system/dang-nhap');
+    router.push('/system/login');
 }
 </script>
 
@@ -36,7 +36,9 @@ async function logout() {
                 </RouterLink>
             </nav>
             <div class="mt-auto text-sm">
-                <p class="truncate px-3 text-muted-foreground">{{ systemSession.admin?.email }}</p>
+                <RouterLink to="/system/account" class="flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted" :class="{ 'bg-primary/10 text-primary': route.path === '/system/account' }" title="Tài khoản của tôi">
+                    <UserRound class="size-5 shrink-0" /> <span class="truncate">{{ systemSession.admin?.email }}</span>
+                </RouterLink>
                 <button type="button" class="mt-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted" @click="logout"><LogOut class="size-5" /> Đăng xuất</button>
             </div>
         </aside>
@@ -49,6 +51,7 @@ async function logout() {
                         <h1 class="truncate text-lg font-semibold">{{ title }}</h1>
                     </div>
                     <slot name="actions" />
+                    <RouterLink to="/system/account" class="icon-btn lg:hidden" aria-label="Tài khoản của tôi"><UserRound class="size-5" /></RouterLink>
                     <button type="button" class="icon-btn lg:hidden" aria-label="Đăng xuất" @click="logout"><LogOut class="size-5" /></button>
                 </div>
                 <nav class="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">

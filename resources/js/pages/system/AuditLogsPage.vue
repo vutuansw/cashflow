@@ -16,7 +16,7 @@ onMounted(load);
 const labels = {
     approve: 'Duyệt nhóm', reject: 'Từ chối nhóm', unreview: 'Bỏ duyệt', lock: 'Khóa nhóm', unlock: 'Mở khóa nhóm',
     update_group: 'Sửa nhóm', change_code: 'Đổi mã nhóm', delete_group: 'Xóa nhóm', restore_group: 'Khôi phục nhóm',
-    create_group: 'Tạo nhóm', create_admin: 'Thêm quản trị viên', lock_admin: 'Khóa quản trị viên', unlock_admin: 'Mở khóa quản trị viên',
+    create_group: 'Tạo nhóm', create_admin: 'Thêm quản trị viên', lock_admin: 'Khóa quản trị viên', unlock_admin: 'Mở khóa quản trị viên', change_password: 'Đổi mật khẩu',
 };
 const detail = (p) => (p?.reason ? `Lý do: ${p.reason}` : p?.after?.code && p?.before?.code !== p?.after?.code ? `${p.before.code} → ${p.after.code}` : p?.email ?? '');
 </script>
@@ -26,7 +26,7 @@ const detail = (p) => (p?.reason ? `Lý do: ${p.reason}` : p?.after?.code && p?.
         <ul class="card divide-y divide-border text-sm">
             <li v-for="l in rows ?? []" :key="l.id" class="flex flex-wrap items-baseline gap-x-3 p-3">
                 <span class="font-medium">{{ labels[l.action] ?? l.action }}</span>
-                <RouterLink v-if="l.group_id" :to="`/system/nhom/${l.group_id}`" class="font-mono text-primary">/{{ l.group_code ?? l.group_id }}</RouterLink>
+                <RouterLink v-if="l.group_id" :to="`/system/groups/${l.group_id}`" class="font-mono text-primary">/{{ l.group_code ?? l.group_id }}</RouterLink>
                 <span class="text-muted-foreground">{{ detail(l.payload) }}</span>
                 <span class="ml-auto text-xs text-muted-foreground">{{ l.admin ?? 'hệ thống' }} · {{ formatDateTime(l.created_at) }} · {{ l.ip }}</span>
             </li>

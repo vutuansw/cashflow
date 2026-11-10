@@ -32,7 +32,7 @@ const message = () => `Nhóm "${result.value.group.name}" đã được tạo tr
 </script>
 
 <template>
-    <SystemShell title="Tạo nhóm hộ khách" :crumbs="[{ label: 'Nhóm', to: '/system/nhom' }]">
+    <SystemShell title="Tạo nhóm hộ khách" :crumbs="[{ label: 'Nhóm', to: '/system/groups' }]">
         <div v-if="result" class="card mx-auto max-w-xl space-y-3 p-4">
             <p class="font-semibold">Đã tạo nhóm {{ result.group.name }} (/{{ result.group.code }})</p>
             <template v-if="result.temp_password">
@@ -41,7 +41,7 @@ const message = () => `Nhóm "${result.value.group.name}" đã được tạo tr
                 <button type="button" class="btn-primary w-full" @click="copyText(message(), 'Đã chép lời nhắn, gửi qua Zalo cho trưởng nhóm.')">Chép lời nhắn gửi trưởng nhóm</button>
             </template>
             <p v-else class="text-sm text-muted-foreground">SĐT này đã có tài khoản WePo nên nhóm mới được gắn vào tài khoản đó, mật khẩu không đổi.</p>
-            <RouterLink :to="`/system/nhom/${result.group.id}`" class="btn-outline w-full">Xem nhóm</RouterLink>
+            <RouterLink :to="`/system/groups/${result.group.id}`" class="btn-outline w-full">Xem nhóm</RouterLink>
         </div>
         <form v-else class="mx-auto max-w-xl space-y-4" @submit.prevent="create">
             <section class="card space-y-3 p-4">

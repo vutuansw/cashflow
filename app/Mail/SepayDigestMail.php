@@ -31,7 +31,7 @@ class SepayDigestMail extends Mailable
     public function content(): Content
     {
         return new Content(markdown: 'mail.sepay-digest', with: [
-            'url' => url("/{$this->group->code}/quan-tri/cho-duyet"),
+            'url' => url("/{$this->group->code}/admin/sepay-queue"),
         ]);
     }
 }

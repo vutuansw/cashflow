@@ -13,6 +13,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20
 Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::middleware(EnsureSystemAdmin::class)->group(function () {
+    Route::put('/me/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1');
     Route::get('/overview', [DashboardController::class, 'overview']);
     Route::get('/ai-costs', [DashboardController::class, 'aiCosts']);
     Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);

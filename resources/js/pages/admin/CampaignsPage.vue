@@ -16,19 +16,19 @@ const pct = (c) => (c.members_total ? Math.min(100, (c.members_paid / c.members_
 </script>
 
 <template>
-    <AdminShell title="Chiến dịch" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
+    <AdminShell title="Chiến dịch" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/admin/more` }]" mobile-only>
         <template #actions>
-            <RouterLink :to="`/${code}/quan-tri/chien-dich/moi`" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo</RouterLink>
+            <RouterLink :to="`/${code}/admin/campaigns/new`" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo</RouterLink>
         </template>
         <p v-if="!campaigns" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
         <div v-else-if="!campaigns.length" class="card p-6 text-center">
             <p class="font-semibold">Chưa có chiến dịch nào</p>
             <p class="mt-1 text-sm text-muted-foreground">Tạo chiến dịch như "Thu quỹ năm 2026" để có mã QR đóng quỹ và theo dõi ai đã đóng.</p>
-            <RouterLink :to="`/${code}/quan-tri/chien-dich/moi`" class="btn-primary mt-4">Tạo chiến dịch đầu tiên</RouterLink>
+            <RouterLink :to="`/${code}/admin/campaigns/new`" class="btn-primary mt-4">Tạo chiến dịch đầu tiên</RouterLink>
         </div>
         <ul v-else class="space-y-3">
             <li v-for="c in campaigns" :key="c.id">
-                <RouterLink :to="`/${code}/quan-tri/chien-dich/${c.id}`" class="card block p-4 hover:bg-muted/50">
+                <RouterLink :to="`/${code}/admin/campaigns/${c.id}`" class="card block p-4 hover:bg-muted/50">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
                             <p class="truncate font-semibold">{{ c.name }}</p>

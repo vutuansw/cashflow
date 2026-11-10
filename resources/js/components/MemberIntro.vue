@@ -32,7 +32,7 @@ const joined = computed(() => {
         <ul class="mt-3 space-y-3 text-sm">
             <li v-if="member?.role_label" class="flex items-start gap-3">
                 <ShieldCheck class="size-5 shrink-0 text-muted-foreground" />
-                <span>{{ member.role_label }}<template v-if="groupName"> tại <span class="font-semibold">{{ groupName }}</span></template></span>
+                <span>{{ member.role_label }}<template v-if="groupName"> tại <RouterLink v-if="code" :to="`/${code}`" class="font-semibold hover:text-primary hover:underline">{{ groupName }}</RouterLink><span v-else class="font-semibold">{{ groupName }}</span></template></span>
             </li>
             <li v-if="joined" class="flex items-start gap-3">
                 <CalendarDays class="size-5 shrink-0 text-muted-foreground" />
@@ -58,7 +58,7 @@ const joined = computed(() => {
             <h3 class="mt-4 text-sm font-semibold text-muted-foreground">Chiến dịch đang mở</h3>
             <ul class="mt-1 divide-y divide-border">
                 <li v-for="c in stats.open_campaigns" :key="c.slug">
-                    <RouterLink :to="`/${code}/chien-dich/${c.slug}`" class="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted">
+                    <RouterLink :to="`/${code}/campaigns/${c.slug}`" class="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted">
                         <span class="min-w-0 truncate">{{ c.name }}</span>
                         <span class="flex shrink-0 items-center gap-1" :class="STATUS[c.status]?.class">
                             <component :is="STATUS[c.status]?.icon" class="size-4" />

@@ -34,7 +34,7 @@ function canEdit(m) {
 
 // Tài khoản không sửa được (chính mình, trưởng nhóm) thì bấm vào ra trang thành viên.
 function open(m) {
-    if (!canEdit(m)) return router.push(`/${code.value}/thanh-vien/${m.id}`);
+    if (!canEdit(m)) return router.push(`/${code.value}/members/${m.id}`);
     selected.value = m;
     result.value = null;
 }
@@ -67,12 +67,12 @@ function lastLogin(value) {
 </script>
 
 <template>
-    <AdminShell title="Tài khoản & vai trò" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
-        <p class="text-sm text-muted-foreground">Cấp tài khoản cho người mới ở trang <RouterLink :to="`/${code}/quan-tri/danh-ba`" class="font-medium text-primary">Danh bạ</RouterLink> (nút "Cấp TK").</p>
+    <AdminShell title="Tài khoản & vai trò" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/admin/more` }]" mobile-only>
+        <p class="text-sm text-muted-foreground">Cấp tài khoản cho người mới ở trang <RouterLink :to="`/${code}/admin/contacts`" class="font-medium text-primary">Danh bạ</RouterLink> (nút "Cấp TK").</p>
 
         <ul class="card mt-3 divide-y divide-border">
             <li v-for="m in members" :key="m.id" class="flex items-center gap-3 pl-3">
-                <RouterLink :to="`/${code}/thanh-vien/${m.id}`" class="shrink-0" :aria-label="`Trang của ${m.name}`"><UserAvatar :url="m.avatar_url" :name="m.name" class="!size-10" /></RouterLink>
+                <RouterLink :to="`/${code}/members/${m.id}`" class="shrink-0" :aria-label="`Trang của ${m.name}`"><UserAvatar :url="m.avatar_url" :name="m.name" class="!size-10" /></RouterLink>
                 <button class="flex min-w-0 flex-1 items-center gap-3 py-3 pr-3 text-left" @click="open(m)">
                     <span class="min-w-0 flex-1">
                         <span class="block truncate font-medium">{{ m.name }}<span v-if="m.user_id === session.me?.id" class="text-muted-foreground"> (bạn)</span></span>
@@ -86,7 +86,7 @@ function lastLogin(value) {
         <Sheet :open="selected !== null" :title="selected?.name" @close="selected = null">
             <TempPasswordCard v-if="result" :password="result.temp_password" :message="result.share_message" />
             <div v-else class="grid gap-3">
-                <RouterLink v-if="selected" :to="`/${code}/thanh-vien/${selected.id}`" class="btn-outline"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
+                <RouterLink v-if="selected" :to="`/${code}/members/${selected.id}`" class="btn-outline"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
                 <template v-if="myRole === 'owner'">
                     <button v-if="selected?.role === 'member'" class="btn-outline" :disabled="state.busy" @click="setRole('admin')"><UserPlus class="size-4" /> Phong làm Quản trị viên</button>
                     <button v-else class="btn-outline" :disabled="state.busy" @click="setRole('member')">Hạ xuống Thành viên</button>

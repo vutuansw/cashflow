@@ -15,8 +15,9 @@ import { ignore, useForm } from '../lib/form.js';
 import { shrinkImage } from '../lib/image.js';
 import { toast } from '../lib/notice.js';
 import { homePath, logout, session, setMe } from '../lib/session.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
-// Trang cá nhân của tôi /ca-nhan, kiểu Facebook: đổi ảnh bìa, ảnh đại diện, sửa thông tin, xem hoạt động
+// Trang cá nhân của tôi /profile, kiểu Facebook: đổi ảnh bìa, ảnh đại diện, sửa thông tin, xem hoạt động
 // của mình trong từng nhóm. Chỉ chính chủ sửa được. Xem plan/08 mục 1-5.
 const router = useRouter();
 const me = computed(() => session.me);
@@ -144,7 +145,7 @@ watch(() => current.value?.code, loadActivity, { immediate: true });
 
 async function signOut() {
     await logout();
-    router.replace('/dang-nhap');
+    router.replace('/login');
 }
 
 document.title = 'Trang cá nhân · WePo';
@@ -161,7 +162,7 @@ document.title = 'Trang cá nhân · WePo';
         </header>
 
         <template v-if="me">
-            <ProfileHeader :member="me" :role="current?.role_label" :context="current?.name" interactive @cover="tapImage('cover')" @avatar="tapImage('avatar')">
+            <ProfileHeader :member="me" :role="current?.role_label" :context="current?.name" :context-to="current?.code ? `/${current.code}` : undefined" interactive @cover="tapImage('cover')" @avatar="tapImage('avatar')">
                 <template #cover>
                     <button type="button" class="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full bg-black/45 text-white backdrop-blur hover:bg-black/60" :aria-label="me.cover_url ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'" :title="me.cover_url ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'" :disabled="!!uploading" @click.stop="tapImage('cover')">
                         <span v-if="uploading === 'cover'" class="text-xs">…</span>
@@ -180,8 +181,8 @@ document.title = 'Trang cá nhân · WePo';
                         <button type="button" class="btn-pill" :class="{ 'bg-primary/10': open }" aria-label="Cài đặt" title="Cài đặt" aria-haspopup="menu" :aria-expanded="open" @click="toggle"><Settings class="size-[18px]" /></button>
                     </template>
                     <button type="button" class="menu-item" role="menuitem" @click="edit"><UserPen class="size-5 text-muted-foreground" /> Thay đổi thông tin</button>
-                    <RouterLink to="/nhom" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm</RouterLink>
-                    <RouterLink to="/doi-mat-khau" class="menu-item" role="menuitem"><KeyRound class="size-5 text-muted-foreground" /> Đổi mật khẩu</RouterLink>
+                    <RouterLink to="/groups" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm</RouterLink>
+                    <RouterLink to="/change-password" class="menu-item" role="menuitem"><KeyRound class="size-5 text-muted-foreground" /> Đổi mật khẩu</RouterLink>
                     <div class="my-1.5 border-t border-border"></div>
                     <button type="button" class="menu-item text-expense" role="menuitem" @click="signOut"><LogOut class="size-5" /> Đăng xuất</button>
                 </DropdownMenu>
@@ -193,11 +194,15 @@ document.title = 'Trang cá nhân · WePo';
             <!-- Điện thoại: Giới thiệu rồi Hoạt động. Máy tính: Giới thiệu cột trái (dính khi cuộn), Hoạt động cột phải.
                  Đổi mật khẩu, chọn nhóm, đăng xuất nằm trong menu bánh răng; trang người khác thấy mở từ menu ⋯. -->
             <div class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-                <MemberIntro class="lg:sticky lg:top-18" :member="introMember" :stats="profile?.stats" :group-name="current?.name" :code="current?.code">
-                    <template #bio-empty>
-                        <button type="button" class="btn-soft mt-3 w-full" @click="edit"><Plus class="size-4" /> Thêm lời giới thiệu</button>
-                    </template>
-                </MemberIntro>
+                <!-- Máy tính: chân trang dưới thẻ Giới thiệu (cột trái dính khi cuộn), vì dòng hoạt động cuộn vô tận. -->
+                <div class="lg:sticky lg:top-18">
+                    <MemberIntro :member="introMember" :stats="profile?.stats" :group-name="current?.name" :code="current?.code">
+                        <template #bio-empty>
+                            <button type="button" class="btn-soft mt-3 w-full" @click="edit"><Plus class="size-4" /> Thêm lời giới thiệu</button>
+                        </template>
+                    </MemberIntro>
+                    <SiteFooter class="hidden !pt-3 lg:block" />
+                </div>
 
                 <div>
                     <p v-if="!groups.length" class="card p-6 text-center text-sm text-muted-foreground">Bạn chưa thuộc nhóm nào. Tạo nhóm mới hoặc nhờ trưởng nhóm cấp tài khoản.</p>
@@ -215,7 +220,7 @@ document.title = 'Trang cá nhân · WePo';
         <!-- Menu ⋯ -->
         <Sheet :open="menu" title="Trang cá nhân" @close="menu = false">
             <div class="grid gap-3">
-                <RouterLink v-if="current" :to="`/${current.code}/thanh-vien/${current.member_id}`" class="btn-outline"><Eye class="size-4" /> Xem như người khác</RouterLink>
+                <RouterLink v-if="current" :to="`/${current.code}/members/${current.member_id}`" class="btn-outline"><Eye class="size-4" /> Xem như người khác</RouterLink>
                 <button type="button" class="btn-outline" @click="menu = false; pick('avatar')"><Camera class="size-4" /> Đổi ảnh đại diện</button>
                 <button type="button" class="btn-outline" @click="menu = false; pick('cover')"><ImageUp class="size-4" /> Đổi ảnh bìa</button>
             </div>

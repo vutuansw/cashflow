@@ -11,8 +11,9 @@ import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
 import { formatDate } from '../lib/time.js';
 import { BANKS } from '../lib/banks.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
-// Trang đóng quỹ /{ma-nhom}/chien-dich/{slug}: tiến độ, QR, ai đã đóng/chưa đóng (chỉ tên). Xem plan/05 mục 1 và wireframe M2 màn 4.
+// Trang đóng quỹ /{ma-nhom}/campaigns/{slug}: tiến độ, QR, ai đã đóng/chưa đóng (chỉ tên). Xem plan/05 mục 1 và wireframe M2 màn 4.
 // Điện thoại: mở thẳng app ngân hàng (mục 5b). Đã chuyển rồi thì gửi bill cho thủ quỹ (mục 5).
 const route = useRoute();
 const code = computed(() => route.params.group);
@@ -91,7 +92,7 @@ async function share() {
         <div v-if="error === 403" class="card m-4 p-6 text-center">
             <Lock class="mx-auto size-8 text-muted-foreground" />
             <p class="mt-3 font-semibold">Nhóm riêng tư</p>
-            <RouterLink :to="`/dang-nhap?next=${route.fullPath}`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
+            <RouterLink :to="`/login?next=${route.fullPath}`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
         </div>
         <div v-else-if="error" class="card m-4 p-6 text-center">
             <p class="font-semibold">Không tìm thấy chiến dịch</p>
@@ -185,5 +186,6 @@ async function share() {
             <ClaimSheet :open="claiming" :code="code" :campaign="data" @close="claiming = false" @sent="load" />
             <BankAppSheet :open="choosingApp" :apps="apps" :content="data.transfer_content" @close="choosingApp = false" />
         </div>
+        <SiteFooter class="hidden lg:block" />
     </div>
 </template>

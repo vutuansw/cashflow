@@ -8,6 +8,7 @@ import BackButton from '../components/BackButton.vue';
 import PeriodNav from '../components/PeriodNav.vue';
 import { api, ApiError } from '../lib/api.js';
 import { formatMoney } from '../lib/money.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
 // Thống kê chi tiết của nhóm: thu chi 12 tháng, cơ cấu chi và thu theo loại. Ai xem được timeline thì xem được. Xem plan/03 mục 6.
 const route = useRoute();
@@ -54,7 +55,7 @@ const step = (d) => {
         <div v-if="blocked" class="card m-4 p-6 text-center">
             <Lock class="mx-auto size-8 text-muted-foreground" />
             <p class="mt-3 font-semibold">Nhóm riêng tư</p>
-            <RouterLink :to="`/dang-nhap?next=/${code}/thong-ke`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
+            <RouterLink :to="`/login?next=/${code}/stats`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
         </div>
 
         <div v-else-if="data" class="space-y-3 p-4">
@@ -83,5 +84,6 @@ const step = (d) => {
 
             <p class="text-center text-xs text-muted-foreground">Số dư = số dư đầu kỳ {{ formatMoney(data.opening_balance) }} + tổng thu − tổng chi.</p>
         </div>
+        <SiteFooter class="hidden lg:block" />
     </div>
 </template>

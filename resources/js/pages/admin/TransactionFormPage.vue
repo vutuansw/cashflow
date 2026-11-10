@@ -31,7 +31,7 @@ const { state, submit } = useForm();
 const pad = (n) => String(n).padStart(2, '0');
 const now = new Date();
 const form = reactive({
-    type: route.query.loai === 'thu' ? 'income' : 'expense',
+    type: route.query.type === 'income' ? 'income' : 'expense',
     amount: null,
     category_id: null,
     date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
@@ -203,7 +203,7 @@ onMounted(async () => {
         bills.value = d.bills.map((b) => ({ id: b.id, url: b.url, lg: b.url }));
     } else {
         form.category_id = categories.value[0]?.id ?? null;
-        if (route.query.chien_dich) form.campaign_id = Number(route.query.chien_dich);
+        if (route.query.campaign) form.campaign_id = Number(route.query.campaign);
         else if (isIncome.value) form.campaign_id = newestCampaignId();
         if (route.query.sepay) {
             const t = await adminApi(code.value, `/sepay/${Number(route.query.sepay)}`).catch(() => null);
@@ -292,14 +292,14 @@ async function save() {
     ).catch(ignore);
     if (!saved) return;
     toast(id.value ? 'Đã lưu thay đổi.' : `Đã lưu ${isIncome.value ? 'phiếu thu' : 'phiếu chi'}.`);
-    router.push(sepay.value ? `/${code.value}/quan-tri/cho-duyet` : claim.value ? `/${code.value}/quan-tri/cho-duyet?loai=bill` : `/${code.value}/quan-tri/phieu`);
+    router.push(sepay.value ? `/${code.value}/admin/sepay-queue` : claim.value ? `/${code.value}/admin/sepay-queue?source=bill` : `/${code.value}/admin/transactions`);
 }
 
 async function remove() {
     if (!confirm('Xóa phiếu này? Phiếu đã xóa khôi phục được trong 30 ngày.')) return;
     await adminApi(code.value, `/transactions/${id.value}`, { method: 'DELETE' });
     toast('Đã xóa phiếu.');
-    router.push(`/${code.value}/quan-tri/phieu`);
+    router.push(`/${code.value}/admin/transactions`);
 }
 
 async function restore() {
@@ -311,8 +311,8 @@ const errorOf = (key) => state.errors[key] ?? Object.entries(state.errors).find(
 const actionLabel = { created: 'Tạo phiếu', updated: 'Sửa', deleted: 'Xóa', restored: 'Khôi phục' };
 const crumbs = computed(() => [
     sepay.value || claim.value
-        ? { label: 'Chờ duyệt', to: `/${code.value}/quan-tri/cho-duyet${claim.value ? '?loai=bill' : ''}` }
-        : { label: 'Phiếu thu chi', to: `/${code.value}/quan-tri/phieu` },
+        ? { label: 'Chờ duyệt', to: `/${code.value}/admin/sepay-queue${claim.value ? '?source=bill' : ''}` }
+        : { label: 'Phiếu thu chi', to: `/${code.value}/admin/transactions` },
 ]);
 const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' : 'Sửa phiếu chi') : isIncome.value ? 'Phiếu thu mới' : 'Phiếu chi mới'));
 </script>
@@ -375,7 +375,7 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                     <button v-for="c in categories" :key="c.id" type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium" :class="form.category_id === c.id ? 'border-transparent text-white' : 'border-border bg-card'" :style="form.category_id === c.id ? { backgroundColor: c.color || '#15803d' } : {}" @click="form.category_id = c.id">
                         <CategoryIcon :name="c.icon" :color="form.category_id === c.id ? '#ffffff' : c.color" size="size-6" class="!bg-transparent" /> {{ c.name }}
                     </button>
-                    <RouterLink :to="`/${code}/quan-tri/loai-thu-chi`" class="inline-flex min-h-10 items-center rounded-full px-3 text-sm text-primary">+ Loại khác</RouterLink>
+                    <RouterLink :to="`/${code}/admin/categories`" class="inline-flex min-h-10 items-center rounded-full px-3 text-sm text-primary">+ Loại khác</RouterLink>
                 </div>
                 <p v-if="state.errors.category_id" class="mt-1 text-sm text-expense">{{ state.errors.category_id }}</p>
             </div>

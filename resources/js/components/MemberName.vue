@@ -4,6 +4,6 @@ defineProps({ name: String, memberId: Number, code: String });
 </script>
 
 <template>
-    <RouterLink v-if="memberId" :to="`/${code}/thanh-vien/${memberId}`" class="hover:underline" @click.stop>{{ name }}</RouterLink>
+    <RouterLink v-if="memberId" :to="`/${code}/members/${memberId}`" class="hover:underline" @click.stop>{{ name }}</RouterLink>
     <span v-else>{{ name }}</span>
 </template>

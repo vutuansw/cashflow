@@ -9,7 +9,7 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | Tài liệu | Nội dung |
 | --- | --- |
 | [01-co-so-du-lieu](01-co-so-du-lieu.plan.md) | Hai database, các bảng, mã hóa số điện thoại |
-| [02-tai-khoan-va-phan-quyen](02-tai-khoan-va-phan-quyen.plan.md) | Đăng ký, đăng nhập SĐT, vai trò, danh bạ, cấp tài khoản, trang /system |
+| [02-tai-khoan-va-phan-quyen](02-tai-khoan-va-phan-quyen.plan.md) | Đăng ký tài khoản, tạo nhóm, đăng nhập SĐT, vai trò, danh bạ, cấp tài khoản, trang /system |
 | [03-thu-chi-va-timeline](03-thu-chi-va-timeline.plan.md) | Phiếu thu chi, loại thu chi, ảnh, timeline, tim/bình luận, dashboard, báo cáo |
 | [04-ai-doc-bill](04-ai-doc-bill.plan.md) | Đọc ảnh bill chuyển khoản bằng OpenRouter, như FarmGo |
 | [05-chien-dich-va-sepay](05-chien-dich-va-sepay.plan.md) | Chiến dịch thu, mã QR, webhook SePay, hàng chờ duyệt |
@@ -17,6 +17,11 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [07-lo-trinh-va-trien-khai](07-lo-trinh-va-trien-khai.plan.md) | Các mốc code, kiểm thử, deploy lên wepo.hipotech.vn |
 | [08-trang-ca-nhan](08-trang-ca-nhan.plan.md) | Trang cá nhân kiểu Facebook: ảnh bìa, ảnh đại diện, sửa thông tin, timeline của từng người |
 | [09-doi-ten-wepo](09-doi-ten-wepo.plan.md) | Đổi tên sản phẩm từ "Quỹ nhóm" sang WePo, domain wepo.hipotech.vn |
+| [10-doi-mat-khau-system](10-doi-mat-khau-system.plan.md) | Quản trị viên /system tự đổi mật khẩu ở trang Tài khoản của tôi |
+| [11-tach-dang-ky-tai-khoan-va-nhom](11-tach-dang-ky-tai-khoan-va-nhom.plan.md) | Tách đăng ký tài khoản (`/register`) khỏi tạo nhóm (`/groups/new`) |
+| [12-url-tieng-anh](12-url-tieng-anh.plan.md) | Mọi URL dùng tiếng Anh, URL tiếng Việt cũ tự chuyển hướng |
+| [13-link-dang-ky-vao-nhom](13-link-dang-ky-vao-nhom.plan.md) | Link `/{ma-nhom}/register`: tự tạo tài khoản và xin vào nhóm, QTV duyệt trong Danh bạ |
+| [14-landing-page](14-landing-page.plan.md) | Trang chủ `/` thành landing page: hero, 5 section ưu việt có ảnh app trong khung iPhone, CTA |
 
 ---
 
@@ -95,16 +100,17 @@ Nguyên tắc bất biến:
 
 | URL | Ai dùng |
 | --- | --- |
-| `/` | Trang giới thiệu, nút Đăng ký nhóm / Đăng nhập |
-| `/dang-ky`, `/dang-nhap`, `/quen-mat-khau` | Trưởng nhóm, thành viên |
-| `/nhom` | Chọn nhóm sau khi đăng nhập, tạo thêm nhóm |
+| `/` | Trang giới thiệu, nút Đăng nhập / Tạo nhóm / Tạo tài khoản |
+| `/register`, `/login`, `/forgot-password` | Đăng ký tài khoản (không kèm nhóm), đăng nhập, quên mật khẩu |
+| `/groups` | Chọn nhóm sau khi đăng nhập |
+| `/groups/new` | Tạo nhóm (khách mở được, được nhắc tạo tài khoản trước) |
 | `/{ma-nhom}` | Timeline + tóm tắt quỹ (public: ai có link; private: phải đăng nhập và thuộc nhóm) |
-| `/{ma-nhom}/chien-dich/{ma-chien-dich}` | Trang đóng quỹ: QR, tiến độ, đã đóng/chưa đóng |
-| `/{ma-nhom}/quan-tri/...` | Trang quản trị nhóm (trưởng nhóm, QTV) |
+| `/{ma-nhom}/campaigns/{ma-chien-dich}` | Trang đóng quỹ: QR, tiến độ, đã đóng/chưa đóng |
+| `/{ma-nhom}/admin/...` | Trang quản trị nhóm (trưởng nhóm, QTV) |
 | `/system/...` | Quản trị HIPOTECH |
 | `POST /api/webhooks/sepay/{ma-nhom}` | SePay gọi vào |
 
-Mã nhóm: chữ thường không dấu, số, dấu `-`; dài 3–32; duy nhất; chặn các từ dành riêng (`system`, `api`, `nhom`, `dang-nhap`, `dang-ky`, `quen-mat-khau`, `build`, `storage`, `media`, `manifest.webmanifest`, `sw.js`...). Đổi mã nhóm làm hỏng link đã chia sẻ và webhook SePay nên chỉ `/system` được đổi.
+Mã nhóm: chữ thường không dấu, số, dấu `-`; dài 3–32; duy nhất; chặn các từ dành riêng (`system`, `api`, `groups`, `login`, `register`, `forgot-password`, `reset-password`, `change-password`, `profile`, `admin`, các từ tiếng Việt cũ như `nhom`, `dang-nhap`, `quan-tri` (để chuyển hướng URL cũ không đụng nhóm thật), `build`, `storage`, `media`, `manifest.webmanifest`, `sw.js`...). Đổi mã nhóm làm hỏng link đã chia sẻ và webhook SePay nên chỉ `/system` được đổi.
 
 ## 5. Ngoài phạm vi bản đầu
 

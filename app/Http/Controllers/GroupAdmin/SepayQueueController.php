@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\GroupJoinRequest;
 use App\Models\PaymentClaim;
 use App\Models\SepayTransaction;
 use App\Models\Transaction;
@@ -44,12 +45,15 @@ class SepayQueueController extends Controller
     }
 
     /** Số giao dịch SePay + bill thành viên chờ duyệt cho chấm đỏ trên menu. */
-    public function count()
+    public function count(Group $group)
     {
         $sepay = SepayTransaction::query()->where('status', 'pending')->count();
         $claims = PaymentClaim::query()->where('status', 'pending')->count();
 
-        return ['pending' => $sepay + $claims, 'sepay' => $sepay, 'claims' => $claims];
+        // Người xin vào nhóm qua link (plan/13): chấm đỏ riêng ở mục Danh bạ, không cộng vào "Chờ duyệt".
+        $joins = GroupJoinRequest::query()->where('group_id', $group->id)->where('status', 'pending')->count();
+
+        return ['pending' => $sepay + $claims, 'sepay' => $sepay, 'claims' => $claims, 'joins' => $joins];
     }
 
     /** Bản nháp để mở form phiếu điền sẵn (như AI đọc bill). */
@@ -73,7 +77,7 @@ class SepayQueueController extends Controller
         $data = $request->validate(['campaign_id' => ['nullable', 'integer'], 'contact_id' => ['nullable', 'integer']]);
         $transaction = $this->approveOne($group, $request, $sepay, $data['campaign_id'] ?? null, $data['contact_id'] ?? null);
 
-        return ['transaction_id' => $transaction->id] + $this->count();
+        return ['transaction_id' => $transaction->id] + $this->count($group);
     }
 
     /** Duyệt cả loạt các giao dịch tiền vào đã nhận ra đủ chiến dịch (không tính chiến dịch đoán) và người đóng. */
@@ -97,7 +101,7 @@ class SepayQueueController extends Controller
             }
         }
 
-        return ['approved' => $done, 'failed' => $failed] + $this->count();
+        return ['approved' => $done, 'failed' => $failed] + $this->count($group);
     }
 
     public function ignore(Request $request, Group $group, SepayTransaction $sepay)
@@ -108,7 +112,7 @@ class SepayQueueController extends Controller
         }
         $sepay->forceFill(['status' => 'ignored', 'ignore_reason' => $data['reason'] ?? null, 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()])->save();
 
-        return $this->count();
+        return $this->count($group);
     }
 
     /** Đưa giao dịch đã bỏ qua về lại hàng chờ. */
@@ -119,7 +123,7 @@ class SepayQueueController extends Controller
         }
         $sepay->forceFill(['status' => 'pending', 'ignore_reason' => null, 'reviewed_by' => null, 'reviewed_at' => null])->save();
 
-        return $this->count();
+        return $this->count($group);
     }
 
     private function approveOne(Group $group, Request $request, SepayTransaction $sepay, ?int $campaignId, ?int $contactId): Transaction

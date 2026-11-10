@@ -175,7 +175,8 @@ class SepayTest extends TestCase
 
         (new SendSepayDigest($this->group->id))->handle();
 
-        Mail::assertSent(SepayDigestMail::class, fn ($m) => $m->hasTo('thuquy@example.test') && $m->items->count() === 2);
+        Mail::assertSent(SepayDigestMail::class, fn ($m) => $m->hasTo('thuquy@example.test') && $m->items->count() === 2
+            && str_ends_with($m->content()->with['url'], '/admin/sepay-queue'));
 
         // Tắt thông báo thì không gửi.
         Mail::fake();

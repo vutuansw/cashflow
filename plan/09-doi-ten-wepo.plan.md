@@ -7,6 +7,7 @@ Ngày: 10/11/2026. Trạng thái: **đã duyệt, đã làm** (10/11/2026).
 - Tên sản phẩm là **WePo**. Tên kỹ thuật `cashflow` giữ nguyên (thư mục, namespace, database `cashflow_*`, config `cashflow.php`).
 - Domain đổi từ `quynhom.hipotech.vn` sang **`wepo.hipotech.vn`**. App chưa deploy nên không link nào bị hỏng.
 - Logo và trang chủ hiện **WePo kèm dòng phụ "Quỹ nhóm"** để người mới biết app dùng làm gì. Các câu khác chỉ ghi "WePo".
+  - Cập nhật 10/11/2026: dòng phụ dưới logo (`BrandMark.vue`) đổi thành **"Quản lý quỹ nhóm cùng nhau"**.
 - Tên kỹ thuật có chữ `quynhom` cũng **đổi hết sang `wepo`**.
 - Ngoài phạm vi: icon con heo, màu xanh lá và icon PWA giữ nguyên. Làm logo riêng cho WePo là việc khác.
 

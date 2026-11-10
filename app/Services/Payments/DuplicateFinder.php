@@ -28,7 +28,7 @@ class DuplicateFinder
 
     /**
      * @return array{level: 'strong'|'soft', sepay: ?SepayTransaction, transaction: ?Transaction}|null
-     *         transaction là phiếu đã có (null khi chỉ khớp giao dịch SePay còn chờ duyệt)
+     *                                                                                                 transaction là phiếu đã có (null khi chỉ khớp giao dịch SePay còn chờ duyệt)
      */
     public function forClaim(PaymentClaim $claim): ?array
     {

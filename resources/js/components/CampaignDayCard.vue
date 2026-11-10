@@ -20,7 +20,7 @@ const names = computed(() => {
             <CategoryIcon :name="post.category?.icon" :color="post.category?.color" />
             <div class="min-w-0 flex-1">
                 <h3 class="font-semibold leading-snug">
-                    <RouterLink v-if="post.campaign" :to="`/${code}/chien-dich/${post.campaign.slug}`" class="hover:underline">{{ post.campaign.name }}</RouterLink>
+                    <RouterLink v-if="post.campaign" :to="`/${code}/campaigns/${post.campaign.slug}`" class="hover:underline">{{ post.campaign.name }}</RouterLink>
                     <template v-else>{{ post.category?.name }}</template>
                 </h3>
                 <p class="text-xs text-muted-foreground">{{ relativeDay(post.occurred_at) }} · {{ post.count }} người đóng</p>

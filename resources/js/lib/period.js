@@ -1,7 +1,7 @@
 import { computed, reactive } from 'vue';
 
 // Kỳ xem dùng chung cho các màn có lọc theo thời gian: Tháng / Năm / Tất cả, lùi tiến từng kỳ bằng ‹ ›.
-// Trên URL: ?ky=month|year|all (mặc định defaultKind, không ghi) và ?moc=YYYY-MM hoặc YYYY (kỳ hiện tại thì không ghi).
+// Trên URL: ?period=month|year|all (mặc định defaultKind, không ghi) và ?at=YYYY-MM hoặc YYYY (kỳ hiện tại thì không ghi).
 const pad = (n) => String(n).padStart(2, '0');
 
 export const PERIOD_KINDS = [
@@ -12,9 +12,9 @@ export const PERIOD_KINDS = [
 
 export function usePeriod(query = {}, { defaultKind = 'year', kinds = ['month', 'year', 'all'] } = {}) {
     const today = new Date();
-    const [y, m] = String(query.moc ?? '').split('-').map(Number);
+    const [y, m] = String(query.at ?? '').split('-').map(Number);
     const state = reactive({
-        kind: kinds.includes(query.ky) ? query.ky : defaultKind,
+        kind: kinds.includes(query.period) ? query.period : defaultKind,
         year: y || today.getFullYear(),
         month: m || today.getMonth() + 1,
     });
@@ -54,8 +54,8 @@ export function usePeriod(query = {}, { defaultKind = 'year', kinds = ['month', 
 
     // Phần query để ghi lên URL.
     const toQuery = () => ({
-        ky: state.kind === defaultKind ? '' : state.kind,
-        moc: state.kind === 'all' || isCurrent.value ? '' : state.kind === 'month' ? `${state.year}-${pad(state.month)}` : String(state.year),
+        period: state.kind === defaultKind ? '' : state.kind,
+        at: state.kind === 'all' || isCurrent.value ? '' : state.kind === 'month' ? `${state.year}-${pad(state.month)}` : String(state.year),
     });
 
     return { state, label, canNext, range, shift, setKind, toQuery, options: PERIOD_KINDS.filter((k) => kinds.includes(k.v)) };

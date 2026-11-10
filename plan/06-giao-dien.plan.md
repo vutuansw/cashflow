@@ -14,9 +14,9 @@ Một SPA Vue 3 (`resources/js`), Tailwind 4, icon lucide, cấu trúc giống c
 
 ## 2. Bố cục
 
-**Khu xem nhóm** (`/{ma-nhom}`, `/chien-dich/...`): thanh trên cùng (ảnh + tên nhóm, nút Đăng nhập hoặc avatar). QTV có thêm nút "Quản trị".
+**Khu xem nhóm** (`/{ma-nhom}`, `/campaigns/...`): thanh trên cùng (ảnh + tên nhóm, nút Đăng nhập hoặc avatar). QTV có thêm nút "Quản trị".
 
-**Khu quản trị nhóm** (`/{ma-nhom}/quan-tri`):
+**Khu quản trị nhóm** (`/{ma-nhom}/admin`):
 - Mobile: thanh tab dưới đáy 5 mục — **Tổng quan · Phiếu · [+] · Chờ duyệt · Thêm**. Nút `+` giữa mở bảng chọn: *Đọc bill* / *Phiếu thu* / *Phiếu chi*. "Thêm" mở danh sách: Chiến dịch, Danh bạ, Báo cáo, Loại thu chi, Cài đặt nhóm, Xem timeline.
 - Máy tính: sidebar trái với cùng các mục.
 
@@ -28,7 +28,7 @@ Một SPA Vue 3 (`resources/js`), Tailwind 4, icon lucide, cấu trúc giống c
 
 | Khu | Màn hình |
 | --- | --- |
-| Chung | Trang giới thiệu, Đăng ký nhóm, Đăng nhập, Quên mật khẩu, Đặt lại mật khẩu, Đổi mật khẩu bắt buộc, Chọn nhóm, Hồ sơ cá nhân, Trang 404 / nhóm bị khóa / nhóm riêng tư |
+| Chung | Trang giới thiệu, Đăng ký tài khoản, Tạo nhóm, Đăng nhập, Quên mật khẩu, Đặt lại mật khẩu, Đổi mật khẩu bắt buộc, Chọn nhóm, Hồ sơ cá nhân, Trang 404 / nhóm bị khóa / nhóm riêng tư |
 | Xem nhóm | Timeline + thống kê, Chi tiết phiếu (ảnh, tim, bình luận), Trang chiến dịch |
 | Quản trị nhóm | Tổng quan, Bắt đầu nhanh, Danh sách phiếu, Tạo/sửa phiếu, Đọc bill, Chờ duyệt SePay, Chiến dịch (danh sách, tạo/sửa, chi tiết), Danh bạ (danh sách, thêm/sửa, nhập hàng loạt), Tài khoản & vai trò, Loại thu chi, Báo cáo, Cài đặt nhóm (thông tin, ảnh, chế độ xem, số dư đầu kỳ, ngân hàng & SePay, email thông báo, chuyển trưởng nhóm, xóa nhóm) |
 | /system | Đăng nhập, Tổng quan, Danh sách nhóm, Chi tiết/sửa nhóm, Tạo nhóm, Chi phí AI, Nhật ký, Quản trị viên |

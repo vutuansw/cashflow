@@ -93,7 +93,7 @@ defineExpose({ compose });
 
         <ul v-if="post.comments?.length" class="space-y-2.5">
             <li v-for="c in post.comments" :key="c.id" class="flex gap-2">
-                <RouterLink v-if="c.user.member_id" :to="`/${code}/thanh-vien/${c.user.member_id}`" class="shrink-0" :aria-label="`Trang của ${c.user.name}`">
+                <RouterLink v-if="c.user.member_id" :to="`/${code}/members/${c.user.member_id}`" class="shrink-0" :aria-label="`Trang của ${c.user.name}`">
                     <UserAvatar :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />
                 </RouterLink>
                 <UserAvatar v-else :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\GroupRole;
+use App\Models\GroupJoinRequest;
 use App\Models\User;
 use App\Services\GroupServiceStatus;
 use App\Support\MediaUrl;
@@ -36,6 +37,15 @@ class MeResource extends JsonResource
                 'role_label' => GroupRole::from($group->pivot->role)->label(),
                 'locked' => $status->isLocked($group),
             ])->values(),
+            // Nhóm đã xin vào qua link, đang chờ duyệt (plan/13).
+            'pending_groups' => GroupJoinRequest::query()
+                ->with('group')
+                ->where('user_id', $this->id)
+                ->where('status', 'pending')
+                ->get()
+                ->filter(fn ($r) => $r->group !== null)
+                ->map(fn ($r) => ['code' => $r->group->code, 'name' => $r->group->name])
+                ->values(),
         ];
     }
 }

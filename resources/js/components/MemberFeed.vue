@@ -5,8 +5,8 @@ import { api } from '../lib/api.js';
 import { monthLabel } from '../lib/time.js';
 
 // Cột "Hoạt động" trang cá nhân: timeline các phiếu một thành viên đóng hoặc nhận trong nhóm, cuộn vô hạn,
-// chia mốc tháng. Dùng chung cho trang thành viên và /ca-nhan. Xem plan/08 mục 5.
-// Slot mặc định: đặt trên đầu cột (vd hàng nút chọn nhóm ở /ca-nhan).
+// chia mốc tháng. Dùng chung cho trang thành viên và /profile. Xem plan/08 mục 5.
+// Slot mặc định: đặt trên đầu cột (vd hàng nút chọn nhóm ở /profile).
 const props = defineProps({ code: String, memberId: Number, viewer: Object });
 const emit = defineEmits(['login']);
 

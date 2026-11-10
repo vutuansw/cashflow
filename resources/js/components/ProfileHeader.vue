@@ -3,7 +3,7 @@ import { ShieldCheck, Users } from 'lucide-vue-next';
 import CoverArt from './CoverArt.vue';
 import UserAvatar from './UserAvatar.vue';
 
-// Phần đầu trang cá nhân, dùng chung cho trang thành viên và /ca-nhan (plan/08 mục 2, 10c). Ảnh bìa 3:1 mờ dần
+// Phần đầu trang cá nhân, dùng chung cho trang thành viên và /profile (plan/08 mục 2, 10c). Ảnh bìa 3:1 mờ dần
 // xuống nền trắng; avatar tròn viền trắng và tên nằm đè lên phần mờ đó, dòng dưới tên là vai trò | nhóm và các
 // nút hành động (viên thuốc viền xanh). Chưa có ảnh bìa thì vẽ nền xanh có sóng và cành lá.
 // Số đã đóng không nhắc lại ở đây, nằm trong thẻ Giới thiệu.
@@ -13,6 +13,8 @@ defineProps({
     member: { type: Object, required: true },
     role: String,
     context: String,
+    // Link của tên nhóm (dòng thời gian nhóm), không có thì chỉ hiện chữ.
+    contextTo: String,
     interactive: Boolean,
 });
 const emit = defineEmits(['cover', 'avatar']);
@@ -47,7 +49,7 @@ const emit = defineEmits(['cover', 'avatar']);
                         <p v-if="role || context || $slots.badge" class="mt-0.5 flex min-w-0 items-center gap-2 text-[13px] sm:mt-1 sm:gap-2.5 sm:text-sm">
                             <span v-if="role" class="inline-flex shrink-0 items-center gap-1"><ShieldCheck class="size-4 text-muted-foreground" /> {{ role }}</span>
                             <span v-if="role && context" class="h-4 w-px shrink-0 bg-border" aria-hidden="true"></span>
-                            <span v-if="context" class="inline-flex min-w-0 items-center gap-1"><Users class="size-4 shrink-0 text-muted-foreground" /> <span class="truncate">{{ context }}</span></span>
+                            <span v-if="context" class="inline-flex min-w-0 items-center gap-1"><Users class="size-4 shrink-0 text-muted-foreground" /> <RouterLink v-if="contextTo" :to="contextTo" class="truncate hover:text-primary hover:underline">{{ context }}</RouterLink><span v-else class="truncate">{{ context }}</span></span>
                             <slot name="badge" />
                         </p>
                     </div>

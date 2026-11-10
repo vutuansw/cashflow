@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronDown, Lock, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
+import { ChevronDown, Clock, Lock, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
 import DropdownMenu from '../components/DropdownMenu.vue';
 import GroupHeader from '../components/GroupHeader.vue';
@@ -12,6 +12,7 @@ import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
 import { monthLabel } from '../lib/time.js';
 import { session } from '../lib/session.js';
+import SiteFooter from '../components/SiteFooter.vue';
 
 // Trang nhóm /{ma-nhom}, bố cục như nhóm Facebook (plan/08 mục 10d): ảnh bìa, tên, hàng avatar thành viên, nút,
 // tab; máy tính chia hai cột (dòng thời gian trái; chiến dịch đang mở phải). Nội dung xem plan/03 mục 4.
@@ -47,7 +48,7 @@ async function loadHeader() {
     notFound.value = false;
     try {
         group.value = await api(`/g/${code.value}`);
-        document.title = `${group.value.name} · WePo`;
+        document.title = `${group.value.name} - WePo`;
     } catch (e) {
         if (e instanceof ApiError && [404, 423].includes(e.status)) notFound.value = e.status;
         return;
@@ -80,9 +81,9 @@ async function loadMore() {
     }
 }
 
-const login = () => router.push({ path: '/dang-nhap', query: { next: route.fullPath } });
-// Trang của tôi trong nhóm (plan/08 mục 10b); không thuộc nhóm thì chỉ có /ca-nhan.
-const myPage = computed(() => (viewer.value.member_id ? `/${code.value}/thanh-vien/${viewer.value.member_id}` : null));
+const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
+// Trang của tôi trong nhóm (plan/08 mục 10b); không thuộc nhóm thì chỉ có /profile.
+const myPage = computed(() => (viewer.value.member_id ? `/${code.value}/members/${viewer.value.member_id}` : null));
 // Tab "Chiến dịch" mở chiến dịch đang mở mới nhất.
 const openCampaign = computed(() => summary.value?.campaigns?.[0] ?? null);
 
@@ -137,32 +138,39 @@ onBeforeUnmount(() => observer?.disconnect());
                             </button>
                         </template>
                         <!-- Một lối duy nhất: thành viên ra trang của mình trong nhóm (sửa bằng nút bút ở đó);
-                             người không thuộc nhóm thì ra /ca-nhan. -->
-                        <RouterLink :to="myPage ?? '/ca-nhan'" class="menu-item" role="menuitem"><UserRound class="size-5 text-muted-foreground" /> Trang của tôi</RouterLink>
-                        <RouterLink to="/nhom" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm khác</RouterLink>
+                             người không thuộc nhóm thì ra /profile. -->
+                        <RouterLink :to="myPage ?? '/profile'" class="menu-item" role="menuitem"><UserRound class="size-5 text-muted-foreground" /> Trang của tôi</RouterLink>
+                        <RouterLink to="/groups" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm khác</RouterLink>
                     </DropdownMenu>
                 </template>
 
                 <!-- Bên phải hàng avatar thành viên: điện thoại chỉ hiện biểu tượng -->
                 <button v-if="group.can_view" type="button" class="btn-soft !min-h-8 max-sm:!size-8 max-sm:!rounded-full max-sm:!p-0 sm:!min-h-9" aria-label="Chia sẻ" title="Chia sẻ" @click="share"><Share2 class="size-4" /> <span class="hidden sm:inline">Chia sẻ</span></button>
-                <RouterLink v-if="viewer.can_manage" :to="`/${code}/quan-tri`" class="btn-soft !min-h-8 max-sm:!size-8 max-sm:!rounded-full max-sm:!p-0 sm:!min-h-9" aria-label="Quản trị" title="Quản trị"><Settings class="size-4" /> <span class="hidden sm:inline">Quản trị</span></RouterLink>
+                <RouterLink v-if="viewer.can_manage" :to="`/${code}/admin`" class="btn-soft !min-h-8 max-sm:!size-8 max-sm:!rounded-full max-sm:!p-0 sm:!min-h-9" aria-label="Quản trị" title="Quản trị"><Settings class="size-4" /> <span class="hidden sm:inline">Quản trị</span></RouterLink>
 
                 <template v-if="group.can_view" #tabs>
                     <RouterLink :to="`/${code}`" class="border-b-[3px] border-primary px-3 py-3 text-primary">Dòng thời gian</RouterLink>
-                    <RouterLink :to="`/${code}/thong-ke`" class="border-b-[3px] border-transparent px-3 py-3 text-muted-foreground hover:text-foreground">Thống kê</RouterLink>
-                    <RouterLink v-if="openCampaign" :to="`/${code}/chien-dich/${openCampaign.slug}`" class="whitespace-nowrap border-b-[3px] border-transparent px-3 py-3 text-muted-foreground hover:text-foreground">Chiến dịch</RouterLink>
+                    <RouterLink :to="`/${code}/stats`" class="border-b-[3px] border-transparent px-3 py-3 text-muted-foreground hover:text-foreground">Thống kê</RouterLink>
+                    <RouterLink v-if="openCampaign" :to="`/${code}/campaigns/${openCampaign.slug}`" class="whitespace-nowrap border-b-[3px] border-transparent px-3 py-3 text-muted-foreground hover:text-foreground">Chiến dịch</RouterLink>
                 </template>
             </GroupHeader>
+
+            <!-- Đã xin vào nhóm qua link, đang chờ duyệt (plan/13); nhóm công khai vẫn xem như khách -->
+            <div v-if="viewer.join_pending && group.can_view" class="mx-auto mt-4 max-w-5xl px-4">
+                <p class="card flex items-center gap-2 p-3 text-sm"><Clock class="size-5 shrink-0 text-primary" /> Bạn đã gửi yêu cầu vào nhóm. Đang chờ quản trị viên duyệt.</p>
+            </div>
 
             <!-- Nhóm riêng tư: chỉ hiện tên và ảnh bìa, mời đăng nhập -->
             <div v-if="!group.can_view" class="mx-auto mt-6 max-w-xl px-4">
                 <div class="card p-6 text-center">
-                    <Lock class="mx-auto size-8 text-muted-foreground" />
+                    <component :is="viewer.join_pending ? Clock : Lock" class="mx-auto size-8 text-muted-foreground" />
                     <h2 class="mt-3 font-semibold">Nhóm riêng tư</h2>
-                    <p class="mt-1 text-sm text-muted-foreground">
+                    <p v-if="viewer.join_pending" class="mt-1 text-sm text-muted-foreground">Bạn đã gửi yêu cầu vào nhóm. Đang chờ quản trị viên duyệt.</p>
+                    <p v-else class="mt-1 text-sm text-muted-foreground">
                         {{ viewer.logged_in ? 'Tài khoản của bạn không thuộc nhóm này. Nhờ quản trị viên cấp tài khoản cho bạn.' : 'Đăng nhập bằng tài khoản quản trị viên đã cấp để xem thu chi của nhóm.' }}
                     </p>
                     <button v-if="!viewer.logged_in" type="button" class="btn-primary mt-4 w-full" @click="login">Đăng nhập</button>
+                    <RouterLink v-if="!viewer.join_pending && viewer.join_link_enabled" :to="`/${code}/register`" class="btn-outline mt-3 w-full">Xin vào nhóm</RouterLink>
                 </div>
             </div>
 
@@ -183,8 +191,10 @@ onBeforeUnmount(() => observer?.disconnect());
                             <template v-if="c.members_total">{{ c.members_paid }}/{{ c.members_total }} người · </template>
                             Đã thu {{ formatMoney(c.collected) }}<template v-if="c.members_total && c.amount_per_member"> / {{ formatMoney(c.members_total * c.amount_per_member) }}</template>
                         </p>
-                        <RouterLink :to="`/${code}/chien-dich/${c.slug}`" class="btn-primary mt-3 w-full"><Wallet class="size-4" /> Đóng quỹ ngay</RouterLink>
+                        <RouterLink :to="`/${code}/campaigns/${c.slug}`" class="btn-primary mt-3 w-full"><Wallet class="size-4" /> Đóng quỹ ngay</RouterLink>
                     </section>
+                    <!-- Máy tính: chân trang dưới cột chiến dịch (dòng thời gian cuộn vô tận nên không đặt ở đáy trang). -->
+                    <SiteFooter class="hidden !pt-2 lg:block" />
                 </aside>
 
                 <div class="space-y-3 lg:col-start-1 lg:row-start-1">
@@ -202,6 +212,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         <button v-else-if="hasMore" type="button" class="btn-outline" @click="loadMore">Xem thêm</button>
                         <template v-else-if="posts.length">Đã hết.</template>
                     </div>
+                    <SiteFooter v-if="!openCampaign" class="hidden !pt-0 lg:block" />
                 </div>
             </div>
         </template>

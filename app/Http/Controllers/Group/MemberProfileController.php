@@ -16,7 +16,7 @@ use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 
 /**
- * Trang thành viên /{ma-nhom}/thanh-vien/{memberId}: ảnh, tên, vai trò, thẻ
+ * Trang thành viên /{ma-nhom}/members/{memberId}: ảnh, tên, vai trò, thẻ
  * tóm tắt đóng quỹ và timeline các phiếu người đó đóng hoặc nhận trong nhóm.
  * Ai xem được timeline nhóm thì xem được; không bao giờ có SĐT, ngày sinh,
  * địa chỉ. Xem plan/08 mục 1, 2, 5.
@@ -26,7 +26,7 @@ class MemberProfileController extends Controller
     public const PER_PAGE = 20;
 
     /**
-     * Danh sách thành viên /{ma-nhom}/thanh-vien (bấm "19 thành viên" ở đầu trang nhóm): mọi người đang tham gia
+     * Danh sách thành viên /{ma-nhom}/members (bấm "19 thành viên" ở đầu trang nhóm): mọi người đang tham gia
      * trong danh bạ, cùng số đếm với đầu trang. Chỉ tên, ảnh và vai trò quản trị như hàng avatar; không SĐT, ngày
      * sinh, địa chỉ. Người có tài khoản có member_id để mở trang thành viên. Xem plan/08 mục 10e.
      */
