@@ -88,14 +88,14 @@ const sourceLabel = { manual: 'Nhập tay', ai_bill: 'AI đọc bill', sepay: 'S
             </div>
             <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
                 <button v-for="p in periods" :key="p.v" type="button" class="chip !min-h-9 shrink-0 !px-3.5 !text-sm" :class="filters.period === p.v ? '!bg-primary !text-primary-foreground' : ''" @click="filters.period = p.v">{{ p.l }}</button>
-                <select v-model="filters.type" class="chip !min-h-9 shrink-0 !px-3 !text-sm" aria-label="Thu hay chi" @change="filters.category_id = ''">
+                <select v-model="filters.type" class="chip !min-h-9 shrink-0 !pl-3 !pr-8 !text-sm" aria-label="Thu hay chi" @change="filters.category_id = ''">
                     <option value="">Thu và chi</option><option value="income">Chỉ thu</option><option value="expense">Chỉ chi</option>
                 </select>
-                <select v-model="filters.category_id" class="chip !min-h-9 shrink-0 !px-3 !text-sm" aria-label="Loại">
+                <select v-model="filters.category_id" class="chip !min-h-9 shrink-0 !pl-3 !pr-8 !text-sm" aria-label="Loại">
                     <option value="">Mọi loại</option>
                     <option v-for="c in shownCategories" :key="c.id" :value="c.id">{{ c.type === 'income' ? 'Thu' : 'Chi' }} · {{ c.name }}</option>
                 </select>
-                <select v-model="filters.source" class="chip !min-h-9 shrink-0 !px-3 !text-sm" aria-label="Nguồn">
+                <select v-model="filters.source" class="chip !min-h-9 shrink-0 !pl-3 !pr-8 !text-sm" aria-label="Nguồn">
                     <option value="">Mọi nguồn</option><option value="manual">Nhập tay</option><option value="ai_bill">AI đọc bill</option><option value="sepay">SePay</option>
                 </select>
             </div>

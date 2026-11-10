@@ -183,7 +183,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 <!-- Bộ lọc -->
                 <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
                     <button v-for="opt in [{ v: null, l: 'Tất cả' }, { v: 'income', l: 'Thu' }, { v: 'expense', l: 'Chi' }]" :key="String(opt.v)" type="button" class="chip !min-h-9 shrink-0 !px-3.5 !text-sm" :class="filter.type === opt.v && !filter.category_id ? '!bg-primary !text-primary-foreground' : ''" @click="setFilter({ type: opt.v, category_id: null })">{{ opt.l }}</button>
-                    <select v-if="categories.length" class="chip !min-h-9 shrink-0 !px-3 !text-sm" :value="filter.category_id ?? ''" aria-label="Lọc theo loại" @change="setFilter({ category_id: $event.target.value || null, type: null })">
+                    <select v-if="categories.length" class="chip !min-h-9 shrink-0 !pl-3 !pr-8 !text-sm" :value="filter.category_id ?? ''" aria-label="Lọc theo loại" @change="setFilter({ category_id: $event.target.value || null, type: null })">
                         <option value="">Loại…</option>
                         <option v-for="cat in categories" :key="cat.category_id" :value="cat.category_id">{{ cat.name }}</option>
                     </select>

@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
  * Gửi một webhook SePay giả vào chính ứng dụng (không cần mạng, không cần
  * SePay) để thử luồng hàng chờ duyệt trên máy dev. Xem plan/05 mục 5.
  *
- *   php artisan cashflow:sepay-simulate chidoan-a12 500000 "CHIDOA26 Tran Van Minh"
+ *   php artisan cashflow:sepay-simulate chidoan-a12 500000 "QUYLOP2026 Tran Van Minh"
  */
 class SepaySimulateCommand extends Command
 {

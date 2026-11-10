@@ -112,7 +112,7 @@ class CampaignService
 
     /**
      * Mã nội dung chuyển khoản: chữ in hoa + số, 6-12 ký tự, duy nhất toàn hệ
-     * thống. Từ mã nhóm + năm, vd chi-doan-a12 năm 2026 thành CHIDOA26.
+     * thống. Từ mã nhóm + năm, vd chi-doan-a12 năm 2026 thành QUYLOP2026.
      * Ngân hàng hay bỏ dấu cách, gạch, ký tự đặc biệt nên chỉ dùng chữ và số.
      */
     public static function generateCode(Group $group, ?string $startsOn = null): string

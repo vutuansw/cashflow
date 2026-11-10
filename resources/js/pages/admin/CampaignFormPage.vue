@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import AdminShell from '../../layouts/AdminShell.vue';
 import FormField from '../../components/FormField.vue';
 import MoneyInput from '../../components/MoneyInput.vue';
+import SwitchToggle from '../../components/SwitchToggle.vue';
 import { adminApi } from '../../lib/api.js';
 import { useForm, ignore } from '../../lib/form.js';
 import { fold } from '../../lib/text.js';
@@ -28,6 +29,8 @@ const form = reactive({
 });
 const exempt = reactive(new Set());
 const search = ref('');
+// Phần chọn người được miễn mặc định ẩn; tắt đi thì không ai được miễn.
+const hasExempt = ref(false);
 
 onMounted(async () => {
     options.value = await adminApi(code.value, '/campaigns/options');
@@ -38,6 +41,7 @@ onMounted(async () => {
         Object.assign(form, { name: d.name, category_id: d.category_id, amount_per_member: d.amount_per_member, transfer_code: d.transfer_code, description: d.description ?? '', status: d.status });
         lockedCode.value = d.locked_code;
         d.people.filter((p) => p.status === 'exempt' && p.contact_id).forEach((p) => exempt.add(p.contact_id));
+        hasExempt.value = exempt.size > 0;
     }
 });
 
@@ -45,7 +49,7 @@ const shown = computed(() => {
     const q = fold(search.value);
     return (options.value?.contacts ?? []).filter((c) => !q || fold(c.full_name).includes(q));
 });
-const payingCount = computed(() => (options.value?.contacts.length ?? 0) - [...exempt].filter((cid) => options.value?.contacts.some((c) => c.id === cid)).length);
+const payingCount = computed(() => (options.value?.contacts.length ?? 0) - (hasExempt.value ? [...exempt].filter((cid) => options.value?.contacts.some((c) => c.id === cid)).length : 0));
 
 function toggle(contactId) {
     if (exempt.has(contactId)) exempt.delete(contactId);
@@ -59,7 +63,7 @@ async function save() {
         amount_per_member: form.amount_per_member,
         transfer_code: form.transfer_code || null,
         description: form.description || null,
-        exempt_ids: [...exempt],
+        exempt_ids: hasExempt.value ? [...exempt] : [],
         ...(id.value ? { status: form.status } : {}),
     };
     const saved = await submit(() => adminApi(code.value, id.value ? `/campaigns/${id.value}` : '/campaigns', { method: id.value ? 'PUT' : 'POST', body })).catch(ignore);
@@ -93,8 +97,14 @@ async function save() {
             </FormField>
 
             <section class="card p-3">
-                <h2 class="font-semibold">Người được miễn <span class="font-normal text-muted-foreground">({{ exempt.size }})</span></h2>
-                <p class="text-sm text-muted-foreground">Mọi người trong danh bạ đều phải đóng ({{ payingCount }} người), trừ người được chọn ở đây. Người thêm vào danh bạ sau cũng tự phải đóng.</p>
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="font-semibold">Có người được miễn<template v-if="hasExempt && exempt.size"> <span class="font-normal text-muted-foreground">({{ exempt.size }})</span></template></h2>
+                        <p class="text-sm text-muted-foreground">{{ payingCount }} người trong danh bạ phải đóng. Người thêm vào danh bạ sau cũng tự phải đóng.</p>
+                    </div>
+                    <SwitchToggle v-model="hasExempt" label="Có người được miễn" />
+                </div>
+                <template v-if="hasExempt">
                 <input v-model="search" type="search" class="field mt-2" placeholder="Tìm tên" />
                 <ul class="mt-2 max-h-80 divide-y divide-border overflow-y-auto">
                     <li v-for="c in shown" :key="c.id">
@@ -106,6 +116,7 @@ async function save() {
                     </li>
                     <li v-if="!shown.length" class="py-3 text-center text-sm text-muted-foreground">Không có ai.</li>
                 </ul>
+                </template>
             </section>
 
             <div class="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-card p-3 lg:static lg:border-0 lg:bg-transparent lg:p-0">

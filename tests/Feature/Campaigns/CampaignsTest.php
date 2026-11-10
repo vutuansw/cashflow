@@ -38,7 +38,7 @@ class CampaignsTest extends TestCase
             'name' => 'Thu quỹ năm 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 500000, 'starts_on' => '2026-11-01',
         ])->assertCreated()
             ->assertJsonPath('slug', 'thu-quy-nam-2026')
-            ->assertJsonPath('transfer_code', 'CHIDOA26')
+            ->assertJsonPath('transfer_code', 'QUYLOP2026')
             ->assertJsonPath('members_total', 3) // chủ nhóm + 2 người, không có người đã rời
             ->assertJsonPath('expected_total', 1500000)
             ->json();
