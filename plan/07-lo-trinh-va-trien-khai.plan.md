@@ -51,16 +51,16 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Thư mục | `/var/www/cashflow` |
+| Thư mục | `/var/www/wepo` (repo clone qua deploy key, host SSH `github-wepo`) |
 | Domain | `wepo.hipotech.vn` (bản ghi A trỏ về VPS, SSL Let's Encrypt) |
 | PHP | `php8.4-fpm` dùng chung với chatbot, cần thêm `php8.4-gd` cho xử lý ảnh |
 | Database | `cashflow_groups`, `cashflow_system`, user MySQL `cashflow` chỉ có quyền trên hai DB này |
 | Nginx | vhost riêng, `client_max_body_size 20m` (tải ảnh), root `public/` |
-| Hàng đợi | supervisor `cashflow-worker` (`queue:work --queue=default`) |
+| Hàng đợi | supervisor `wepo-worker` ([deploy/supervisor](../deploy/supervisor/wepo-worker.conf)) (`queue:work --queue=default`) |
 | Cron | `schedule:run` mỗi phút: dọn bill mồ côi, xóa hẳn nhóm đã xóa quá 30 ngày, dọn phiếu xóa mềm quá 30 ngày |
 | Ảnh | `storage/app/private/groups`, nằm ngoài thư mục deploy được ghi đè |
 | Sao lưu | mysqldump hai DB hằng ngày + rsync thư mục ảnh; **sao lưu riêng `APP_KEY` và `PHONE_HASH_KEY`** |
-| Deploy | `deploy/deploy.sh` (git pull, composer install --no-dev, npm ci && npm run build, migrate --force cả 2 DB, config/route/view cache, restart worker); GitHub Actions nếu có repo |
+| Deploy | `bash /var/www/wepo/deploy/deploy.sh` bằng root: git pull, composer/npm khi file khóa đổi, build, `cashflow:migrate --force` khi có migration, `optimize`, restart worker |
 
 `deploy/README.md` hướng dẫn dựng server lần đầu, giống chatbot.
 
@@ -89,7 +89,7 @@ Email gửi khách (đặt lại mật khẩu, tài khoản mới, báo hàng ch
    MAIL_FROM_ADDRESS="weposupport@gmail.com"
    MAIL_FROM_NAME="${APP_NAME}"
    ```
-   Rồi chạy `php artisan config:cache` và `supervisorctl restart cashflow-worker`, vì email gộp gửi qua hàng đợi.
+   Rồi chạy `php artisan config:cache` và `supervisorctl restart wepo-worker:*`, vì email gộp gửi qua hàng đợi.
 3. **Thử gửi**:
    ```bash
    php artisan tinker --execute="Mail::raw('Thử gửi từ WePo', fn (\$m) => \$m->to('weposupport@gmail.com')->subject('Thử email WePo'));"
