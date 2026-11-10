@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Group\CampaignPageController;
 use App\Http\Controllers\Group\InteractionController;
+use App\Http\Controllers\Group\MemberProfileController;
 use App\Http\Controllers\Group\TimelineController;
 use App\Http\Controllers\GroupAdmin\BillScanController;
 use App\Http\Controllers\GroupAdmin\CampaignController;
@@ -61,6 +62,8 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/timeline', [TimelineController::class, 'feed']);
         Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
         Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
+        Route::get('/members/{member}', [MemberProfileController::class, 'show'])->whereNumber('member');
+        Route::get('/members/{member}/timeline', [MemberProfileController::class, 'timeline'])->whereNumber('member');
         Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
         Route::get('/campaigns/{slug}/bank-apps', [CampaignPageController::class, 'bankApps'])->where('slug', '[a-z0-9-]+');
         Route::post('/campaigns/{slug}/claims', [CampaignPageController::class, 'claim'])->where('slug', '[a-z0-9-]+');

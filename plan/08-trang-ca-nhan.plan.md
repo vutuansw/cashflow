@@ -137,6 +137,33 @@ Cập nhật bảng `users` ở plan/01.
 | P3 | Trang `/{ma-nhom}/thanh-vien/{id}`: API hồ sơ, timeline, thẻ tóm tắt | ✓ (kèm ảnh chụp) |
 | P4 | Gắn avatar và link trang thành viên ở bình luận, thanh trên, danh sách tài khoản, bảng đã đóng | ✓ |
 
+Tiến độ 10/11/2026: xong P1. Làm trước P3 và phần link của P4 theo yêu cầu "mỗi tên thành viên bấm vào đều ra trang cá nhân": tên ở thẻ phiếu, thẻ gộp đóng quỹ, bình luận (kèm avatar), bảng đã đóng/chưa đóng, trang Tài khoản và Danh bạ của quản trị. Tên người chưa có tài khoản vẫn là chữ thường. Sau đó xong P2: `/ca-nhan` có ảnh bìa, ảnh đại diện (menu Xem/Đổi/Gỡ), Sheet sửa thông tin, hàng nút chọn nhóm để xem hoạt động của mình ngay trên trang.
+
+## 10b. Lối vào "trang của tôi" từ timeline (bổ sung 10/11/2026)
+
+Vấn đề: người đang ở timeline nhóm đăng nhập xong chỉ có icon dẫn tới `/ca-nhan` (form sửa thông tin); QTV thì chỉ thấy nút "Quản trị". Không có đường đi thẳng tới trang `/{ma-nhom}/thanh-vien/{id}` của chính mình, trừ khi tự tìm tên mình trên một phiếu.
+
+Thay đổi:
+
+| Chỗ | Trước | Sau |
+| --- | --- | --- |
+| `viewer` trong `GET /api/g/{code}` | Không có id thành viên | Thêm `member_id` (`group_members.id`, null nếu không thuộc nhóm) |
+| `GET /api/me` → `groups[]` | | Thêm `member_id` cho từng nhóm |
+| Đầu trang nhóm, khách | Nút "Đăng nhập" | Giữ nguyên. Đăng nhập xong quay về timeline |
+| Đầu trang nhóm, thành viên | Icon `UserRound` → `/ca-nhan` | **Ảnh đại diện của tôi** → `/{ma-nhom}/thanh-vien/{member_id}` |
+| Đầu trang nhóm, QTV | Chỉ nút "Quản trị" | Nút "Quản trị" **và** ảnh đại diện → trang của tôi |
+| Đầu trang nhóm, đăng nhập nhưng không thuộc nhóm | Icon → `/ca-nhan` | Ảnh đại diện → `/ca-nhan` |
+| `/ca-nhan` | Không có link | Mục "Trang của tôi" liệt kê các nhóm, mỗi dòng → `/{ma-nhom}/thanh-vien/{member_id}` |
+| Thanh bên quản trị, trang chọn nhóm | Icon `UserRound` | Ảnh đại diện (vẫn → `/ca-nhan`) |
+
+Luồng của một người: timeline → "Đăng nhập" → về lại timeline → bấm ảnh đại diện góc phải → trang của tôi → "Sửa trang cá nhân" → `/ca-nhan`.
+
+Kiểm thử: `viewer.member_id` đúng với thành viên, null với khách và người nhóm khác; `/api/me` có `groups.*.member_id`.
+
+Trên điện thoại, nút "Quản trị" chỉ còn icon ⚙ để tên nhóm không bị cắt quá ngắn.
+
+Tiến độ 10/11/2026: đã làm xong mục này (avatar ở thanh trên của P4 cũng xong theo).
+
 ## 11. Câu hỏi cần chốt
 
 | # | Câu hỏi | Đề xuất |

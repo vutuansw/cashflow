@@ -50,6 +50,7 @@ const router = createRouter({
         { path: '/system/quan-tri-vien', component: () => import('./pages/system/AdminsPage.vue'), meta: { system: true } },
         { path: '/:group/thong-ke', component: () => import('./pages/GroupStatsPage.vue') },
         { path: '/:group/chien-dich/:slug', component: () => import('./pages/CampaignPage.vue') },
+        { path: '/:group/thanh-vien/:id(\\d+)', component: () => import('./pages/MemberPage.vue') },
         { path: '/:group', component: () => import('./pages/GroupHomePage.vue') },
         { path: '/:pathMatch(.*)*', component: () => import('./pages/NotFoundPage.vue') },
     ],

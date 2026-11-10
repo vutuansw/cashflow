@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Models\PaymentClaim;
 use App\Services\Campaigns\CampaignProgress;
+use App\Services\Groups\MemberIndex;
 use App\Services\Payments\BankApps;
 use App\Services\Payments\PaymentClaimService;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class CampaignPageController extends Controller
         $pendingRows = PaymentClaim::query()->where('campaign_id', $campaign->id)->where('status', 'pending')->pluck('contact_id');
         $pending = $pendingRows->filter()->flip()->all();
         $pendingCount = $pendingRows->count();
+        $members = MemberIndex::of($group);
 
         return [
             'id' => $campaign->id,
@@ -55,6 +57,7 @@ class CampaignPageController extends Controller
             // contact_id để chọn tên khi gửi bill; chỉ là số thứ tự, không lộ thông tin liên hệ.
             'people' => array_map(fn ($p) => array_intersect_key($p, array_flip(['contact_id', 'name', 'expected', 'paid', 'last_paid_at', 'status', 'in_list'])) + [
                 'pending_claim' => $p['contact_id'] !== null && isset($pending[$p['contact_id']]),
+                'member_id' => $members->contact($p['contact_id'])['member_id'] ?? null,
             ], $data['people']),
             'pending_claims' => $pendingCount,
         ];

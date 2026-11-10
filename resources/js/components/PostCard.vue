@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Heart, MessageCircle, Pencil } from 'lucide-vue-next';
 import CategoryIcon from './CategoryIcon.vue';
+import MemberName from './MemberName.vue';
 import PhotoGrid from './PhotoGrid.vue';
 import PostComments from './PostComments.vue';
 import { api } from '../lib/api.js';
@@ -50,7 +51,7 @@ async function heart() {
             <CategoryIcon :name="post.category?.icon" :color="post.category?.color" />
             <div class="min-w-0 flex-1">
                 <h3 class="font-semibold leading-snug">{{ post.title }}</h3>
-                <p class="text-xs text-muted-foreground">{{ relativeDay(post.occurred_at) }} · {{ post.category?.name }}<template v-if="post.person && !post.title.includes(post.person)"> · {{ post.person }}</template></p>
+                <p class="text-xs text-muted-foreground">{{ relativeDay(post.occurred_at) }} · {{ post.category?.name }}<template v-if="post.person && !post.title.includes(post.person)"> · <MemberName :name="post.person" :member-id="post.person_member_id" :code="code" /></template></p>
             </div>
             <p class="shrink-0 font-semibold tabular-nums" :class="post.type === 'income' ? 'text-income' : 'text-expense'">{{ post.type === 'income' ? '+' : '−' }}{{ formatMoney(post.amount).replace(' đ', '') }}</p>
         </div>

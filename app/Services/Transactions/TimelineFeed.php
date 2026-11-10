@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\Group;
 use App\Models\Transaction;
 use App\Services\Groups\GroupViewer;
+use App\Services\Groups\MemberIndex;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -71,7 +72,7 @@ class TimelineFeed
             ->get()
             ->keyBy('id');
 
-        $grouped = $this->campaignDays($base, $groupsKeys);
+        $grouped = $this->campaignDays($group, $base, $groupsKeys);
 
         $data = [];
         foreach ($posts as $post) {
@@ -86,7 +87,7 @@ class TimelineFeed
     }
 
     /** @param  list<string>  $keys  dạng "c{campaign_id}:{Y-m-d}" */
-    private function campaignDays($base, array $keys): array
+    private function campaignDays(Group $group, $base, array $keys): array
     {
         if ($keys === []) {
             return [];
@@ -110,6 +111,7 @@ class TimelineFeed
             ->get();
 
         $campaigns = Campaign::query()->whereIn('id', array_column($pairs, 0))->get()->keyBy('id');
+        $members = MemberIndex::of($group);
 
         $result = [];
         foreach ($transactions->groupBy(fn (Transaction $t) => 'c'.$t->campaign_id.':'.$t->occurred_at->toDateString()) as $key => $items) {
@@ -129,6 +131,7 @@ class TimelineFeed
                 'payers' => $items->map(fn (Transaction $t) => [
                     'id' => $t->id,
                     'name' => $t->personName() ?? 'Không rõ tên',
+                    'member_id' => $members->contact($t->contact_id)['member_id'] ?? null,
                     'amount' => $t->amount,
                     'time' => Carbon::parse($t->occurred_at)->format('H:i'),
                 ])->values(),

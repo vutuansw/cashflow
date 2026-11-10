@@ -74,6 +74,8 @@ class GroupViewer
         return [
             'logged_in' => $this->user !== null,
             'is_member' => $this->isMember(),
+            // Để dựng link "trang của tôi" /{ma-nhom}/thanh-vien/{member_id}. Xem plan/08 mục 10b.
+            'member_id' => $this->member?->id,
             'role' => $this->role()?->value,
             'role_label' => $this->role()?->label(),
             'can_interact' => $this->canInteract(),

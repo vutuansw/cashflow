@@ -2,16 +2,18 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\GroupMember;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
 use Tests\TestCase;
 
 /** Trang cá nhân: sửa thông tin, ảnh đại diện, ảnh bìa. Xem plan/08. */
 class ProfileTest extends TestCase
 {
-    use RefreshBothDatabases;
+    use CreatesGroups, RefreshBothDatabases;
 
     protected function setUp(): void
     {
@@ -93,5 +95,15 @@ class ProfileTest extends TestCase
         $this->get(preg_replace('#/[^/]+$#', '/doan-mo', $url))->assertNotFound();
         $this->get(str_replace('/avatar/', '/cover/', $url))->assertNotFound();
         $this->get('/media/u/999999/avatar/abc')->assertNotFound();
+    }
+
+    public function test_me_tra_member_id_tung_nhom_de_mo_trang_cua_minh(): void
+    {
+        $user = User::factory()->create();
+        $group = $this->makeGroup([], $user);
+        $memberId = GroupMember::where('group_id', $group->id)->where('user_id', $user->id)->value('id');
+
+        $this->actingAs($user)->getJson('/api/me')->assertJsonPath('data.groups.0.member_id', $memberId);
+        $this->getJson("/api/g/{$group->code}/members/{$memberId}")->assertOk()->assertJsonPath('member.is_me', true);
     }
 }

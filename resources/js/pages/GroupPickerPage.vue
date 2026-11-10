@@ -1,11 +1,12 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ChevronRight, LogOut, Plus, UserRound, Lock, Globe } from 'lucide-vue-next';
+import { ChevronRight, LogOut, Plus, Lock, Globe } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
 import FormField from '../components/FormField.vue';
 import MoneyInput from '../components/MoneyInput.vue';
 import Sheet from '../components/Sheet.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { api } from '../lib/api.js';
 import { ignore, useForm } from '../lib/form.js';
 import { loadMe, logout, session } from '../lib/session.js';
@@ -43,7 +44,7 @@ async function signOut() {
         <div class="flex items-center justify-between">
             <BrandMark />
             <div class="flex">
-                <RouterLink to="/ca-nhan" class="icon-btn" aria-label="Cá nhân"><UserRound class="size-5" /></RouterLink>
+                <RouterLink to="/ca-nhan" class="icon-btn" aria-label="Cá nhân"><UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-8 text-sm" /></RouterLink>
                 <button class="icon-btn" aria-label="Đăng xuất" @click="signOut"><LogOut class="size-5" /></button>
             </div>
         </div>

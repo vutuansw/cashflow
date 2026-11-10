@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-vue-next';
+import { ArrowDownLeft, ArrowUpRight, Plus, ScanText } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
 import Sheet from '../components/Sheet.vue';
 import BillReadingOverlay from '../components/BillReadingOverlay.vue';
@@ -13,6 +13,7 @@ import { toast } from '../lib/notice.js';
 import { pending, refreshPending } from '../lib/pending.js';
 import { adminMenu, adminTabs } from '../lib/nav.js';
 import { session } from '../lib/session.js';
+import UserAvatar from '../components/UserAvatar.vue';
 
 // Khung trang quản trị nhóm, xem plan/06 mục 2: tab đáy trên điện thoại, sidebar trên máy tính.
 // crumbs: các cấp cha [{ label, to }] của màn con; mobileOnly: chỉ hiện nút ‹ trên điện thoại (desktop đã có sidebar).
@@ -71,7 +72,7 @@ function active(item) {
                 </RouterLink>
             </nav>
             <RouterLink to="/ca-nhan" class="mt-auto flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted">
-                <UserRound class="size-5" /> {{ session.me?.name }}
+                <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-7 text-xs" /> <span class="truncate">{{ session.me?.name }}</span>
             </RouterLink>
         </aside>
 

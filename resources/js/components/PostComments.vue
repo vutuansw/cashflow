@@ -1,6 +1,8 @@
 <script setup>
 import { nextTick, ref } from 'vue';
 import { EyeOff, Eye, Pencil, Send, Trash2 } from 'lucide-vue-next';
+import MemberName from './MemberName.vue';
+import UserAvatar from './UserAvatar.vue';
 import { api } from '../lib/api.js';
 import { useForm, ignore } from '../lib/form.js';
 import { relativeDay } from '../lib/time.js';
@@ -91,10 +93,13 @@ defineExpose({ compose });
 
         <ul v-if="post.comments?.length" class="space-y-2.5">
             <li v-for="c in post.comments" :key="c.id" class="flex gap-2">
-                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary">{{ c.user.charAt(0) }}</span>
+                <RouterLink v-if="c.user.member_id" :to="`/${code}/thanh-vien/${c.user.member_id}`" class="shrink-0" :aria-label="`Trang của ${c.user.name}`">
+                    <UserAvatar :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />
+                </RouterLink>
+                <UserAvatar v-else :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />
                 <div class="min-w-0 flex-1">
                     <div class="inline-block max-w-full rounded-2xl bg-muted px-3 py-1.5" :class="{ 'opacity-60': c.hidden }">
-                        <p class="text-sm font-semibold">{{ c.user }}</p>
+                        <MemberName :name="c.user.name" :member-id="c.user.member_id" :code="code" class="block text-sm font-semibold" />
                         <p class="whitespace-pre-line break-words text-sm">{{ c.body }}</p>
                     </div>
                     <p class="flex flex-wrap items-center gap-x-3 px-2 text-xs text-muted-foreground">

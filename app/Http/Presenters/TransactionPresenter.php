@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\TransactionHistory;
 use App\Models\TransactionPhoto;
 use App\Services\Groups\GroupViewer;
+use App\Services\Groups\MemberIndex;
 use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -46,6 +47,8 @@ class TransactionPresenter
             'description' => $t->description,
             'occurred_at' => $t->occurred_at->toIso8601String(),
             'person' => $t->personName(),
+            // Người đóng/người nhận đã có tài khoản trong nhóm thì tên bấm được, mở trang thành viên (plan/08 mục 6).
+            'person_member_id' => MemberIndex::of($group)->contact($t->contact_id)['member_id'] ?? null,
             'category' => self::category($t->category),
             'campaign' => $t->campaign ? ['id' => $t->campaign->id, 'name' => $t->campaign->name, 'slug' => $t->campaign->slug] : null,
             'photos' => $t->photos->map(fn (TransactionPhoto $p) => self::photo($group, $p))->values(),

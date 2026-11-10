@@ -1,10 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { KeyRound, UserMinus, UserPlus } from 'lucide-vue-next';
+import { useRoute, useRouter } from 'vue-router';
+import { KeyRound, UserMinus, UserPlus, UserRound } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import Sheet from '../../components/Sheet.vue';
 import TempPasswordCard from '../../components/TempPasswordCard.vue';
+import UserAvatar from '../../components/UserAvatar.vue';
 import { adminApi } from '../../lib/api.js';
 import { ignore, useForm } from '../../lib/form.js';
 import { toast } from '../../lib/notice.js';
@@ -13,6 +14,7 @@ import { roleIn, session } from '../../lib/session.js';
 
 // Tài khoản và vai trò trong nhóm, xem plan/02 mục 3-4.
 const route = useRoute();
+const router = useRouter();
 const code = computed(() => route.params.group);
 const myRole = computed(() => roleIn(code.value));
 const members = ref([]);
@@ -30,8 +32,9 @@ function canEdit(m) {
     return m.role === 'member' || myRole.value === 'owner';
 }
 
+// Tài khoản không sửa được (chính mình, trưởng nhóm) thì bấm vào ra trang thành viên.
 function open(m) {
-    if (!canEdit(m)) return;
+    if (!canEdit(m)) return router.push(`/${code.value}/thanh-vien/${m.id}`);
     selected.value = m;
     result.value = null;
 }
@@ -68,8 +71,9 @@ function lastLogin(value) {
         <p class="text-sm text-muted-foreground">Cấp tài khoản cho người mới ở trang <RouterLink :to="`/${code}/quan-tri/danh-ba`" class="font-medium text-primary">Danh bạ</RouterLink> (nút "Cấp TK").</p>
 
         <ul class="card mt-3 divide-y divide-border">
-            <li v-for="m in members" :key="m.id">
-                <button class="flex w-full items-center gap-3 p-3 text-left" :class="{ 'cursor-default': !canEdit(m) }" @click="open(m)">
+            <li v-for="m in members" :key="m.id" class="flex items-center gap-3 pl-3">
+                <RouterLink :to="`/${code}/thanh-vien/${m.id}`" class="shrink-0" :aria-label="`Trang của ${m.name}`"><UserAvatar :url="m.avatar_url" :name="m.name" class="!size-10" /></RouterLink>
+                <button class="flex min-w-0 flex-1 items-center gap-3 py-3 pr-3 text-left" @click="open(m)">
                     <span class="min-w-0 flex-1">
                         <span class="block truncate font-medium">{{ m.name }}<span v-if="m.user_id === session.me?.id" class="text-muted-foreground"> (bạn)</span></span>
                         <span class="text-sm text-muted-foreground">{{ m.phone }} · {{ m.must_change_password ? 'Chưa đổi mật khẩu tạm' : lastLogin(m.last_login_at) }}</span>
@@ -82,6 +86,7 @@ function lastLogin(value) {
         <Sheet :open="selected !== null" :title="selected?.name" @close="selected = null">
             <TempPasswordCard v-if="result" :password="result.temp_password" :message="result.share_message" />
             <div v-else class="grid gap-3">
+                <RouterLink v-if="selected" :to="`/${code}/thanh-vien/${selected.id}`" class="btn-outline"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
                 <template v-if="myRole === 'owner'">
                     <button v-if="selected?.role === 'member'" class="btn-outline" :disabled="state.busy" @click="setRole('admin')"><UserPlus class="size-4" /> Phong làm Quản trị viên</button>
                     <button v-else class="btn-outline" :disabled="state.busy" @click="setRole('member')">Hạ xuống Thành viên</button>

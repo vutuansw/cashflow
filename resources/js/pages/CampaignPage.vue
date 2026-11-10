@@ -5,6 +5,7 @@ import { CheckCircle2, CircleDashed, CircleDot, Clock, Copy, Landmark, Lock, Rec
 import BackButton from '../components/BackButton.vue';
 import BankAppSheet from '../components/BankAppSheet.vue';
 import ClaimSheet from '../components/ClaimSheet.vue';
+import MemberName from '../components/MemberName.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
@@ -156,7 +157,7 @@ async function share() {
                         <CheckCircle2 v-if="p.status === 'paid'" class="size-4 shrink-0 text-income" aria-label="Đã đủ" />
                         <CircleDot v-else-if="p.status === 'partial'" class="size-4 shrink-0 text-amber-600" aria-label="Đóng thiếu" />
                         <CircleDashed v-else class="size-4 shrink-0 text-muted-foreground" aria-label="Chưa đóng" />
-                        <span class="truncate">{{ p.name }}</span>
+                        <MemberName :name="p.name" :member-id="p.member_id" :code="code" class="truncate" />
                     </span>
                     <span v-if="p.pending_claim" class="chip shrink-0 !bg-amber-100 !text-amber-800"><Clock class="size-3" /> Chờ xác nhận</span>
                     <span v-else-if="p.status === 'partial'" class="shrink-0 tabular-nums text-amber-700">{{ formatMoney(p.paid).replace(' đ', '') }}/{{ formatMoney(p.expected) }}</span>

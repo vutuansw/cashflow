@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import CategoryIcon from './CategoryIcon.vue';
+import MemberName from './MemberName.vue';
 import { formatMoney } from '../lib/money.js';
 import { relativeDay } from '../lib/time.js';
 
@@ -31,7 +32,7 @@ const names = computed(() => {
         </button>
         <ul v-if="open" class="mt-1 divide-y divide-border rounded-xl bg-muted/60 text-sm">
             <li v-for="p in post.payers" :key="p.id" class="flex items-center justify-between gap-3 px-3 py-2">
-                <span class="truncate">{{ p.name }}</span>
+                <MemberName :name="p.name" :member-id="p.member_id" :code="code" class="truncate" />
                 <span class="shrink-0 tabular-nums text-muted-foreground">{{ p.time }} · {{ formatMoney(p.amount) }}</span>
             </li>
         </ul>

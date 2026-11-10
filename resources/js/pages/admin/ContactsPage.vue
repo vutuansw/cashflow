@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { ClipboardPaste, KeyRound, Phone, Plus, Search, UserPlus } from 'lucide-vue-next';
+import { ClipboardPaste, KeyRound, Phone, Plus, Search, UserPlus, UserRound } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import FormField from '../../components/FormField.vue';
 import Sheet from '../../components/Sheet.vue';
@@ -139,6 +139,7 @@ function birthday(value) {
         </ul>
 
         <Sheet :open="editing !== null" :title="editing?.id ? 'Sửa thông tin' : 'Thêm người'" @close="editing = null">
+            <RouterLink v-if="editing?.account" :to="`/${$route.params.group}/thanh-vien/${editing.account.member_id}`" class="btn-outline mb-4 w-full"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
             <form class="space-y-4" @submit.prevent="save">
                 <FormField v-model="form.full_name" label="Họ tên" :error="state.errors.full_name" required />
                 <FormField v-model="form.phone" label="Số điện thoại" type="tel" inputmode="tel" :error="state.errors.phone" />

@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronRight, Globe, Lock, Settings, UserRound } from 'lucide-vue-next';
+import { ChevronRight, Globe, Lock, Settings } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
 import MonthBars from '../components/MonthBars.vue';
 import PostCard from '../components/PostCard.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { api, ApiError } from '../lib/api.js';
 import { formatMoney } from '../lib/money.js';
 import { monthLabel } from '../lib/time.js';
+import { session } from '../lib/session.js';
 
 // Trang nhóm /{ma-nhom}: phần đầu, số dư + biểu đồ 6 tháng, chiến dịch đang mở, bộ lọc, timeline. Xem plan/03 mục 4 và wireframe M2.
 const route = useRoute();
@@ -92,6 +94,8 @@ function setFilter(next) {
 }
 
 const login = () => router.push({ path: '/dang-nhap', query: { next: route.fullPath } });
+// Ảnh đại diện góc phải: thành viên thì ra trang của mình trong nhóm, không thuộc nhóm thì ra /ca-nhan. Xem plan/08 mục 10b.
+const myPage = computed(() => (viewer.value.member_id ? `/${code.value}/thanh-vien/${viewer.value.member_id}` : '/ca-nhan'));
 
 let observer;
 onMounted(() => {
@@ -132,9 +136,13 @@ onBeforeUnmount(() => observer?.disconnect());
                             {{ group.visibility === 'public' ? 'Công khai' : 'Riêng tư' }}<template v-if="group.members_count"> · {{ group.members_count }} thành viên</template>
                         </p>
                     </div>
-                    <RouterLink v-if="viewer.can_manage" :to="`/${code}/quan-tri`" class="btn-outline mt-2 !min-h-10 !px-3 text-sm"><Settings class="size-4" /> Quản trị</RouterLink>
-                    <button v-else-if="!viewer.logged_in" type="button" class="btn-outline mt-2 !min-h-10 !px-3 text-sm" @click="login">Đăng nhập</button>
-                    <RouterLink v-else to="/ca-nhan" class="icon-btn mt-2" aria-label="Tài khoản"><UserRound class="size-5" /></RouterLink>
+                    <button v-if="!viewer.logged_in" type="button" class="btn-outline mt-2 !min-h-10 !px-3 text-sm" @click="login">Đăng nhập</button>
+                    <div v-else class="mt-2 flex shrink-0 items-center gap-2">
+                        <RouterLink v-if="viewer.can_manage" :to="`/${code}/quan-tri`" class="btn-outline !min-h-10 !px-3 text-sm" aria-label="Quản trị"><Settings class="size-4" /><span class="hidden sm:inline">Quản trị</span></RouterLink>
+                        <RouterLink :to="myPage" class="grid size-11 place-items-center rounded-full hover:bg-muted" :aria-label="viewer.member_id ? 'Trang của tôi' : 'Tài khoản'">
+                            <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-9 text-sm" />
+                        </RouterLink>
+                    </div>
                 </div>
             </header>
 

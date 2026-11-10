@@ -4,6 +4,7 @@ namespace App\Http\Presenters;
 
 use App\Models\Comment;
 use App\Services\Groups\GroupViewer;
+use App\Services\Groups\MemberIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -29,11 +30,17 @@ class CommentPresenter
     public static function present(Comment $c, GroupViewer $viewer): array
     {
         $mine = $viewer->user?->id === $c->user_id;
+        $member = MemberIndex::of($viewer->group)->user($c->user_id);
 
         return [
             'id' => $c->id,
             'body' => $c->body,
-            'user' => $c->user?->name ?? 'Tài khoản đã xóa',
+            // member_id null: tài khoản đã rời nhóm hoặc đã xóa, tên không bấm được (plan/08 mục 6).
+            'user' => [
+                'name' => $c->user?->name ?? 'Tài khoản đã xóa',
+                'member_id' => $member['member_id'] ?? null,
+                'avatar_url' => $member['avatar_url'] ?? null,
+            ],
             'created_at' => $c->created_at->toIso8601String(),
             'edited' => $c->updated_at->gt($c->created_at->copy()->addSecond()),
             'hidden' => $c->hidden_at !== null,

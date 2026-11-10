@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Services\Accounts\AccountGranter;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -131,6 +132,7 @@ class MemberController extends Controller
             'id' => $m->id,
             'user_id' => $m->user_id,
             'name' => $m->user->name,
+            'avatar_url' => MediaUrl::profile($m->user, 'avatar'),
             'phone' => $m->user->phone,
             'email' => $m->user->email,
             'role' => $m->role->value,

@@ -29,7 +29,10 @@ class MeResource extends JsonResource
                 'code' => $group->code,
                 'name' => $group->name,
                 'visibility' => $group->visibility,
+                'member_id' => $group->pivot->id,
                 'role' => $group->pivot->role,
+                // Mở trang thành viên của chính mình trong nhóm này (plan/08 mục 1).
+                'member_id' => $group->pivot->id,
                 'role_label' => GroupRole::from($group->pivot->role)->label(),
                 'locked' => $status->isLocked($group),
             ])->values(),
