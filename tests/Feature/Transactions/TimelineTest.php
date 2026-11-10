@@ -156,7 +156,7 @@ class TimelineTest extends TestCase
 
         $this->getJson("/api/g/{$group->code}/summary")->assertOk()
             ->assertJsonPath('campaigns.0.collected', 2_000_000)
-            ->assertJsonPath('campaigns.0.members_total', 0);
+            ->assertJsonPath('campaigns.0.members_total', 1); // Lê Văn An thêm vào danh bạ sau nên tự phải đóng
     }
 
     public function test_trang_nhom_co_open_graph_va_noindex(): void

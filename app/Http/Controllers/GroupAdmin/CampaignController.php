@@ -44,7 +44,8 @@ class CampaignController extends Controller
     public function store(Request $request, Group $group)
     {
         $data = $this->validated($request);
-        $campaign = $this->service->create($group, $request->user(), $data, $data['members'] ?? null);
+        $members = isset($data['exempt_ids']) ? $this->membersFromExempt(null, $data['exempt_ids']) : ($data['members'] ?? null);
+        $campaign = $this->service->create($group, $request->user(), $data, $members);
 
         return response()->json($this->present($campaign), 201);
     }
@@ -75,7 +76,9 @@ class CampaignController extends Controller
     {
         $data = $this->validated($request, $campaign);
         $this->service->update($campaign, $data);
-        if (array_key_exists('members', $data) && $data['members'] !== null) {
+        if (isset($data['exempt_ids'])) {
+            $this->service->syncMembers($campaign, $this->membersFromExempt($campaign, $data['exempt_ids']));
+        } elseif (array_key_exists('members', $data) && $data['members'] !== null) {
             $this->service->syncMembers($campaign, $data['members']);
         }
 
@@ -114,6 +117,25 @@ class CampaignController extends Controller
         return $this->present($campaign);
     }
 
+    /**
+     * Mọi người đang tham gia đều phải đóng, trừ người được miễn (plan/05 mục 1).
+     * Sửa chiến dịch thì giữ người đã có trong danh sách (kể cả đã rời nhóm) và số tiền riêng của họ.
+     *
+     * @param  list<int>  $exemptIds
+     */
+    private function membersFromExempt(?Campaign $campaign, array $exemptIds): array
+    {
+        $exempt = array_flip(array_map('intval', $exemptIds));
+        $existing = $campaign ? CampaignMember::where('campaign_id', $campaign->id)->get()->keyBy('contact_id') : collect();
+        $ids = Contact::query()->where('status', 'active')->pluck('id')->merge($existing->keys())->unique();
+
+        return $ids->map(fn ($id) => [
+            'contact_id' => (int) $id,
+            'exempt' => isset($exempt[$id]),
+            'expected_amount' => $existing->get($id)?->expected_amount,
+        ])->values()->all();
+    }
+
     private function summary(Campaign $c): array
     {
         return [
@@ -139,7 +161,7 @@ class CampaignController extends Controller
         $groupId = app(CurrentGroup::class)->id();
 
         return $request->validate([
-            'name' => ['required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'max:150', Rule::unique('campaigns', 'name')->where('group_id', $groupId)->ignore($campaign?->id)],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('group_id', $groupId)->where('type', 'income')],
             'transfer_code' => ['nullable', 'string', 'regex:/^[A-Z0-9]{6,12}$/', Rule::unique('campaigns', 'transfer_code')->ignore($campaign?->id)],
             'amount_per_member' => ['nullable', 'integer', 'min:1000', 'max:999999999999'],
@@ -152,7 +174,10 @@ class CampaignController extends Controller
             'members.*.contact_id' => ['required', 'integer'],
             'members.*.expected_amount' => ['nullable', 'integer', 'min:0', 'max:999999999999'],
             'members.*.exempt' => ['nullable', 'boolean'],
+            'exempt_ids' => ['nullable', 'array', 'max:2000'],
+            'exempt_ids.*' => ['integer'],
         ], [
+            'name.unique' => 'Nhóm đã có chiến dịch tên này, đặt tên khác nhé.',
             'transfer_code.regex' => 'Mã chuyển khoản gồm 6–12 chữ cái không dấu hoặc số, viết liền.',
             'transfer_code.unique' => 'Mã chuyển khoản này đã có chiến dịch khác dùng.',
             'ends_on.after_or_equal' => 'Ngày kết thúc phải sau ngày bắt đầu.',

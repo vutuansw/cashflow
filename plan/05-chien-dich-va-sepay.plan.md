@@ -4,9 +4,13 @@
 
 Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 
-**Tạo chiến dịch** (quản trị nhóm): Tên*, Loại thu (mặc định Đóng quỹ năm), Số tiền mỗi người (để trống = tùy tâm), Mục tiêu tổng (tùy chọn), Từ ngày – đến ngày, Mô tả, Ảnh bìa, **Danh sách phải đóng** (mặc định tất cả danh bạ đang tham gia; bỏ chọn hoặc đánh dấu miễn từng người; chỉnh số tiền riêng từng người).
+**Tạo chiến dịch** (quản trị nhóm): Tên* (không trùng tên chiến dịch khác trong nhóm), Loại thu* (mặc định Đóng quỹ năm), Số tiền mỗi người (để trống = tùy tâm), Mã nội dung chuyển khoản (không bắt buộc), Mô tả, **Người được miễn**.
 
-**Mã nội dung chuyển khoản** (`transfer_code`): tự sinh, duy nhất toàn hệ thống, chỉ chữ in hoa và số (ngân hàng hay bỏ dấu cách, gạch, ký tự đặc biệt trong nội dung), vd `QNA12N26`. QTV sửa được khi chưa có giao dịch nào.
+- Mọi người đang tham gia trong danh bạ đều phải đóng; QTV chỉ chọn ai **được miễn**. Người thêm vào danh bạ sau khi tạo chiến dịch tự vào danh sách phải đóng của các chiến dịch đang mở.
+- Bỏ ô Từ ngày – Đến ngày và Mục tiêu tổng khỏi form (chốt ngày 10/11/2026). Tiến độ tính theo tổng số phải đóng của mọi người.
+- Ô bắt buộc có dấu `*` đỏ ở nhãn.
+
+**Mã nội dung chuyển khoản** (`transfer_code`): không bắt buộc nhập, để trống thì tự sinh; duy nhất toàn hệ thống, chỉ chữ in hoa và số (ngân hàng hay bỏ dấu cách, gạch, ký tự đặc biệt trong nội dung), vd `QNA12N26`. QTV sửa được khi chưa có giao dịch nào.
 
 **Trang chiến dịch** `/{ma-nhom}/chien-dich/{slug}` — ai xem được timeline thì xem được:
 

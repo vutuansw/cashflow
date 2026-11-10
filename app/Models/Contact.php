@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToGroup;
 use App\Models\Concerns\HasEncryptedPhone;
+use App\Services\Transactions\GroupStats;
 use App\Support\VietnameseText;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -39,6 +40,18 @@ class Contact extends Model
         static::saving(function (Contact $contact) {
             if ($contact->isDirty('full_name')) {
                 $contact->search_name = VietnameseText::fold($contact->full_name);
+            }
+        });
+
+        // Người mới vào danh bạ tự vào danh sách phải đóng của các chiến dịch đang mở (plan/05 mục 1).
+        static::created(function (Contact $contact) {
+            if ($contact->status !== 'active') {
+                return;
+            }
+            $open = Campaign::acrossGroups()->where('group_id', $contact->group_id)->where('status', 'open')->pluck('id');
+            $open->each(fn ($campaignId) => CampaignMember::firstOrCreate(['campaign_id' => $campaignId, 'contact_id' => $contact->id]));
+            if ($open->isNotEmpty()) {
+                app(GroupStats::class)->forget($contact->group_id);
             }
         });
     }

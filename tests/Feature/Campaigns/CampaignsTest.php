@@ -113,6 +113,35 @@ class CampaignsTest extends TestCase
         $this->getJson("/api/g/{$group->code}/campaigns/{$campaign->slug}")->assertForbidden();
     }
 
+    public function test_chi_chon_nguoi_duoc_mien_ten_khong_trung_nguoi_moi_tu_vao(): void
+    {
+        $group = $this->makeGroup();
+        [$an, $binh] = $this->contacts($group, ['An', 'Bình']);
+        $this->actingAs($this->ownerOf($group));
+
+        $c = $this->postJson($this->adminUrl($group, 'campaigns'), [
+            'name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 200000, 'exempt_ids' => [$binh],
+        ])->assertCreated()->assertJsonPath('members_total', 2)->json(); // chủ nhóm + An; Bình được miễn
+
+        $this->assertMatchesRegularExpression('/^[A-Z0-9]{6,12}$/', $c['transfer_code']);
+        $this->assertSame('exempt', collect($c['people'])->firstWhere('contact_id', $binh)['status']);
+
+        // Tên trùng trong nhóm bị chặn; nhóm khác đặt trùng tên được.
+        $this->postJson($this->adminUrl($group, 'campaigns'), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group)])
+            ->assertJsonValidationErrors('name')->assertJsonPath('errors.name.0', 'Nhóm đã có chiến dịch tên này, đặt tên khác nhé.');
+        $other = $this->makeGroup();
+        $this->actingAs($this->ownerOf($other))->postJson($this->adminUrl($other, 'campaigns'), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($other)])->assertCreated();
+
+        // Người thêm vào danh bạ sau tự phải đóng chiến dịch đang mở.
+        $this->actingAs($this->ownerOf($group))->postJson($this->adminUrl($group, 'contacts'), ['full_name' => 'Chi mới vào'])->assertCreated();
+        $this->getJson($this->adminUrl($group, "campaigns/{$c['id']}"))->assertJsonPath('members_total', 3);
+
+        // Sửa: bỏ miễn Bình, miễn An; tên giữ nguyên không bị báo trùng với chính nó.
+        $this->putJson($this->adminUrl($group, "campaigns/{$c['id']}"), [
+            'name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'status' => 'open', 'exempt_ids' => [$an],
+        ])->assertOk()->assertJsonPath('members_total', 3);
+    }
+
     public function test_thanh_vien_khong_quan_ly_chien_dich(): void
     {
         $group = $this->makeGroup();
