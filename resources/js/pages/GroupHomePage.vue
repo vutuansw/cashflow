@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ChevronRight, Globe, Lock, Settings, UserRound } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
-import CommentsSheet from '../components/CommentsSheet.vue';
 import MonthBars from '../components/MonthBars.vue';
 import PostCard from '../components/PostCard.vue';
 import { api, ApiError } from '../lib/api.js';
@@ -23,7 +22,6 @@ const page = ref(0);
 const hasMore = ref(true);
 const loading = ref(false);
 const filter = ref({ type: null, category_id: null });
-const commenting = ref(null);
 const sentinel = ref(null);
 
 const viewer = computed(() => group.value?.viewer ?? {});
@@ -123,19 +121,20 @@ onBeforeUnmount(() => observer?.disconnect());
             <!-- Phần đầu: ảnh bìa, ảnh đại diện, tên nhóm -->
             <header class="mx-auto max-w-xl">
                 <div class="h-32 bg-gradient-to-br from-primary/30 to-primary/5 sm:h-44 sm:rounded-b-3xl" :style="group.cover_url ? { backgroundImage: `url(${group.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"></div>
-                <div class="-mt-8 flex items-end gap-3 px-4">
-                    <img v-if="group.avatar_url" :src="group.avatar_url" alt="" class="size-16 shrink-0 rounded-2xl border-4 border-background object-cover" />
-                    <span v-else class="grid size-16 shrink-0 place-items-center rounded-2xl border-4 border-background bg-primary text-2xl font-bold text-primary-foreground">{{ group.name.charAt(0) }}</span>
-                    <div class="min-w-0 flex-1 pb-1">
+                <!-- Chỉ ảnh đại diện trồi lên ảnh bìa; tên nhóm và nút nằm hẳn bên dưới để không đè lên ảnh -->
+                <div class="flex items-start gap-3 px-4">
+                    <img v-if="group.avatar_url" :src="group.avatar_url" alt="" class="relative -mt-8 size-16 shrink-0 rounded-2xl border-4 border-background object-cover" />
+                    <span v-else class="relative -mt-8 grid size-16 shrink-0 place-items-center rounded-2xl border-4 border-background bg-primary text-2xl font-bold text-primary-foreground">{{ group.name.charAt(0) }}</span>
+                    <div class="min-w-0 flex-1 pt-2">
                         <h1 class="truncate text-lg font-semibold leading-tight">{{ group.name }}</h1>
                         <p class="flex items-center gap-1 text-xs text-muted-foreground">
                             <component :is="group.visibility === 'public' ? Globe : Lock" class="size-3" />
                             {{ group.visibility === 'public' ? 'Công khai' : 'Riêng tư' }}<template v-if="group.members_count"> · {{ group.members_count }} thành viên</template>
                         </p>
                     </div>
-                    <RouterLink v-if="viewer.can_manage" :to="`/${code}/quan-tri`" class="btn-outline mb-1 !min-h-10 !px-3 text-sm"><Settings class="size-4" /> Quản trị</RouterLink>
-                    <button v-else-if="!viewer.logged_in" type="button" class="btn-outline mb-1 !min-h-10 !px-3 text-sm" @click="login">Đăng nhập</button>
-                    <RouterLink v-else to="/ca-nhan" class="icon-btn mb-1" aria-label="Tài khoản"><UserRound class="size-5" /></RouterLink>
+                    <RouterLink v-if="viewer.can_manage" :to="`/${code}/quan-tri`" class="btn-outline mt-2 !min-h-10 !px-3 text-sm"><Settings class="size-4" /> Quản trị</RouterLink>
+                    <button v-else-if="!viewer.logged_in" type="button" class="btn-outline mt-2 !min-h-10 !px-3 text-sm" @click="login">Đăng nhập</button>
+                    <RouterLink v-else to="/ca-nhan" class="icon-btn mt-2" aria-label="Tài khoản"><UserRound class="size-5" /></RouterLink>
                 </div>
             </header>
 
@@ -193,7 +192,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 <template v-for="item in feed" :key="item.key">
                     <p v-if="item.divider" class="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ item.divider }}</p>
                     <CampaignDayCard v-else-if="item.post.kind === 'campaign_day'" :post="item.post" :code="code" />
-                    <PostCard v-else :post="item.post" :code="code" :viewer="viewer" @comments="commenting = $event" @login="login" />
+                    <PostCard v-else :post="item.post" :code="code" :viewer="viewer" @login="login" />
                 </template>
 
                 <p v-if="!loading && !posts.length" class="card p-6 text-center text-sm text-muted-foreground">Chưa có khoản thu chi nào{{ filter.type || filter.category_id ? ' khớp bộ lọc' : '' }}.</p>
@@ -205,6 +204,5 @@ onBeforeUnmount(() => observer?.disconnect());
             </div>
         </template>
 
-        <CommentsSheet :post="commenting" :code="code" :viewer="viewer" @close="commenting = null" @login="login" />
     </div>
 </template>

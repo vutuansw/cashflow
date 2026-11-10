@@ -8,17 +8,25 @@ use App\Models\Group;
 use App\Models\Transaction;
 use App\Models\TransactionHistory;
 use App\Models\TransactionPhoto;
+use App\Services\Groups\GroupViewer;
 use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 
 /** Dữ liệu phiếu trả cho SPA: thẻ timeline, dòng danh sách quản trị, chi tiết. */
 class TransactionPresenter
 {
-    /** Nạp sẵn những gì thẻ timeline cần, tránh truy vấn N+1. */
-    public static function withCardRelations(Builder $query, ?int $userId): Builder
+    /** Nạp sẵn những gì thẻ timeline cần (kể cả vài bình luận mới nhất), tránh truy vấn N+1. */
+    public static function withCardRelations(Builder $query, GroupViewer $viewer): Builder
     {
+        $userId = $viewer->user?->id;
+
         return $query
-            ->with(['category', 'contact:id,group_id,full_name', 'photos', 'campaign:id,name,slug'])
+            ->with([
+                'category', 'contact:id,group_id,full_name', 'photos', 'campaign:id,name,slug',
+                // Lấy dư một bình luận để biết còn bình luận cũ hơn không.
+                'comments' => fn ($q) => CommentPresenter::visibleTo($q, $viewer)
+                    ->with('user:id,name')->orderByDesc('id')->limit(CommentPresenter::PREVIEW + 1),
+            ])
             ->withCount([
                 'reactions as hearts_count',
                 'comments as comments_count' => fn ($q) => $q->whereNull('hidden_at'),
@@ -26,8 +34,10 @@ class TransactionPresenter
             ->when($userId, fn ($q) => $q->withExists(['reactions as hearted' => fn ($r) => $r->where('user_id', $userId)]));
     }
 
-    public static function card(Transaction $t, Group $group): array
+    public static function card(Transaction $t, Group $group, GroupViewer $viewer): array
     {
+        $comments = $t->relationLoaded('comments') ? $t->comments : collect();
+
         return [
             'id' => $t->id,
             'type' => $t->type->value,
@@ -42,6 +52,9 @@ class TransactionPresenter
             'hearts_count' => (int) ($t->hearts_count ?? 0),
             'comments_count' => (int) ($t->comments_count ?? 0),
             'hearted' => (bool) ($t->hearted ?? false),
+            // Vài bình luận mới nhất, xếp cũ trước mới sau như khung chat.
+            'comments' => $comments->take(CommentPresenter::PREVIEW)->reverse()->values()->map(fn ($c) => CommentPresenter::present($c, $viewer)),
+            'comments_more' => $comments->count() > CommentPresenter::PREVIEW,
         ];
     }
 

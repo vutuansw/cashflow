@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { Heart, MessageCircle, Pencil } from 'lucide-vue-next';
 import CategoryIcon from './CategoryIcon.vue';
 import PhotoGrid from './PhotoGrid.vue';
+import PostComments from './PostComments.vue';
 import { api } from '../lib/api.js';
 import { formatMoney } from '../lib/money.js';
 import { relativeDay } from '../lib/time.js';
@@ -10,9 +11,17 @@ import { toast } from '../lib/notice.js';
 
 // Một phiếu trên timeline: loại, tiêu đề, số tiền (xanh thu, đỏ chi), mô tả, ảnh, tim, bình luận. Xem plan/03 mục 4-5.
 const props = defineProps({ post: Object, code: String, viewer: Object });
-const emit = defineEmits(['comments', 'login']);
+const emit = defineEmits(['login']);
 const busy = ref(false);
 const expanded = ref(false);
+const comments = ref(null);
+
+/** Nút "Bình luận": thành viên thì mở ô viết ngay dưới phiếu; người ngoài được mời đăng nhập. */
+function comment() {
+    if (props.viewer?.can_interact) return comments.value?.compose();
+    if (!props.viewer?.logged_in) return emit('login');
+    toast('Chỉ thành viên của nhóm mới bình luận được.');
+}
 
 async function heart() {
     if (!props.viewer?.can_interact) return emit('login');
@@ -51,10 +60,11 @@ async function heart() {
             <button type="button" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 hover:bg-muted" :class="{ 'text-expense': post.hearted }" :aria-pressed="post.hearted" @click="heart">
                 <Heart class="size-5" :fill="post.hearted ? 'currentColor' : 'none'" /> {{ post.hearts_count || '' }} <span class="sr-only">tim</span>
             </button>
-            <button type="button" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 hover:bg-muted" @click="emit('comments', post)">
+            <button type="button" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 hover:bg-muted" @click="comment">
                 <MessageCircle class="size-5" /> {{ post.comments_count ? `${post.comments_count} bình luận` : 'Bình luận' }}
             </button>
             <RouterLink v-if="viewer?.can_manage" :to="`/${code}/quan-tri/phieu/${post.id}`" class="ml-auto inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Pencil class="size-4" /> Sửa</RouterLink>
         </div>
+        <PostComments ref="comments" :post="post" :code="code" :viewer="viewer" />
     </article>
 </template>

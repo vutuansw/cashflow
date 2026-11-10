@@ -6,6 +6,7 @@ use App\Http\Presenters\TransactionPresenter;
 use App\Models\Campaign;
 use App\Models\Group;
 use App\Models\Transaction;
+use App\Services\Groups\GroupViewer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +25,7 @@ class TimelineFeed
      * @param  array{type?: ?string, category_id?: ?int, year?: ?int}  $filters
      * @return array{data: list<array>, has_more: bool, page: int}
      */
-    public function page(Group $group, array $filters, int $page, ?int $userId): array
+    public function page(Group $group, array $filters, int $page, GroupViewer $viewer): array
     {
         $page = max(1, $page);
 
@@ -65,7 +66,7 @@ class TimelineFeed
             $cardIds[] = (int) $post->last_id;
         }
 
-        $cards = TransactionPresenter::withCardRelations(Transaction::query(), $userId)
+        $cards = TransactionPresenter::withCardRelations(Transaction::query(), $viewer)
             ->whereIn('id', $cardIds)
             ->get()
             ->keyBy('id');
@@ -77,7 +78,7 @@ class TimelineFeed
             if (isset($grouped[$post->post_key])) {
                 $data[] = $grouped[$post->post_key];
             } elseif ($card = $cards->get((int) $post->last_id)) {
-                $data[] = ['kind' => 'transaction'] + TransactionPresenter::card($card, $group);
+                $data[] = ['kind' => 'transaction'] + TransactionPresenter::card($card, $group, $viewer);
             }
         }
 

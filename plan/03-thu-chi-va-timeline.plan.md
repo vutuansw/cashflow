@@ -80,7 +80,8 @@ Bố cục như trang nhóm Facebook, mobile-first:
 
 - Chỉ tài khoản thuộc nhóm. Tim bật/tắt một chạm. Bình luận văn bản thuần, tối đa 1000 ký tự, giới hạn 10 bình luận/phút/người.
 - QTV ẩn bình luận (người viết vẫn thấy với nhãn "đã bị ẩn") hoặc xóa. Người viết sửa/xóa bình luận của mình.
-- Không có thông báo realtime ở bản đầu; danh sách bình luận tải lại khi mở.
+- Bình luận hiện ngay dưới phiếu trên timeline, không mở modal: sẵn 5 bình luận mới nhất (cũ trên, mới dưới), quá 5 thì có "Xem thêm bình luận" để tải tiếp 10 bình luận cũ hơn mỗi lần. Bấm "Bình luận" mở ô viết ngay dưới phiếu; gửi hoặc sửa xong thì ô viết tự đóng.
+- Không có thông báo realtime ở bản đầu; bình luận mới của người khác hiện khi tải lại timeline.
 
 ## 6. Dashboard
 

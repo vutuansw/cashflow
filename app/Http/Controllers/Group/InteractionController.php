@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Group;
 
 use App\Http\Controllers\Controller;
+use App\Http\Presenters\CommentPresenter;
 use App\Models\Comment;
 use App\Models\Group;
 use App\Models\Reaction;
@@ -36,20 +37,27 @@ class InteractionController extends Controller
         ];
     }
 
-    /** Ai xem được timeline thì xem được bình luận; bình luận bị ẩn chỉ QTV và người viết thấy. */
+    /**
+     * Ai xem được timeline thì xem được bình luận. Dưới phiếu đã có sẵn vài bình luận mới nhất;
+     * "Xem thêm" gọi kèm `before` (id bình luận cũ nhất đang hiện) để lấy tiếp các bình luận cũ hơn.
+     */
     public function comments(Request $request, Group $group, int $transaction)
     {
         $post = $this->visiblePost($request, $group, $transaction, mustInteract: false);
         $viewer = GroupViewer::of($request, $group);
-        $userId = $request->user()?->id;
+        $before = $request->validate(['before' => ['nullable', 'integer', 'min:1']])['before'] ?? null;
 
-        return Comment::where('transaction_id', $post->id)
+        $items = CommentPresenter::visibleTo(Comment::where('transaction_id', $post->id), $viewer)
             ->with('user:id,name')
-            ->when(! $viewer->canManage(), fn ($q) => $q->where(fn ($w) => $w->whereNull('hidden_at')->when($userId, fn ($o) => $o->orWhere('user_id', $userId))))
-            ->orderBy('id')
-            ->limit(500)
-            ->get()
-            ->map(fn (Comment $c) => $this->present($c, $viewer));
+            ->when($before, fn ($q) => $q->where('id', '<', $before))
+            ->orderByDesc('id')
+            ->limit(CommentPresenter::PAGE + 1)
+            ->get();
+
+        return [
+            'data' => $items->take(CommentPresenter::PAGE)->reverse()->values()->map(fn (Comment $c) => CommentPresenter::present($c, $viewer)),
+            'has_more' => $items->count() > CommentPresenter::PAGE,
+        ];
     }
 
     public function storeComment(Request $request, Group $group, int $transaction)
@@ -69,7 +77,7 @@ class InteractionController extends Controller
             'body' => trim($data['body']),
         ]);
 
-        return response()->json($this->present($comment->load('user:id,name'), GroupViewer::of($request, $group)), 201);
+        return response()->json(CommentPresenter::present($comment->load('user:id,name'), GroupViewer::of($request, $group)), 201);
     }
 
     public function updateComment(Request $request, Group $group, int $comment)
@@ -80,7 +88,7 @@ class InteractionController extends Controller
         $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
         $item->update(['body' => trim($data['body'])]);
 
-        return $this->present($item->load('user:id,name'), GroupViewer::of($request, $group));
+        return CommentPresenter::present($item->load('user:id,name'), GroupViewer::of($request, $group));
     }
 
     public function destroyComment(Request $request, Group $group, int $comment)
@@ -103,7 +111,7 @@ class InteractionController extends Controller
         $hide = $request->boolean('hidden', true);
         $item->update(['hidden_at' => $hide ? now() : null, 'hidden_by' => $hide ? $request->user()->id : null]);
 
-        return $this->present($item->load('user:id,name'), GroupViewer::of($request, $group));
+        return CommentPresenter::present($item->load('user:id,name'), GroupViewer::of($request, $group));
     }
 
     private function visiblePost(Request $request, Group $group, int $id, bool $mustInteract = true): Transaction
@@ -122,23 +130,5 @@ class InteractionController extends Controller
     private function comment(Group $group, int $id): Comment
     {
         return Comment::whereKey($id)->whereIn('transaction_id', Transaction::query()->select('id'))->firstOrFail();
-    }
-
-    private function present(Comment $c, GroupViewer $viewer): array
-    {
-        $mine = $viewer->user?->id === $c->user_id;
-
-        return [
-            'id' => $c->id,
-            'body' => $c->body,
-            'user' => $c->user?->name ?? 'Tài khoản đã xóa',
-            'created_at' => $c->created_at->toIso8601String(),
-            'edited' => $c->updated_at->gt($c->created_at->copy()->addSecond()),
-            'hidden' => $c->hidden_at !== null,
-            'mine' => $mine,
-            'can_edit' => $mine,
-            'can_delete' => $mine || $viewer->canManage(),
-            'can_hide' => $viewer->canManage(),
-        ];
     }
 }

@@ -37,7 +37,7 @@ class TimelineController extends Controller
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ]);
 
-        return $feed->page($group, $filters, (int) ($filters['page'] ?? 1), $request->user()?->id);
+        return $feed->page($group, $filters, (int) ($filters['page'] ?? 1), GroupViewer::of($request, $group));
     }
 
     /** Một bài, mở từ link chia sẻ hoặc khi bấm vào thẻ. */
@@ -45,10 +45,10 @@ class TimelineController extends Controller
     {
         $viewer = GroupViewer::of($request, $group);
 
-        $item = TransactionPresenter::withCardRelations(Transaction::query(), $request->user()?->id)
+        $item = TransactionPresenter::withCardRelations(Transaction::query(), $viewer)
             ->when(! $viewer->canManage(), fn ($q) => $q->where('show_on_timeline', true))
             ->findOrFail($transaction);
 
-        return ['kind' => 'transaction'] + TransactionPresenter::card($item, $group);
+        return ['kind' => 'transaction'] + TransactionPresenter::card($item, $group, $viewer);
     }
 }
