@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { ChevronLeft, Lock } from 'lucide-vue-next';
+import { Lock } from 'lucide-vue-next';
 import CategoryDonut from '../components/CategoryDonut.vue';
 import MonthBars from '../components/MonthBars.vue';
+import BackButton from '../components/BackButton.vue';
 import { api, ApiError } from '../lib/api.js';
 import { formatMoney } from '../lib/money.js';
 
@@ -34,7 +35,7 @@ watch(year, (v, old) => old && v !== old && load());
 <template>
     <div class="mx-auto min-h-dvh max-w-xl pb-10">
         <header class="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b border-border bg-background/90 px-2 backdrop-blur">
-            <RouterLink :to="`/${code}`" class="icon-btn" aria-label="Về timeline"><ChevronLeft class="size-5" /></RouterLink>
+            <BackButton :to="`/${code}`" label="trang nhóm" />
             <div class="min-w-0 flex-1">
                 <p class="truncate text-xs text-muted-foreground">{{ group?.name }}</p>
                 <h1 class="font-semibold">Thống kê</h1>

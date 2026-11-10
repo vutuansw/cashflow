@@ -96,7 +96,7 @@ function birthday(value) {
 </script>
 
 <template>
-    <AdminShell title="Danh bạ">
+    <AdminShell title="Danh bạ" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <template #actions>
             <RouterLink :to="`/${code}/quan-tri/danh-ba/nhap`" class="icon-btn" aria-label="Nhập nhanh"><ClipboardPaste class="size-5" /></RouterLink>
             <button class="icon-btn" aria-label="Thêm người" @click="openEdit()"><Plus class="size-5" /></button>

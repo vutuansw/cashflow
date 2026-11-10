@@ -20,6 +20,8 @@ Một SPA Vue 3 (`resources/js`), Tailwind 4, icon lucide, cấu trúc giống c
 - Mobile: thanh tab dưới đáy 5 mục — **Tổng quan · Phiếu · [+] · Chờ duyệt · Thêm**. Nút `+` giữa mở bảng chọn: *Đọc bill* / *Phiếu thu* / *Phiếu chi*. "Thêm" mở danh sách: Chiến dịch, Danh bạ, Báo cáo, Loại thu chi, Cài đặt nhóm, Xem timeline.
 - Máy tính: sidebar trái với cùng các mục.
 
+**Điều hướng màn con** (chốt 10/11/2026): màn đi sâu (chi tiết/sửa phiếu, chi tiết/sửa chiến dịch, nhập danh bạ, các mục vào từ "Thêm", chi tiết nhóm ở `/system`) có nút ‹ trên điện thoại và breadcrumb các cấp cha trên máy tính. Nút ‹ lùi lịch sử nếu đi từ trong app (giữ bộ lọc, vị trí cuộn), mở thẳng từ link thì về trang cha; cần cho PWA vì không có nút back của trình duyệt. Màn cấp 1 (tab đáy, sidebar) không có nút ‹.
+
 **Khu `/system`**: bố cục sidebar đơn giản, ưu tiên máy tính nhưng vẫn dùng được trên điện thoại.
 
 ## 3. Danh sách màn hình

@@ -5,6 +5,8 @@ import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-v
 import BrandMark from '../components/BrandMark.vue';
 import Sheet from '../components/Sheet.vue';
 import BillReadingOverlay from '../components/BillReadingOverlay.vue';
+import BackButton from '../components/BackButton.vue';
+import Breadcrumb from '../components/Breadcrumb.vue';
 import InstallHint from '../components/InstallHint.vue';
 import { readBill } from '../lib/billScan.js';
 import { toast } from '../lib/notice.js';
@@ -13,7 +15,8 @@ import { adminMenu, adminTabs } from '../lib/nav.js';
 import { session } from '../lib/session.js';
 
 // Khung trang quản trị nhóm, xem plan/06 mục 2: tab đáy trên điện thoại, sidebar trên máy tính.
-defineProps({ title: String });
+// crumbs: các cấp cha [{ label, to }] của màn con; mobileOnly: chỉ hiện nút ‹ trên điện thoại (desktop đã có sidebar).
+const props = defineProps({ title: String, crumbs: { type: Array, default: () => [] }, mobileOnly: Boolean });
 const route = useRoute();
 const router = useRouter();
 const code = computed(() => route.params.group);
@@ -74,8 +77,10 @@ function active(item) {
 
         <div class="min-w-0 flex-1 pb-24 lg:pb-8">
             <header class="sticky top-0 z-20 flex min-h-14 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur lg:px-8">
+                <BackButton v-if="props.crumbs.length" :to="props.crumbs.at(-1).to" :label="props.crumbs.at(-1).label" class="-ml-2 lg:hidden" />
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-xs text-muted-foreground lg:hidden">{{ group?.name }}</p>
+                    <Breadcrumb v-if="props.crumbs.length && !props.mobileOnly" :crumbs="props.crumbs" class="hidden pt-2 lg:flex" />
                     <h1 class="truncate text-lg font-semibold">{{ title }}</h1>
                 </div>
                 <slot name="actions" />

@@ -290,11 +290,16 @@ async function restore() {
 
 const errorOf = (key) => state.errors[key] ?? Object.entries(state.errors).find(([k]) => k.startsWith(`${key}.`))?.[1];
 const actionLabel = { created: 'Tạo phiếu', updated: 'Sửa', deleted: 'Xóa', restored: 'Khôi phục' };
+const crumbs = computed(() => [
+    sepay.value
+        ? { label: 'Chờ duyệt', to: `/${code.value}/quan-tri/cho-duyet` }
+        : { label: 'Phiếu thu chi', to: `/${code.value}/quan-tri/phieu` },
+]);
 const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' : 'Sửa phiếu chi') : isIncome.value ? 'Phiếu thu mới' : 'Phiếu chi mới'));
 </script>
 
 <template>
-    <AdminShell :title="title">
+    <AdminShell :title="title" :crumbs="crumbs">
         <div v-if="!ready" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</div>
 
         <form v-else class="mx-auto max-w-xl space-y-4 pb-24 lg:pb-0" @submit.prevent="save">

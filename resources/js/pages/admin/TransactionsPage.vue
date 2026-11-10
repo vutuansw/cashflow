@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { EyeOff, Image, Plus, ReceiptText, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CategoryIcon from '../../components/CategoryIcon.vue';
@@ -11,6 +11,7 @@ import { toast } from '../../lib/notice.js';
 
 // Danh sách phiếu thu chi: lọc theo thời gian, thu/chi, loại, nguồn, tìm theo tên; tổng của bộ lọc; thùng rác 30 ngày. Xem plan/03 mục 2.
 const route = useRoute();
+const router = useRouter();
 const code = computed(() => route.params.group);
 
 const periods = [
@@ -18,8 +19,24 @@ const periods = [
     { v: 'year', l: 'Năm nay' },
     { v: 'all', l: 'Tất cả' },
 ];
-const filters = ref({ period: 'year', type: '', category_id: '', source: '', q: '' });
-const trashed = ref(false);
+// Bộ lọc nằm trên URL (?ky=thang&loai=...) để bấm ‹ từ màn chi tiết quay về vẫn giữ nguyên.
+const q = route.query;
+const filters = ref({
+    period: ['month', 'year', 'all'].includes(q.ky) ? q.ky : 'year',
+    type: q.thu_chi ?? '',
+    category_id: q.loai ?? '',
+    source: q.nguon ?? '',
+    q: q.tim ?? '',
+});
+const trashed = ref(q.da_xoa === '1');
+
+function syncQuery() {
+    const f = filters.value;
+    const query = Object.fromEntries(Object.entries({
+        ky: f.period === 'year' ? '' : f.period, thu_chi: f.type, loai: f.category_id, nguon: f.source, tim: f.q, da_xoa: trashed.value ? '1' : '',
+    }).filter(([, v]) => v !== '' && v !== null));
+    router.replace({ query });
+}
 const rows = ref([]);
 const meta = ref(null);
 const totals = ref(null);
@@ -52,9 +69,15 @@ async function load(page = 1) {
 let timer;
 watch(filters, () => {
     clearTimeout(timer);
-    timer = setTimeout(() => load(), 250);
+    timer = setTimeout(() => {
+        syncQuery();
+        load();
+    }, 250);
 }, { deep: true });
-watch(trashed, () => load());
+watch(trashed, () => {
+    syncQuery();
+    load();
+});
 
 onMounted(async () => {
     load();

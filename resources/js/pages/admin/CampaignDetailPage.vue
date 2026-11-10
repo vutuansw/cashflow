@@ -61,7 +61,7 @@ async function saveCash() {
 </script>
 
 <template>
-    <AdminShell :title="data?.name ?? 'Chiến dịch'">
+    <AdminShell :title="data?.name ?? 'Chiến dịch'" :crumbs="[{ label: 'Chiến dịch', to: `/${code}/quan-tri/chien-dich` }]">
         <template #actions>
             <RouterLink v-if="data" :to="`/${code}/quan-tri/chien-dich/${id}/sua`" class="icon-btn" aria-label="Sửa chiến dịch"><Pencil class="size-5" /></RouterLink>
         </template>

@@ -16,7 +16,7 @@ const pct = (c) => (c.members_total ? Math.min(100, (c.members_paid / c.members_
 </script>
 
 <template>
-    <AdminShell title="Chiến dịch">
+    <AdminShell title="Chiến dịch" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <template #actions>
             <RouterLink :to="`/${code}/quan-tri/chien-dich/moi`" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo</RouterLink>
         </template>

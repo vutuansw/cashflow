@@ -53,7 +53,19 @@ const router = createRouter({
         { path: '/:group', component: () => import('./pages/GroupHomePage.vue') },
         { path: '/:pathMatch(.*)*', component: () => import('./pages/NotFoundPage.vue') },
     ],
-    scrollBehavior: (to, from, saved) => saved ?? { top: 0 },
+    // Quay lại (‹ hoặc nút back): chờ danh sách tải xong đủ dài rồi mới cuộn về chỗ cũ, tối đa 2 giây.
+    scrollBehavior(to, from, saved) {
+        if (!saved) return to.path === from.path ? false : { top: 0 }; // đổi bộ lọc trên URL: giữ nguyên chỗ đang xem
+        return new Promise((resolve) => {
+            const started = Date.now();
+            const tick = () => {
+                const tallEnough = document.documentElement.scrollHeight >= saved.top + window.innerHeight;
+                if (tallEnough || Date.now() - started > 2000) resolve(saved);
+                else setTimeout(tick, 100);
+            };
+            tick();
+        });
+    },
 });
 
 router.beforeEach(async (to) => {

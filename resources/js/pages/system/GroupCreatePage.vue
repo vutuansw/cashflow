@@ -32,7 +32,7 @@ const message = () => `Nhóm "${result.value.group.name}" đã được tạo tr
 </script>
 
 <template>
-    <SystemShell title="Tạo nhóm hộ khách">
+    <SystemShell title="Tạo nhóm hộ khách" :crumbs="[{ label: 'Nhóm', to: '/system/nhom' }]">
         <div v-if="result" class="card mx-auto max-w-xl space-y-3 p-4">
             <p class="font-semibold">Đã tạo nhóm {{ result.group.name }} (/{{ result.group.code }})</p>
             <template v-if="result.temp_password">

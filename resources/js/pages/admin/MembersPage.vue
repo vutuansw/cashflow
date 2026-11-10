@@ -64,7 +64,7 @@ function lastLogin(value) {
 </script>
 
 <template>
-    <AdminShell title="Tài khoản & vai trò">
+    <AdminShell title="Tài khoản & vai trò" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <p class="text-sm text-muted-foreground">Cấp tài khoản cho người mới ở trang <RouterLink :to="`/${code}/quan-tri/danh-ba`" class="font-medium text-primary">Danh bạ</RouterLink> (nút "Cấp TK").</p>
 
         <ul class="card mt-3 divide-y divide-border">

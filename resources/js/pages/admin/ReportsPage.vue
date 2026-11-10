@@ -74,7 +74,7 @@ watch([type, query], () => {
 </script>
 
 <template>
-    <AdminShell title="Báo cáo">
+    <AdminShell title="Báo cáo" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
             <button v-for="t in types" :key="t.v" type="button" class="chip !min-h-9 shrink-0 whitespace-nowrap !px-3.5 !text-sm" :class="type === t.v ? '!bg-primary !text-primary-foreground' : ''" @click="type = t.v">{{ t.l }}</button>
         </div>

@@ -2,9 +2,11 @@
 import { useRoute, useRouter } from 'vue-router';
 import { Activity, Building2, CircleDollarSign, LayoutDashboard, LogOut, ScrollText, ShieldCheck } from 'lucide-vue-next';
 import { systemApi, systemSession } from '../lib/systemApi.js';
+import BackButton from '../components/BackButton.vue';
+import Breadcrumb from '../components/Breadcrumb.vue';
 
 // Khung trang /system: sidebar trên máy tính, thanh menu cuộn ngang trên điện thoại (plan/06 mục 2).
-defineProps({ title: String });
+const props = defineProps({ title: String, crumbs: { type: Array, default: () => [] } });
 const route = useRoute();
 const router = useRouter();
 const menu = [
@@ -41,7 +43,11 @@ async function logout() {
         <div class="min-w-0 flex-1">
             <header class="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
                 <div class="flex min-h-14 items-center gap-2 px-4 lg:px-8">
-                    <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{ title }}</h1>
+                    <BackButton v-if="props.crumbs.length" :to="props.crumbs.at(-1).to" :label="props.crumbs.at(-1).label" class="-ml-2 lg:hidden" />
+                    <div class="min-w-0 flex-1">
+                        <Breadcrumb v-if="props.crumbs.length" :crumbs="props.crumbs" class="hidden pt-2 lg:flex" />
+                        <h1 class="truncate text-lg font-semibold">{{ title }}</h1>
+                    </div>
                     <slot name="actions" />
                     <button type="button" class="icon-btn lg:hidden" aria-label="Đăng xuất" @click="logout"><LogOut class="size-5" /></button>
                 </div>

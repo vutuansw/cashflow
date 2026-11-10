@@ -59,7 +59,7 @@ async function save() {
 </script>
 
 <template>
-    <AdminShell title="Nhập nhanh danh bạ">
+    <AdminShell title="Nhập nhanh danh bạ" :crumbs="[{ label: 'Danh bạ', to: `/${code}/quan-tri/danh-ba` }]">
         <template v-if="rows === null">
             <div class="card space-y-2 p-4 text-sm">
                 <p class="font-medium">Mỗi dòng một người, theo thứ tự cột:</p>

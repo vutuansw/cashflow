@@ -130,7 +130,7 @@ async function destroy() {
 </script>
 
 <template>
-    <AdminShell title="Cài đặt nhóm">
+    <AdminShell title="Cài đặt nhóm" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <form v-if="loaded" class="space-y-6" @submit.prevent="save">
             <section class="card overflow-hidden">
                 <div class="relative h-28 bg-gradient-to-br from-primary/30 to-primary/5 sm:h-36" :style="form.cover_url ? { backgroundImage: `url(${form.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">

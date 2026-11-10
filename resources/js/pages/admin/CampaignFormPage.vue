@@ -28,6 +28,11 @@ const form = reactive({
     status: 'open',
 });
 const exempt = reactive(new Set());
+const savedName = ref('');
+const crumbs = computed(() => [
+    { label: 'Chiến dịch', to: `/${code.value}/quan-tri/chien-dich` },
+    ...(id.value ? [{ label: savedName.value || 'Chi tiết', to: `/${code.value}/quan-tri/chien-dich/${id.value}` }] : []),
+]);
 const search = ref('');
 // Phần chọn người được miễn mặc định ẩn; tắt đi thì không ai được miễn.
 const hasExempt = ref(false);
@@ -40,6 +45,7 @@ onMounted(async () => {
         const d = await adminApi(code.value, `/campaigns/${id.value}`);
         Object.assign(form, { name: d.name, category_id: d.category_id, amount_per_member: d.amount_per_member, transfer_code: d.transfer_code, description: d.description ?? '', status: d.status });
         lockedCode.value = d.locked_code;
+        savedName.value = d.name;
         d.people.filter((p) => p.status === 'exempt' && p.contact_id).forEach((p) => exempt.add(p.contact_id));
         hasExempt.value = exempt.size > 0;
     }
@@ -74,7 +80,7 @@ async function save() {
 </script>
 
 <template>
-    <AdminShell :title="id ? 'Sửa chiến dịch' : 'Chiến dịch mới'">
+    <AdminShell :title="id ? 'Sửa chiến dịch' : 'Chiến dịch mới'" :crumbs="crumbs">
         <p v-if="!options" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
         <form v-else class="mx-auto max-w-xl space-y-4 pb-24 lg:pb-0" @submit.prevent="save">
             <p v-if="!options.has_bank" class="rounded-xl border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">

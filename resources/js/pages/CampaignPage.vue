@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, ChevronLeft, CircleDashed, CircleDot, Copy, Download, Lock, Share2 } from 'lucide-vue-next';
+import { CheckCircle2, CircleDashed, CircleDot, Copy, Download, Lock, Share2 } from 'lucide-vue-next';
+import BackButton from '../components/BackButton.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
@@ -57,7 +58,7 @@ async function share() {
 <template>
     <div class="mx-auto min-h-dvh max-w-xl pb-10">
         <header class="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b border-border bg-background/90 px-2 backdrop-blur">
-            <RouterLink :to="`/${code}`" class="icon-btn" aria-label="Về trang nhóm"><ChevronLeft class="size-5" /></RouterLink>
+            <BackButton :to="`/${code}`" label="trang nhóm" />
             <p class="min-w-0 flex-1 truncate font-semibold">{{ group?.name ?? code }}</p>
             <button v-if="data" type="button" class="icon-btn" aria-label="Chia sẻ" @click="share"><Share2 class="size-5" /></button>
         </header>
