@@ -11,6 +11,8 @@ APP_DIR="${APP_DIR:-/var/www/wepo}"
 APP_USER="${APP_USER:-www-data}"
 PHP="${PHP:-/usr/bin/php8.4}"
 BRANCH="${BRANCH:-main}"
+# Composer 2.1 chung của server quá cũ cho Laravel 13; dùng bản riêng (getcomposer.org, đã kiểm tra sha256).
+COMPOSER="${COMPOSER:-/opt/composer/composer.phar}"
 
 export NVM_DIR="${NVM_DIR:-/root/.nvm}"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
@@ -30,7 +32,7 @@ changed() { as_app git diff --name-only --diff-filter=AM "$OLD_COMMIT" "$NEW_COM
 
 # Chỉ cài lại thư viện khi file khóa đổi (hoặc lần đầu chưa có), cho deploy nhanh.
 if [ ! -d vendor ] || [ -n "$(changed composer.lock)" ]; then
-    as_app "$PHP" "$(command -v composer)" install --no-dev --optimize-autoloader --no-interaction --no-progress
+    as_app "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress
 fi
 if [ ! -d node_modules ] || [ -n "$(changed package-lock.json)" ]; then
     npm ci --no-audit --no-fund
