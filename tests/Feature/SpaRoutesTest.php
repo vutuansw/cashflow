@@ -15,7 +15,7 @@ class SpaRoutesTest extends TestCase
 
     public function test_api_khong_bi_spa_nuot(): void
     {
-        $this->getJson('/api/app')->assertOk()->assertJson(['name' => 'Quỹ nhóm']);
+        $this->getJson('/api/app')->assertOk()->assertJson(['name' => 'WePo']);
         $this->getJson('/api/khong-co')->assertNotFound();
     }
 }

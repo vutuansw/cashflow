@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Ghi báo cáo ra file .xlsx bằng PhpSpreadsheet: tiền định dạng #,##0, dòng
- * tổng in đậm, cố định hàng tiêu đề. Tên file quynhom-{ma-nhom}-{bao-cao}-{ky}.xlsx.
+ * tổng in đậm, cố định hàng tiêu đề. Tên file wepo-{ma-nhom}-{bao-cao}-{ky}.xlsx.
  * Xem plan/03 mục 7.
  */
 class ExcelExporter
@@ -93,7 +93,7 @@ class ExcelExporter
         string $dateFormat = 'dd/mm/yyyy hh:mm', string $file = '',
     ): StreamedResponse {
         $book = new Spreadsheet;
-        $book->getProperties()->setCreator('Quỹ nhóm')->setTitle($title);
+        $book->getProperties()->setCreator('WePo')->setTitle($title);
         $sheet = $book->getActiveSheet();
         $sheet->setTitle(mb_substr(preg_replace('/[\\\\\/?*\[\]:]/', ' ', $title), 0, 31));
 
@@ -131,7 +131,7 @@ class ExcelExporter
         }
         $this->footer($sheet, $end + 2);
 
-        $filename = 'quynhom-'.$group->code.'-'.$name.($file !== '' ? '-'.$file : '').'.xlsx';
+        $filename = 'wepo-'.$group->code.'-'.$name.($file !== '' ? '-'.$file : '').'.xlsx';
 
         return response()->streamDownload(function () use ($book) {
             (new Xlsx($book))->save('php://output');
@@ -141,7 +141,7 @@ class ExcelExporter
 
     private function footer(Worksheet $sheet, int $row): void
     {
-        $sheet->setCellValue("A{$row}", 'Xuất từ Quỹ nhóm lúc '.now()->format('d/m/Y H:i'));
+        $sheet->setCellValue("A{$row}", 'Xuất từ WePo lúc '.now()->format('d/m/Y H:i'));
         $sheet->getStyle("A{$row}")->getFont()->setItalic(true)->getColor()->setARGB('FF6B7280');
     }
 

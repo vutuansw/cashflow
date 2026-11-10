@@ -29,7 +29,7 @@ async function logout() {
 <template>
     <div class="min-h-dvh lg:flex">
         <aside class="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-card p-4 lg:flex">
-            <p class="flex items-center gap-2 font-semibold"><Activity class="size-5 text-primary" /> Quỹ nhóm · System</p>
+            <p class="flex items-center gap-2 font-semibold"><Activity class="size-5 text-primary" /> WePo · System</p>
             <nav class="mt-6 space-y-1">
                 <RouterLink v-for="item in menu" :key="item.to" :to="item.to" class="flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted" :class="{ 'bg-primary/10 text-primary': active(item) }">
                     <component :is="item.icon" class="size-5" /> {{ item.label }}

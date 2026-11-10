@@ -32,7 +32,7 @@ use Intervention\Image\ImageManager;
  * - 0900000001 Trưởng nhóm của cả hai nhóm
  * - 0900000002 Quản trị viên chidoan-a12
  * - 0900000003 Thành viên chidoan-a12
- * - admin@quynhom.test: quản trị /system (cùng mật khẩu). Server thật tạo bằng
+ * - admin@wepo.test: quản trị /system (cùng mật khẩu). Server thật tạo bằng
  *   php artisan cashflow:admin-create {email}
  *
  * Chạy lại an toàn: nhóm nào đã có mã thì bỏ qua.
@@ -78,7 +78,7 @@ class DemoSeeder extends Seeder
             'description' => 'Quỹ lớp A12 khóa 2010–2013.',
         ], [[$admin, GroupRole::Admin], [$member, GroupRole::Member]], seedOffset: 7);
 
-        Admin::query()->firstOrCreate(['email' => 'admin@quynhom.test'], ['name' => 'Quản trị demo', 'password' => self::PASSWORD, 'status' => 'active']);
+        Admin::query()->firstOrCreate(['email' => 'admin@wepo.test'], ['name' => 'Quản trị demo', 'password' => self::PASSWORD, 'status' => 'active']);
 
         $this->command?->info('Xong. Đăng nhập 0900000001 / '.self::PASSWORD.' để xem; /nhomdemo xem được khi chưa đăng nhập.');
     }

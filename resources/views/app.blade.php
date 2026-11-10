@@ -23,7 +23,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Quỹ nhóm">
+    <meta name="apple-mobile-web-app-title" content="{{ config('cashflow.brand.name') }}">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

@@ -1,8 +1,8 @@
-// Service worker của Quỹ nhóm, xem plan/06 mục 4.
+// Service worker của WePo, xem plan/06 mục 4.
 // Chỉ cache file tĩnh đã build (tên có hash) và biểu tượng. KHÔNG cache API và
 // ảnh nhóm (/api, /media): dữ liệu tiền bạc luôn lấy mới, ảnh nhóm riêng tư
 // không được nằm lại trên máy. Mất mạng thì hiện trang /offline.html.
-const VERSION = 'qn-v1';
+const VERSION = 'wepo-v1';
 const STATIC = `${VERSION}-static`;
 const PRECACHE = ['/offline.html', '/icons/icon-192.png', '/favicon.svg'];
 

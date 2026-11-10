@@ -22,7 +22,7 @@ async function login() {
 </script>
 
 <template>
-    <AuthLayout title="Đăng nhập" subtitle="Dùng số điện thoại và mật khẩu Quỹ nhóm.">
+    <AuthLayout title="Đăng nhập" subtitle="Dùng số điện thoại và mật khẩu WePo.">
         <form class="space-y-4" @submit.prevent="login">
             <FormField v-model="form.phone" label="Số điện thoại" type="tel" inputmode="tel" autocomplete="username" :error="state.errors.phone" required />
             <FormField v-model="form.password" label="Mật khẩu" type="password" autocomplete="current-password" :error="state.errors.password" required />

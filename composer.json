@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "hipotech/cashflow",
     "type": "project",
-    "description": "Quỹ nhóm - Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.",
+    "description": "WePo - Quỹ nhóm, quản lý thu chi của hội nhóm theo dòng thời gian.",
     "keywords": [
         "cashflow",
         "quy-nhom",

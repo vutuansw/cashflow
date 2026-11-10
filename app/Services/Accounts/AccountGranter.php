@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * "Cấp tài khoản" cho một người trong danh bạ, xem plan/02 mục 4.
  *
- * - SĐT đã có tài khoản Quỹ nhóm: chỉ gắn tài khoản đó vào nhóm, không đụng
+ * - SĐT đã có tài khoản WePo: chỉ gắn tài khoản đó vào nhóm, không đụng
  *   mật khẩu của họ.
  * - Chưa có: tạo tài khoản với mật khẩu tạm, bắt đổi khi đăng nhập lần đầu.
  */
@@ -70,14 +70,14 @@ class AccountGranter
     public function shareMessage(Group $group, User $user, ?string $tempPassword): string
     {
         $lines = [
-            "Quỹ nhóm - {$group->name}",
+            "WePo - {$group->name}",
             'Đăng nhập: '.rtrim((string) config('app.url'), '/').'/dang-nhap',
             "Số điện thoại: {$user->phone}",
         ];
 
         $lines[] = $tempPassword !== null
             ? "Mật khẩu tạm: {$tempPassword}\nBạn sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu."
-            : 'Dùng mật khẩu Quỹ nhóm bạn đang có.';
+            : 'Dùng mật khẩu WePo bạn đang có.';
 
         return implode("\n", $lines);
     }

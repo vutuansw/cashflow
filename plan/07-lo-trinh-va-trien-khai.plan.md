@@ -30,7 +30,7 @@ Mỗi mốc kết thúc bằng: test xanh, chạy thử trên trình duyệt ở
 ## 3. Môi trường local
 
 ```env
-APP_NAME="Quỹ nhóm"
+APP_NAME="WePo"
 APP_URL=http://127.0.0.1:8000
 APP_LOCALE=vi
 DB_CONNECTION=groups
@@ -52,7 +52,7 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 | Hạng mục | Giá trị |
 | --- | --- |
 | Thư mục | `/var/www/cashflow` |
-| Domain | `quynhom.hipotech.vn` (bản ghi A trỏ về VPS, SSL Let's Encrypt) |
+| Domain | `wepo.hipotech.vn` (bản ghi A trỏ về VPS, SSL Let's Encrypt) |
 | PHP | `php8.4-fpm` dùng chung với chatbot, cần thêm `php8.4-gd` cho xử lý ảnh |
 | Database | `cashflow_groups`, `cashflow_system`, user MySQL `cashflow` chỉ có quyền trên hai DB này |
 | Nginx | vhost riêng, `client_max_body_size 20m` (tải ảnh), root `public/` |

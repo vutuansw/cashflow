@@ -106,7 +106,7 @@ Màn hình **Báo cáo** trong quản trị: chọn khoảng thời gian (tháng
 | Theo tháng | Thu, chi, chênh lệch từng tháng | ✓ |
 | Chiến dịch | Từng người: phải đóng, đã đóng, còn thiếu, ngày đóng | ✓ |
 
-File Excel tạo bằng PhpSpreadsheet, đồng bộ (dữ liệu nhóm nhỏ), tên file `quynhom-{ma-nhom}-so-quy-2026.xlsx`, định dạng tiền `#,##0`, dòng tổng in đậm, cố định hàng tiêu đề.
+File Excel tạo bằng PhpSpreadsheet, đồng bộ (dữ liệu nhóm nhỏ), tên file `wepo-{ma-nhom}-so-quy-2026.xlsx`, định dạng tiền `#,##0`, dòng tổng in đậm, cố định hàng tiêu đề.
 
 ## 8. Thông báo email
 

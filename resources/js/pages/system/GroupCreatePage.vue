@@ -28,7 +28,7 @@ async function create() {
     const res = await submit(() => systemApi('/groups', { method: 'POST', body: { ...form, owner_email: form.owner_email || null } })).catch(ignore);
     if (res) result.value = res;
 }
-const message = () => `Nhóm "${result.value.group.name}" đã được tạo trên Quỹ nhóm.\nĐăng nhập: ${result.value.login_url}\nSĐT: ${form.owner_phone}\nMật khẩu tạm: ${result.value.temp_password}\n(Đổi mật khẩu ở lần đăng nhập đầu.)`;
+const message = () => `Nhóm "${result.value.group.name}" đã được tạo trên WePo.\nĐăng nhập: ${result.value.login_url}\nSĐT: ${form.owner_phone}\nMật khẩu tạm: ${result.value.temp_password}\n(Đổi mật khẩu ở lần đăng nhập đầu.)`;
 </script>
 
 <template>
@@ -40,7 +40,7 @@ const message = () => `Nhóm "${result.value.group.name}" đã được tạo tr
                 <p class="rounded-xl bg-muted p-3 text-center font-mono text-xl tracking-widest">{{ result.temp_password }}</p>
                 <button type="button" class="btn-primary w-full" @click="copyText(message(), 'Đã chép lời nhắn, gửi qua Zalo cho trưởng nhóm.')">Chép lời nhắn gửi trưởng nhóm</button>
             </template>
-            <p v-else class="text-sm text-muted-foreground">SĐT này đã có tài khoản Quỹ nhóm nên nhóm mới được gắn vào tài khoản đó, mật khẩu không đổi.</p>
+            <p v-else class="text-sm text-muted-foreground">SĐT này đã có tài khoản WePo nên nhóm mới được gắn vào tài khoản đó, mật khẩu không đổi.</p>
             <RouterLink :to="`/system/nhom/${result.group.id}`" class="btn-outline w-full">Xem nhóm</RouterLink>
         </div>
         <form v-else class="mx-auto max-w-xl space-y-4" @submit.prevent="create">

@@ -14,7 +14,7 @@ Dùng lại cách làm đã chạy ổn ở `www/farm` (`app/Services/Ai/Vision/
 
 ```
 app/Services/Ai/
-  AiProvider.php            URL, header OpenRouter (HTTP-Referer, X-Title = Quỹ nhóm)
+  AiProvider.php            URL, header OpenRouter (HTTP-Referer, X-Title = WePo)
   BillVisionExtractor.php   Gửi ảnh, nhận JSON thô — chỉ đọc chữ, không biết gì về nhóm
   BillDraftResolver.php     PHP thuần: từ JSON thô + dữ liệu nhóm → bản nháp form
   BillScanService.php       Lưu ảnh, kiểm tra hạn mức, gọi 2 lớp trên, ghi bill_scans, tính chi phí

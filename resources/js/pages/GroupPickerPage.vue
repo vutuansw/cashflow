@@ -74,7 +74,7 @@ async function signOut() {
         <Sheet :open="creating" title="Tạo nhóm mới" @close="creating = false">
             <form class="space-y-4" @submit.prevent="create">
                 <FormField v-model="form.name" label="Tên nhóm" :error="state.errors.name" required @blur="suggestCode" />
-                <FormField v-model="form.code" label="Mã nhóm" hint="Dùng làm link: quynhom.hipotech.vn/ma-nhom" autocapitalize="none" :error="state.errors.code" required />
+                <FormField v-model="form.code" label="Mã nhóm" hint="Dùng làm link: wepo.hipotech.vn/ma-nhom" autocapitalize="none" :error="state.errors.code" required />
                 <FormField label="Chế độ xem" :error="state.errors.visibility">
                     <select v-model="form.visibility" class="field">
                         <option value="public">Công khai: ai có link đều xem được</option>

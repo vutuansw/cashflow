@@ -7,13 +7,14 @@ return [
     | Tên sản phẩm
     |--------------------------------------------------------------------------
     |
-    | "Quỹ nhóm" là tên hiển thị; tên kỹ thuật "cashflow" nằm ở thư mục,
-    | namespace và database, không đổi theo tên sản phẩm. Xem plan/plan.md.
+    | "WePo" là tên hiển thị, "Quỹ nhóm" là dòng phụ nói app làm gì; tên kỹ
+    | thuật "cashflow" nằm ở thư mục, namespace và database, không đổi theo
+    | tên sản phẩm. Xem plan/plan.md và plan/09.
     |
     */
 
     'brand' => [
-        'name' => env('APP_NAME', 'Quỹ nhóm'),
+        'name' => env('APP_NAME', 'WePo'),
         'description' => 'Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.',
     ],
 
@@ -45,7 +46,7 @@ return [
     | Mã nhóm
     |--------------------------------------------------------------------------
     |
-    | Mã nhóm nằm ngay sau domain (quynhom.hipotech.vn/chidoan-a12) nên không
+    | Mã nhóm nằm ngay sau domain (wepo.hipotech.vn/chidoan-a12) nên không
     | được trùng đường dẫn của ứng dụng. Xem plan/plan.md mục 4.
     |
     */

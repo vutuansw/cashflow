@@ -30,7 +30,7 @@ return [
     | Database Connections
     |--------------------------------------------------------------------------
     |
-    | Quỹ nhóm có đúng hai connection, xem plan/01:
+    | WePo có đúng hai connection, xem plan/01:
     |
     | - groups (mặc định): cashflow_groups, dữ liệu khách hàng của mọi nhóm,
     |   phân tách bằng group_id. Bảng hệ thống của Laravel (sessions, jobs,

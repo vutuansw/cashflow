@@ -4,7 +4,7 @@ import { reactive } from 'vue';
 // beforeinstallprompt để bấm nút là cài; iPhone: chỉ hiện hướng dẫn Chia sẻ.
 export const install = reactive({ prompt: null, installed: false });
 
-const KEY = 'qn-install-hint-dismissed';
+const KEY = 'wepo:install-hint-dismissed';
 
 export function standalone() {
     return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;

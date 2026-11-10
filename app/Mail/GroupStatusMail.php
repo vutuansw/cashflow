@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-/** Báo nhóm bị khóa / mở khóa bởi quản trị Quỹ nhóm (plan/03 mục 8). */
+/** Báo nhóm bị khóa / mở khóa bởi quản trị WePo (plan/03 mục 8). */
 class GroupStatusMail extends Mailable
 {
     use Queueable;
@@ -18,8 +18,8 @@ class GroupStatusMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(subject: $this->locked
-            ? "[Quỹ nhóm] Nhóm {$this->group->name} đang tạm khóa"
-            : "[Quỹ nhóm] Nhóm {$this->group->name} đã được mở khóa");
+            ? "[WePo] Nhóm {$this->group->name} đang tạm khóa"
+            : "[WePo] Nhóm {$this->group->name} đã được mở khóa");
     }
 
     public function content(): Content

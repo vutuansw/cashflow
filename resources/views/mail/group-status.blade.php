@@ -2,7 +2,7 @@
 @if ($locked)
 # Nhóm {{ $group->name }} đang tạm khóa
 
-Quản trị Quỹ nhóm đã tạm khóa nhóm **{{ $group->name }}** ({{ $group->code }}). Trong thời gian khóa, trang nhóm và việc tự nhận giao dịch SePay tạm dừng; dữ liệu của nhóm vẫn được giữ nguyên.
+Quản trị WePo đã tạm khóa nhóm **{{ $group->name }}** ({{ $group->code }}). Trong thời gian khóa, trang nhóm và việc tự nhận giao dịch SePay tạm dừng; dữ liệu của nhóm vẫn được giữ nguyên.
 
 @if ($reason)
 **Lý do:** {{ $reason }}

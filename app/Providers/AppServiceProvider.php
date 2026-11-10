@@ -44,11 +44,11 @@ class AppServiceProvider extends ServiceProvider
         ]));
 
         ResetPassword::toMailUsing(fn ($user, string $token) => (new MailMessage)
-            ->subject('Đặt lại mật khẩu Quỹ nhóm')
+            ->subject('Đặt lại mật khẩu WePo')
             ->greeting("Chào {$user->name},")
-            ->line('Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản Quỹ nhóm.')
+            ->line('Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản WePo.')
             ->action('Đặt lại mật khẩu', url('/dat-lai-mat-khau').'?'.http_build_query(['token' => $token, 'email' => $user->email]))
             ->line('Link có hiệu lực trong 60 phút. Nếu bạn không yêu cầu, cứ bỏ qua email này.')
-            ->salutation('Quỹ nhóm'));
+            ->salutation('WePo'));
     }
 }

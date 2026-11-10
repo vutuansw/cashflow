@@ -21,7 +21,7 @@ async function login() {
 
 <template>
     <main class="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4">
-        <h1 class="text-xl font-semibold">Quản trị Quỹ nhóm</h1>
+        <h1 class="text-xl font-semibold">Quản trị WePo</h1>
         <p class="mt-1 text-sm text-muted-foreground">Dành cho nhân sự HIPOTECH.</p>
         <form class="mt-6 space-y-4" @submit.prevent="login">
             <FormField v-model="form.email" type="email" label="Email" autocomplete="username" required :error="state.errors.email" />

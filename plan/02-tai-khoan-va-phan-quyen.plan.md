@@ -50,7 +50,7 @@ Thực hiện bằng Policy của Laravel + middleware `group.role:admin`. Phía
 - Thêm một người: Họ tên*, SĐT, Ngày sinh, Địa chỉ, Ghi chú.
 - **Nhập nhanh hàng loạt**: ô dán văn bản, mỗi dòng một người, các cột cách bằng tab hoặc dấu phẩy theo thứ tự `Họ tên, SĐT, Ngày sinh, Địa chỉ` (dán thẳng từ Excel/Google Sheets được). Màn hình xem trước báo dòng lỗi/trùng SĐT trước khi lưu. Excel mất số 0 đầu SĐT thì tự thêm lại; ô ngày dạng số sê-ri của Excel cũng đọc được. Tải lên file .xlsx theo mẫu làm cùng phần Excel ở M5.
 - **Cấp tài khoản**: yêu cầu dòng danh bạ có SĐT.
-  - SĐT đã có tài khoản Quỹ nhóm (ở nhóm khác) → chỉ gắn tài khoản đó vào nhóm, không đổi mật khẩu của họ.
+  - SĐT đã có tài khoản WePo (ở nhóm khác) → chỉ gắn tài khoản đó vào nhóm, không đổi mật khẩu của họ.
   - Chưa có → tạo tài khoản, mật khẩu tạm 8 ký tự, hiện **một lần** kèm nút "Sao chép lời nhắn" (gồm link đăng nhập, SĐT, mật khẩu tạm) để QTV gửi qua Zalo.
   - Chọn vai trò: Thành viên / Quản trị viên. **Chỉ trưởng nhóm** cấp được vai trò Quản trị viên (chốt khi làm M1, cho khớp quy tắc "phong/hạ QTV chỉ trưởng nhóm" ở mục 3). Quản trị viên chỉ cấp, đặt lại mật khẩu, thu hồi tài khoản Thành viên.
 - Thu hồi tài khoản khỏi nhóm: xóa `group_members` (tài khoản vẫn dùng được ở nhóm khác).

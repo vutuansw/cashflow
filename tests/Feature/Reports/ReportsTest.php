@@ -76,7 +76,7 @@ class ReportsTest extends TestCase
         $this->actingAs($this->ownerOf($group));
 
         $response = $this->get($this->adminUrl($group, 'reports/so-quy?from=2026-01-01&to=2026-12-31&format=xlsx'))->assertOk();
-        $response->assertDownload('quynhom-chi-doan-a12-so-quy-2026.xlsx');
+        $response->assertDownload('wepo-chi-doan-a12-so-quy-2026.xlsx');
 
         $path = tempnam(sys_get_temp_dir(), 'qn').'.xlsx';
         file_put_contents($path, $response->streamedContent());
@@ -109,7 +109,7 @@ class ReportsTest extends TestCase
         $this->assertSame(500_000, $r['rows'][0]['missing']);
 
         $this->get($this->adminUrl($group, "reports/campaign?campaign_id={$campaign->id}&format=xlsx"))->assertOk()
-            ->assertDownload('quynhom-'.$group->code.'-chien-dich-thu-quy-2026.xlsx');
+            ->assertDownload('wepo-'.$group->code.'-chien-dich-thu-quy-2026.xlsx');
     }
 
     public function test_thanh_vien_khong_xem_bao_cao(): void
@@ -123,7 +123,7 @@ class ReportsTest extends TestCase
         $group = $this->makeGroup();
         $this->actingAs($this->ownerOf($group));
 
-        $this->get($this->adminUrl($group, 'contacts/import/template'))->assertOk()->assertDownload('quynhom-mau-danh-ba.xlsx');
+        $this->get($this->adminUrl($group, 'contacts/import/template'))->assertOk()->assertDownload('wepo-mau-danh-ba.xlsx');
 
         $book = new Spreadsheet;
         $book->getActiveSheet()->fromArray([

@@ -67,7 +67,7 @@ async function register() {
                 <FormField v-model="form.group_name" label="Tên nhóm" placeholder="Chi đoàn A12" :error="state.errors.group_name" required />
                 <FormField label="Mã nhóm" :error="state.errors.group_code || (codeCheck.available === false ? codeCheck.message : '')" required>
                     <div class="flex items-center rounded-xl border border-border bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25">
-                        <span class="pl-3 text-sm text-muted-foreground">quynhom.hipotech.vn/</span>
+                        <span class="pl-3 text-sm text-muted-foreground">wepo.hipotech.vn/</span>
                         <input :value="form.group_code" class="min-h-11 w-full min-w-0 bg-transparent py-2 pr-3 outline-none" autocapitalize="none" spellcheck="false" @input="onCodeInput($event.target.value)" />
                     </div>
                     <span v-if="codeCheck.available && !state.errors.group_code" class="mt-1 block text-sm text-income">Mã này dùng được.</span>

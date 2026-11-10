@@ -1,8 +1,8 @@
-# Quỹ nhóm
+# WePo
 
 **Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.**
 
-Tên sản phẩm là **Quỹ nhóm**, tên kỹ thuật là `cashflow` (thư mục, namespace, database). Chạy chính thức tại `https://quynhom.hipotech.vn`.
+Tên sản phẩm là **WePo** (dòng phụ "Quỹ nhóm"), tên kỹ thuật là `cashflow` (thư mục, namespace, database). Chạy chính thức tại `https://wepo.hipotech.vn`. Đổi tên từ "Quỹ nhóm" ngày 10/11/2026, xem [plan/09](plan/09-doi-ten-wepo.plan.md).
 
 Toàn bộ thiết kế nằm trong [`plan/`](plan/plan.md). Đổi thiết kế thì sửa plan trước rồi mới sửa code.
 

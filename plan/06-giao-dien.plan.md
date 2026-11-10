@@ -35,7 +35,7 @@ Một SPA Vue 3 (`resources/js`), Tailwind 4, icon lucide, cấu trúc giống c
 
 ## 4. PWA
 
-- `public/manifest.webmanifest`: tên "Quỹ nhóm", `short_name` "Quỹ nhóm", icon 192/512 + maskable, `display: standalone`, màu chủ đạo.
+- `public/manifest.webmanifest`: tên "WePo · Quỹ nhóm", `short_name` "WePo", icon 192/512 + maskable, `display: standalone`, màu chủ đạo.
 - Service worker nhỏ tự viết (`public/sw.js`): chỉ cache file tĩnh đã build (js/css/font/icon) theo kiểu cache-first; **không cache API và ảnh nhóm private**. Có trang "Mất kết nối" khi offline.
 - Hiện gợi ý "Thêm vào màn hình chính" một lần trong khu quản trị (Android dùng sự kiện `beforeinstallprompt`, iOS hiện hướng dẫn Chia sẻ → Thêm vào MH chính).
 

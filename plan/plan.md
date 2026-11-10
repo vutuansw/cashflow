@@ -1,8 +1,8 @@
-# Kế hoạch dự án Quỹ nhóm
+# Kế hoạch dự án WePo
 
-**Tên sản phẩm:** Quỹ nhóm
+**Tên sản phẩm:** WePo (dòng phụ "Quỹ nhóm"; đổi từ tên cũ "Quỹ nhóm" ngày 10/11/2026, xem [09](09-doi-ten-wepo.plan.md))
 **Mô tả:** Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.
-**Tên kỹ thuật:** `cashflow` (thư mục, namespace, database, tên tiến trình). Tên "Quỹ nhóm" chỉ nằm trong cấu hình hiển thị (`APP_NAME`), không làm đổi tên kỹ thuật.
+**Tên kỹ thuật:** `cashflow` (thư mục, namespace, database, tên tiến trình). Tên "WePo" chỉ nằm trong cấu hình hiển thị (`APP_NAME`), không làm đổi tên kỹ thuật.
 
 Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. Chủ dự án duyệt xong bộ tài liệu này mới bắt đầu code.
 
@@ -14,8 +14,9 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [04-ai-doc-bill](04-ai-doc-bill.plan.md) | Đọc ảnh bill chuyển khoản bằng OpenRouter, như FarmGo |
 | [05-chien-dich-va-sepay](05-chien-dich-va-sepay.plan.md) | Chiến dịch thu, mã QR, webhook SePay, hàng chờ duyệt |
 | [06-giao-dien](06-giao-dien.plan.md) | Sơ đồ màn hình, mobile-first, PWA |
-| [07-lo-trinh-va-trien-khai](07-lo-trinh-va-trien-khai.plan.md) | Các mốc code, kiểm thử, deploy lên quynhom.hipotech.vn |
+| [07-lo-trinh-va-trien-khai](07-lo-trinh-va-trien-khai.plan.md) | Các mốc code, kiểm thử, deploy lên wepo.hipotech.vn |
 | [08-trang-ca-nhan](08-trang-ca-nhan.plan.md) | Trang cá nhân kiểu Facebook: ảnh bìa, ảnh đại diện, sửa thông tin, timeline của từng người |
+| [09-doi-ten-wepo](09-doi-ten-wepo.plan.md) | Đổi tên sản phẩm từ "Quỹ nhóm" sang WePo, domain wepo.hipotech.vn |
 
 ---
 
@@ -59,10 +60,10 @@ Không dùng Anthropic SDK: đọc bill đi qua OpenRouter giống `www/farm`.
 | 8 | AI đọc bill | **OpenRouter**, dùng lại cách của `www/farm` (`google/gemini-3.1-flash-lite`, dự phòng `google/gemini-3.7-flash`). AI chỉ điền form, người dùng bấm Lưu. **Không giới hạn** lượt mặc định; `/system` đặt được hạn mức từng nhóm, luôn ghi nhận lượt và chi phí. |
 | 9 | Ảnh bill | Lưu làm **chứng từ, chỉ QTV xem**. Timeline chỉ hiện ảnh sự kiện. |
 | 10 | Timeline | Có **thả tim + bình luận**, chỉ người đăng nhập thuộc nhóm. Khách xem link public chỉ thấy số tim và bình luận. QTV ẩn/xóa bình luận. |
-| 11 | Quản trị nền tảng | `quynhom.hipotech.vn/system`, tài khoản quản trị riêng nằm trong `cashflow_system`. |
+| 11 | Quản trị nền tảng | `wepo.hipotech.vn/system`, tài khoản quản trị riêng nằm trong `cashflow_system`. |
 | 12 | Tính năng thêm ở bản đầu | Xuất Excel, PWA, số dư đầu kỳ, thông báo email cho QTV. |
 | 13 | Database | `cashflow_groups` (dữ liệu khách hàng, dùng chung, phân tách bằng `group_id`) và `cashflow_system` (quản trị dịch vụ). |
-| 14 | Domain | `quynhom.hipotech.vn`, thư mục server `www/cashflow`. |
+| 14 | Domain | `wepo.hipotech.vn`, thư mục server `www/cashflow`. |
 
 ## 3. Kiến trúc
 
@@ -121,5 +122,5 @@ Mã nhóm: chữ thường không dấu, số, dấu `-`; dài 3–32; duy nhấ
 | Khóa OpenRouter | Dùng chung khóa với FarmGo hay tạo khóa riêng để tách chi phí (khuyên tạo riêng) |
 | SMTP gửi email | Máy chủ gửi thư, địa chỉ người gửi (vd `no-reply@hipotech.vn`) |
 | Repo GitHub | Để dựng deploy tự động giống chatbot (không có thì deploy tay bằng `deploy.sh`) |
-| Logo, màu thương hiệu | Không có thì dùng logo chữ "Quỹ nhóm" và màu xanh lá mặc định |
+| Logo, màu thương hiệu | Không có thì dùng logo chữ "WePo" kèm dòng phụ "Quỹ nhóm" và màu xanh lá mặc định |
 | Tài khoản quản trị `/system` đầu tiên | Email người quản trị HIPOTECH; tạo bằng lệnh artisan |

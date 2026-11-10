@@ -1,6 +1,6 @@
 {
-  "name": "Quỹ nhóm",
-  "short_name": "Quỹ nhóm",
+  "name": "WePo · Quỹ nhóm",
+  "short_name": "WePo",
   "description": "Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.",
   "lang": "vi",
   "start_url": "/nhom?pwa=1",

@@ -136,7 +136,7 @@ class ContactController extends Controller
             $sheet->getColumnDimension($col)->setWidth($w);
         }
 
-        return response()->streamDownload(fn () => (new Xlsx($book))->save('php://output'), 'quynhom-mau-danh-ba.xlsx', [
+        return response()->streamDownload(fn () => (new Xlsx($book))->save('php://output'), 'wepo-mau-danh-ba.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }

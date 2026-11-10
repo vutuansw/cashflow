@@ -15,7 +15,10 @@ const features = [
             <span class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
                 <PiggyBank class="size-7" />
             </span>
-            <h1 class="text-3xl font-semibold tracking-tight">Quỹ nhóm</h1>
+            <div>
+                <h1 class="text-3xl font-semibold tracking-tight">WePo</h1>
+                <p class="text-sm font-medium text-primary">Quỹ nhóm minh bạch cho hội nhóm</p>
+            </div>
         </div>
         <p class="mt-4 text-lg text-muted-foreground">Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.</p>
 

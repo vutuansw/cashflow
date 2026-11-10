@@ -18,14 +18,14 @@ class AiProvider
         return (string) config('ai.url');
     }
 
-    /** HTTP-Referer và X-Title để OpenRouter ghi nhận lượt gọi thuộc ứng dụng Quỹ nhóm. */
+    /** HTTP-Referer và X-Title để OpenRouter ghi nhận lượt gọi thuộc ứng dụng WePo. */
     public static function headers(): array
     {
         return [
             'Authorization' => 'Bearer '.self::apiKey(),
             'Content-Type' => 'application/json',
             'HTTP-Referer' => (string) config('app.url'),
-            'X-Title' => (string) config('app.name', 'Quỹ nhóm'),
+            'X-Title' => (string) config('app.name', 'WePo'),
         ];
     }
 }
