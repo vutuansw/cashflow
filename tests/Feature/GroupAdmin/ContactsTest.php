@@ -29,8 +29,8 @@ class ContactsTest extends TestCase
         $this->putJson($this->adminUrl($group, "contacts/{$id}"), ['full_name' => 'Trần Thị Lan', 'phone' => '0912345678', 'status' => 'left'])
             ->assertOk()->assertJsonPath('status', 'left');
 
-        $this->getJson($this->adminUrl($group, 'contacts?search=lan'))->assertJsonCount(0);
-        $this->getJson($this->adminUrl($group, 'contacts?status=left&search=lan'))->assertJsonCount(1);
+        $this->getJson($this->adminUrl($group, 'contacts?search=tran thi lan'))->assertJsonCount(0);
+        $this->getJson($this->adminUrl($group, 'contacts?status=left&search=tran thi lan'))->assertJsonCount(1);
     }
 
     public function test_nhap_hang_loat_dan_tu_excel(): void
