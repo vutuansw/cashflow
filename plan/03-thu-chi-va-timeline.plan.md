@@ -23,7 +23,7 @@ Form:
 | Ngày giờ* | mặc định bây giờ |
 | Tiêu đề* | gợi ý tự động: "{Loại} {tên người}" vd "Thăm ốm bạn Lan" |
 | Người đóng / người nhận | chọn từ danh bạ (tìm không dấu) hoặc gõ tên tự do |
-| Chiến dịch | chỉ với phiếu thu; chọn chiến dịch đang mở |
+| Chiến dịch | chỉ với phiếu thu; chọn chiến dịch đang mở, mặc định chiến dịch mới nhất khi nhập tay (phiếu từ bill/SePay giữ chiến dịch nhận ra được) |
 | Mô tả | |
 | Ảnh sự kiện | nhiều ảnh, chọn từ thư viện điện thoại; hiện trên timeline |
 | Ảnh bill | ảnh chứng từ, chỉ QTV xem |

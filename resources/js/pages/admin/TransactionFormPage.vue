@@ -89,9 +89,15 @@ watch(suggestedTitle, (v) => {
     if (!titleTouched.value) form.title = v;
 });
 
+// Phiếu thu nhập tay mặc định gắn chiến dịch đang mở mới nhất (danh sách đã xếp mới nhất trước).
+// Phiếu từ bill/SePay thì giữ đúng chiến dịch nhận ra được, không tự gán.
+const newestCampaignId = () => options.value.campaigns[0]?.id ?? null;
+const autoCampaign = () => !id.value && !scan.value && !sepay.value;
+
 watch(() => form.type, () => {
     if (!categories.value.some((c) => c.id === form.category_id)) form.category_id = categories.value[0]?.id ?? null;
     if (!isIncome.value) form.campaign_id = null;
+    else if (form.campaign_id === null && autoCampaign()) form.campaign_id = newestCampaignId();
 });
 watch(() => form.campaign_id, (v) => {
     const campaign = options.value.campaigns.find((c) => c.id === v);
@@ -196,6 +202,7 @@ onMounted(async () => {
     } else {
         form.category_id = categories.value[0]?.id ?? null;
         if (route.query.chien_dich) form.campaign_id = Number(route.query.chien_dich);
+        else if (isIncome.value) form.campaign_id = newestCampaignId();
         if (route.query.sepay) {
             const t = await adminApi(code.value, `/sepay/${Number(route.query.sepay)}`).catch(() => null);
             if (t) {
