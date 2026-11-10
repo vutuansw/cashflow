@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
+import { loadSystemMe } from './lib/systemApi.js';
 import './lib/install.js';
 import { canManage, homePath, loadMe, session } from './lib/session.js';
 
@@ -37,8 +38,16 @@ const router = createRouter({
         { path: '/:group/quan-tri/chien-dich/moi', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
         { path: '/:group/quan-tri/chien-dich/:id(\\d+)', component: () => import('./pages/admin/CampaignDetailPage.vue'), meta: admin },
         { path: '/:group/quan-tri/chien-dich/:id(\\d+)/sua', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
-        { path: '/:group/quan-tri/bao-cao', ...soon('Báo cáo') },
+        { path: '/:group/quan-tri/bao-cao', component: () => import('./pages/admin/ReportsPage.vue'), meta: admin },
 
+        { path: '/system/dang-nhap', component: () => import('./pages/system/LoginPage.vue'), meta: { system: 'guest' } },
+        { path: '/system', component: () => import('./pages/system/OverviewPage.vue'), meta: { system: true } },
+        { path: '/system/nhom', component: () => import('./pages/system/GroupsPage.vue'), meta: { system: true } },
+        { path: '/system/nhom/moi', component: () => import('./pages/system/GroupCreatePage.vue'), meta: { system: true } },
+        { path: '/system/nhom/:id(\\d+)', component: () => import('./pages/system/GroupDetailPage.vue'), meta: { system: true } },
+        { path: '/system/chi-phi-ai', component: () => import('./pages/system/AiCostsPage.vue'), meta: { system: true } },
+        { path: '/system/nhat-ky', component: () => import('./pages/system/AuditLogsPage.vue'), meta: { system: true } },
+        { path: '/system/quan-tri-vien', component: () => import('./pages/system/AdminsPage.vue'), meta: { system: true } },
         { path: '/:group/thong-ke', component: () => import('./pages/GroupStatsPage.vue') },
         { path: '/:group/chien-dich/:slug', component: () => import('./pages/CampaignPage.vue') },
         { path: '/:group', component: () => import('./pages/GroupHomePage.vue') },
@@ -48,6 +57,13 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+    // Khu /system dùng phiên đăng nhập riêng, không dính tới tài khoản nhóm.
+    if (to.meta.system) {
+        const admin = await loadSystemMe();
+        if (to.meta.system === 'guest') return admin ? '/system' : true;
+        return admin ? true : { path: '/system/dang-nhap', query: { next: to.fullPath } };
+    }
+
     await loadMe();
     const me = session.me;
 

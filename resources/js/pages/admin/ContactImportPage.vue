@@ -31,6 +31,17 @@ async function recheck() {
     if (res) rows.value = res.rows;
 }
 
+// Hoặc chọn file Excel theo mẫu: máy chủ đọc rồi trả về cùng màn hình xem trước.
+async function pickFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const body = new FormData();
+    body.append('file', file);
+    const res = await submit(() => adminApi(code.value, '/contacts/import/file', { method: 'POST', body })).catch(ignore);
+    if (res) rows.value = res.rows;
+}
+
 function removeRow(index) {
     rows.value.splice(index, 1);
 }
@@ -58,6 +69,13 @@ async function save() {
             <textarea v-model="text" rows="12" class="field mt-4 font-mono text-sm" placeholder="Nguyễn Văn An, 0988777222, 15/03/1998, Hà Nội&#10;Trần Thị Bình, 0912345678"></textarea>
             <p v-if="state.errors.text" class="mt-1 text-sm text-expense">{{ state.errors.text }}</p>
             <button class="btn-primary mt-4 w-full" :disabled="state.busy || !text.trim()" @click="preview">Xem trước</button>
+
+            <div class="card mt-4 flex flex-wrap items-center gap-3 p-4 text-sm">
+                <span class="flex-1">Hoặc nhập từ file Excel (.xlsx) theo mẫu.</span>
+                <a :href="`/api/g/${code}/admin/contacts/import/template`" class="font-medium text-primary">Tải file mẫu</a>
+                <label class="btn-outline !min-h-10 cursor-pointer">Chọn file<input type="file" accept=".xlsx,.xls,.csv" class="sr-only" @change="pickFile" /></label>
+                <p v-if="state.errors.file" class="w-full text-expense">{{ state.errors.file }}</p>
+            </div>
         </template>
 
         <template v-else>
