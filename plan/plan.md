@@ -120,7 +120,7 @@ Mã nhóm: chữ thường không dấu, số, dấu `-`; dài 3–32; duy nhấ
 | Hạng mục | Ghi chú |
 | --- | --- |
 | Khóa OpenRouter | Dùng chung khóa với FarmGo hay tạo khóa riêng để tách chi phí (khuyên tạo riêng) |
-| SMTP gửi email | Máy chủ gửi thư, địa chỉ người gửi (vd `no-reply@hipotech.vn`) |
+| SMTP gửi email | **Đã chốt**: Gmail weposupport@gmail.com; còn thiếu mật khẩu ứng dụng Google, xem [07 mục 4b](07-lo-trinh-va-trien-khai.plan.md) |
 | Repo GitHub | Để dựng deploy tự động giống chatbot (không có thì deploy tay bằng `deploy.sh`) |
 | Logo, màu thương hiệu | Không có thì dùng logo chữ "WePo" kèm dòng phụ "Quỹ nhóm" và màu xanh lá mặc định |
-| Tài khoản quản trị `/system` đầu tiên | Email người quản trị HIPOTECH; tạo bằng lệnh artisan |
+| Tài khoản quản trị `/system` đầu tiên | **Đã chốt**: weposupport@gmail.com, tạo khi deploy, xem [07 mục 4a](07-lo-trinh-va-trien-khai.plan.md) |

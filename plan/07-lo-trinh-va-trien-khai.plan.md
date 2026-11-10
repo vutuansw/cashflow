@@ -40,7 +40,7 @@ PHONE_HASH_KEY=
 QUEUE_CONNECTION=database
 AI_DRIVER=fake
 OPENROUTER_API_KEY=
-MAIL_MAILER=log
+MAIL_MAILER=log   # server thật: smtp, xem mục 4b
 ```
 
 `composer dev` chạy server, queue, vite cùng lúc như chatbot. Seeder `DemoSeeder` tạo nhóm `nhomdemo` (public) và `chidoan-a12` (private) với danh bạ, phiếu, ảnh, chiến dịch mẫu.
@@ -63,6 +63,46 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 | Deploy | `deploy/deploy.sh` (git pull, composer install --no-dev, npm ci && npm run build, migrate --force cả 2 DB, config/route/view cache, restart worker); GitHub Actions nếu có repo |
 
 `deploy/README.md` hướng dẫn dựng server lần đầu, giống chatbot.
+
+### 4a. Tài khoản quản trị `/system` đầu tiên
+
+Chủ dự án chốt ngày 10/11/2026: email **weposupport@gmail.com**. Mật khẩu tạm do chủ dự án đưa trong chat, **không ghi vào git**; chủ dự án tự đổi sau lần đăng nhập đầu. Tạo trên server sau khi migrate:
+
+```bash
+php artisan cashflow:admin-create weposupport@gmail.com --name="WePo Support" --password='<mật khẩu tạm>'
+```
+
+### 4b. Gửi email qua Gmail weposupport@gmail.com
+
+Email gửi khách (đặt lại mật khẩu, tài khoản mới, báo hàng chờ SePay và bill, khóa/mở nhóm) đi qua SMTP của Gmail, người gửi hiện là "WePo <weposupport@gmail.com>".
+
+1. **Chủ dự án tự làm trên tài khoản Google** (không ai làm thay được):
+   - Bật xác minh 2 bước cho weposupport@gmail.com.
+   - Vào myaccount.google.com/apppasswords, tạo mật khẩu ứng dụng tên "WePo server", chép mã 16 ký tự.
+2. **`.env` trên server**:
+   ```env
+   MAIL_MAILER=smtp
+   MAIL_HOST=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=weposupport@gmail.com
+   MAIL_PASSWORD=<mã 16 ký tự, bỏ dấu cách>
+   MAIL_FROM_ADDRESS="weposupport@gmail.com"
+   MAIL_FROM_NAME="${APP_NAME}"
+   ```
+   Rồi chạy `php artisan config:cache` và `supervisorctl restart cashflow-worker`, vì email gộp gửi qua hàng đợi.
+3. **Thử gửi**:
+   ```bash
+   php artisan tinker --execute="Mail::raw('Thử gửi từ WePo', fn (\$m) => \$m->to('weposupport@gmail.com')->subject('Thử email WePo'));"
+   ```
+   Hộp thư nhận được là xong. Lỗi `535 Username and Password not accepted` nghĩa là sai mã ứng dụng hoặc chưa bật xác minh 2 bước.
+
+**Giới hạn của Gmail thường:**
+- Gửi khoảng **500 người nhận mỗi ngày**. Vượt mức thì Google chặn gửi tới 24 giờ.
+- Địa chỉ người gửi luôn là weposupport@gmail.com, không đổi được thành @wepo….
+- Đủ cho giai đoạn đầu: email chỉ gửi trưởng nhóm, thủ quỹ và người quên mật khẩu.
+- Khi có nhiều nhóm, hoặc muốn gửi từ tên miền riêng, chuyển sang dịch vụ gửi thư (Amazon SES, Brevo…). Lúc đó chỉ đổi các dòng `MAIL_*`, không sửa code.
+
+Máy dev giữ `MAIL_MAILER=log`, thư chỉ ghi vào `storage/logs`, không gửi thật.
 
 ## 5. Bước tiếp theo
 
