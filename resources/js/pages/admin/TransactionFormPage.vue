@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Camera, History, ImagePlus, ReceiptText, RotateCcw, Trash2, X } from 'lucide-vue-next';
+import { Camera, History, ImagePlus, ReceiptText, RotateCcw, ScanText, Trash2, X } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CategoryIcon from '../../components/CategoryIcon.vue';
 import FormField from '../../components/FormField.vue';
@@ -13,8 +13,9 @@ import { previewUrl, shrinkImage } from '../../lib/image.js';
 import { formatDate, formatDateTime } from '../../lib/time.js';
 import { fold } from '../../lib/text.js';
 import { toast } from '../../lib/notice.js';
+import { readBill } from '../../lib/billScan.js';
 
-// Tạo/sửa phiếu thu chi, xem plan/03 mục 2 và wireframe M2 màn 2. Phần AI đọc bill tự điền làm ở M3.
+// Tạo/sửa phiếu thu chi, xem plan/03 mục 2 và wireframe M2 màn 2. Có ảnh bill thì AI đọc và điền sẵn (plan/04).
 const route = useRoute();
 const router = useRouter();
 const code = computed(() => route.params.group);
@@ -46,7 +47,7 @@ const titleTouched = ref(false);
 // Ảnh: ảnh cũ (từ máy chủ) và ảnh mới chọn (File + URL xem trước).
 const photos = ref([]); // [{ id?, url, file? }]
 const removedPhotoIds = ref([]);
-const bills = ref([]); // [{ id?, url, file? }]
+const bills = ref([]); // [{ id?, scanId?, url, file? }]
 const removedBillIds = ref([]);
 const viewing = ref(null);
 
@@ -70,6 +71,7 @@ function pickContact(c) {
     form.payer_name = '';
     personQuery.value = c.name;
     personOpen.value = false;
+    candidates.value = [];
 }
 function onPersonInput(value) {
     personQuery.value = value;
@@ -98,6 +100,69 @@ watch(() => form.campaign_id, (v) => {
         if (!form.amount && campaign.amount_per_member) form.amount = campaign.amount_per_member;
     }
 });
+
+// AI đọc bill: lượt đọc hiện tại, các ô AI điền (hiện nhãn "AI đọc" tới khi người dùng sửa), người có thể là.
+const scan = ref(null);
+const aiFields = ref([]);
+const candidates = ref([]);
+const isAi = (key) => aiFields.value.includes(key);
+const dropAi = (key) => (aiFields.value = aiFields.value.filter((k) => k !== key));
+let stopAiWatchers = [];
+
+async function applyScan(s) {
+    scan.value = s;
+    if (s.bill_url && !bills.value.some((b) => b.scanId === s.id)) bills.value.push({ scanId: s.id, url: s.bill_url, lg: s.bill_url });
+    const d = s.draft;
+    if (!d || s.attached) return;
+
+    stopAiWatchers.forEach((stop) => stop());
+    if (d.type) form.type = d.type;
+    if (d.amount) form.amount = d.amount;
+    if (d.occurred_at) [form.date, form.time] = d.occurred_at.split(' ');
+    form.campaign_id = d.campaign_id ?? null;
+    if (d.category_id) form.category_id = d.category_id;
+    if (d.contact_id) {
+        const c = options.value.contacts.find((x) => x.id === d.contact_id);
+        form.contact_id = d.contact_id;
+        form.payer_name = '';
+        personQuery.value = c?.name ?? '';
+    } else if (d.payer_name) {
+        form.contact_id = null;
+        form.payer_name = d.payer_name;
+        personQuery.value = d.payer_name;
+    }
+    candidates.value = d.contact_candidates ?? [];
+    if (d.description && !form.description) form.description = d.description;
+    titleTouched.value = false;
+
+    const map = { occurred_at: 'date', contact_id: 'person', payer_name: 'person', campaign_id: 'campaign_id' };
+    aiFields.value = [...new Set((d.ai_fields ?? []).map((k) => map[k] ?? k))];
+
+    // Đợi các watcher (loại theo thu/chi, theo chiến dịch) chạy xong rồi mới theo dõi người dùng sửa.
+    await nextTick();
+    stopAiWatchers = [
+        watch(() => form.type, () => dropAi('type')),
+        watch(() => form.amount, () => dropAi('amount')),
+        watch(() => [form.date, form.time], () => dropAi('date')),
+        watch(() => form.category_id, () => dropAi('category_id')),
+        watch(() => form.campaign_id, () => dropAi('campaign_id')),
+        watch(personQuery, () => dropAi('person')),
+    ];
+}
+
+async function onBill(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+        const s = await readBill(code.value, file);
+        await applyScan(s);
+        router.replace({ query: { ...route.query, scan: s.id } });
+        toast(s.message, s.readable ? 'success' : 'error');
+    } catch (e) {
+        toast(Object.values(e.errors ?? {})[0]?.[0] ?? e.message ?? 'Không tải được ảnh bill.', 'error');
+    }
+}
 
 onMounted(async () => {
     options.value = await adminApi(code.value, '/transactions/options');
@@ -129,6 +194,10 @@ onMounted(async () => {
     } else {
         form.category_id = categories.value[0]?.id ?? null;
         if (route.query.chien_dich) form.campaign_id = Number(route.query.chien_dich);
+        if (route.query.scan) {
+            const s = await adminApi(code.value, `/bill-scans/${Number(route.query.scan)}`).catch(() => null);
+            if (s) await applyScan(s);
+        }
     }
     ready.value = true;
 });
@@ -159,7 +228,7 @@ async function addBill(event) {
 function removeBill(i) {
     const [b] = bills.value.splice(i, 1);
     if (b.id) removedBillIds.value.push(b.id);
-    else URL.revokeObjectURL(b.url);
+    else if (b.file) URL.revokeObjectURL(b.url);
 }
 
 function payload() {
@@ -179,6 +248,8 @@ function payload() {
     // Giữ đúng thứ tự trên màn hình: ảnh cũ "p:id", ảnh mới "n:thứ tự".
     let n = 0;
     photos.value.forEach((p) => data.append('photo_order[]', p.id ? `p:${p.id}` : `n:${n++}`));
+    const scanned = bills.value.find((b) => b.scanId);
+    if (scanned && !scan.value?.attached) data.append('bill_scan_id', scanned.scanId);
     const newBill = bills.value.find((b) => b.file);
     if (newBill) data.append('bill', newBill.file);
     removedBillIds.value.forEach((x) => data.append('remove_bill_ids[]', x));
@@ -221,18 +292,33 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <button type="button" class="btn-outline !min-h-10 shrink-0" @click="restore"><RotateCcw class="size-4" /> Khôi phục</button>
             </div>
 
+            <!-- Ảnh bill: AI đọc và điền sẵn (plan/04) -->
+            <div v-if="scan" class="card flex items-center gap-3 p-3">
+                <button v-if="scan.bill_url" type="button" class="h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-muted" @click="viewing = { list: [{ lg: scan.bill_url }], start: 0 }"><img :src="scan.bill_url" alt="Ảnh bill" class="size-full object-cover" /></button>
+                <div class="text-sm">
+                    <p class="font-medium">Ảnh bill chuyển khoản</p>
+                    <p class="text-muted-foreground">{{ scan.attached ? 'Bill này đã gắn vào một phiếu khác.' : scan.message }}</p>
+                </div>
+            </div>
+            <label v-else-if="!id" class="card flex cursor-pointer items-center gap-3 border-dashed p-3 hover:bg-muted">
+                <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ScanText class="size-6" /></span>
+                <span class="text-sm"><span class="block font-medium">Có ảnh bill chuyển khoản?</span><span class="text-muted-foreground">Chọn ảnh, AI đọc và điền sẵn phiếu giúp bạn.</span></span>
+                <input type="file" accept="image/*" class="sr-only" @change="onBill" />
+            </label>
+
             <!-- Thu / Chi -->
-            <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center font-semibold" role="radiogroup" aria-label="Thu hay chi">
+            <p v-if="isAi('type')" class="-mb-3 text-sm font-medium">Thu hay chi <span class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">AI đọc</span></p>
+            <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center font-semibold" :class="{ 'ring-2 ring-primary/40': isAi('type') }" role="radiogroup" aria-label="Thu hay chi">
                 <button type="button" role="radio" :aria-checked="isIncome" class="min-h-10 rounded-lg" :class="isIncome ? 'bg-card text-income shadow' : 'text-muted-foreground'" @click="form.type = 'income'">Thu</button>
                 <button type="button" role="radio" :aria-checked="!isIncome" class="min-h-10 rounded-lg" :class="!isIncome ? 'bg-card text-expense shadow' : 'text-muted-foreground'" @click="form.type = 'expense'">Chi</button>
             </div>
 
-            <FormField label="Số tiền" required :error="state.errors.amount">
-                <MoneyInput v-model="form.amount" class="!text-2xl !font-semibold" :class="{ 'field-error': state.errors.amount }" placeholder="0" autofocus />
+            <FormField label="Số tiền" required :ai="isAi('amount')" :error="state.errors.amount">
+                <MoneyInput v-model="form.amount" class="!text-2xl !font-semibold" :class="{ 'field-error': state.errors.amount, 'ai-field': isAi('amount') }" placeholder="0" :autofocus="!scan" />
             </FormField>
 
             <div>
-                <p class="mb-1.5 text-sm font-medium">Loại<span class="text-expense"> *</span></p>
+                <p class="mb-1.5 text-sm font-medium">Loại<span class="text-expense"> *</span><template v-if="isAi('category_id')"> <span class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">AI đọc</span></template></p>
                 <div class="flex flex-wrap gap-2">
                     <button v-for="c in categories" :key="c.id" type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium" :class="form.category_id === c.id ? 'border-transparent text-white' : 'border-border bg-card'" :style="form.category_id === c.id ? { backgroundColor: c.color || '#15803d' } : {}" @click="form.category_id = c.id">
                         <CategoryIcon :name="c.icon" :color="form.category_id === c.id ? '#ffffff' : c.color" size="size-6" class="!bg-transparent" /> {{ c.name }}
@@ -242,27 +328,31 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <p v-if="state.errors.category_id" class="mt-1 text-sm text-expense">{{ state.errors.category_id }}</p>
             </div>
 
-            <FormField v-if="isIncome && options.campaigns.length" label="Chiến dịch" :error="state.errors.campaign_id">
-                <select v-model="form.campaign_id" class="field">
+            <FormField v-if="isIncome && options.campaigns.length" label="Chiến dịch" :ai="isAi('campaign_id')" :error="state.errors.campaign_id">
+                <select v-model="form.campaign_id" class="field" :class="{ 'ai-field': isAi('campaign_id') }">
                     <option :value="null">Không thuộc chiến dịch</option>
                     <option v-for="c in options.campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
                 </select>
             </FormField>
 
             <div class="grid grid-cols-2 gap-2">
-                <FormField label="Ngày" required :error="state.errors.occurred_at"><input v-model="form.date" type="date" class="field" required /></FormField>
-                <FormField label="Giờ"><input v-model="form.time" type="time" class="field" /></FormField>
+                <FormField label="Ngày" required :ai="isAi('date')" :error="state.errors.occurred_at"><input v-model="form.date" type="date" class="field" :class="{ 'ai-field': isAi('date') }" required /></FormField>
+                <FormField label="Giờ"><input v-model="form.time" type="time" class="field" :class="{ 'ai-field': isAi('date') }" /></FormField>
             </div>
 
             <div class="relative">
-                <FormField :label="isIncome ? 'Người đóng' : 'Người nhận / được thăm'" :error="state.errors.contact_id || state.errors.payer_name" :hint="form.contact_id ? 'Trong danh bạ' : personQuery ? 'Tên tự do, không có trong danh bạ' : 'Gõ để tìm trong danh bạ, không dấu cũng được'">
-                    <input :value="personQuery" class="field" autocomplete="off" placeholder="Tên người" role="combobox" :aria-expanded="personOpen" @input="onPersonInput($event.target.value)" @focus="personOpen = true" @blur="closePerson" />
+                <FormField :label="isIncome ? 'Người đóng' : 'Người nhận / được thăm'" :ai="isAi('person')" :error="state.errors.contact_id || state.errors.payer_name" :hint="form.contact_id ? 'Trong danh bạ' : personQuery ? 'Tên tự do, không có trong danh bạ' : 'Gõ để tìm trong danh bạ, không dấu cũng được'">
+                    <input :value="personQuery" class="field" :class="{ 'ai-field': isAi('person') }" autocomplete="off" placeholder="Tên người" role="combobox" :aria-expanded="personOpen" @input="onPersonInput($event.target.value)" @focus="personOpen = true" @blur="closePerson" />
                 </FormField>
                 <ul v-if="personOpen && personMatches.length" class="absolute inset-x-0 top-[4.75rem] z-10 max-h-64 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
                     <li v-for="c in personMatches" :key="c.id">
                         <button type="button" class="block min-h-11 w-full px-3 text-left hover:bg-muted" @mousedown.prevent="pickContact(c)">{{ c.name }}</button>
                     </li>
                 </ul>
+                <div v-if="candidates.length && !form.contact_id" class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    <span class="text-muted-foreground">Có thể là:</span>
+                    <button v-for="c in candidates" :key="c.id" type="button" class="chip !min-h-9 !px-3 !text-sm" @click="pickContact({ id: c.id, name: c.name })">{{ c.name }}</button>
+                </div>
             </div>
 
             <FormField v-model="form.title" label="Tiêu đề" :error="state.errors.title" :placeholder="suggestedTitle || 'Vd: Thăm ốm bạn Lan'" maxlength="150" hint="Tự gợi ý từ loại và tên, sửa được." @input="titleTouched = true" />

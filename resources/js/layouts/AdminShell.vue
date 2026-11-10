@@ -1,15 +1,19 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
 import Sheet from '../components/Sheet.vue';
+import BillReadingOverlay from '../components/BillReadingOverlay.vue';
+import { readBill } from '../lib/billScan.js';
+import { toast } from '../lib/notice.js';
 import { adminMenu, adminTabs } from '../lib/nav.js';
 import { session } from '../lib/session.js';
 
 // Khung trang quản trị nhóm, xem plan/06 mục 2: tab đáy trên điện thoại, sidebar trên máy tính.
 defineProps({ title: String });
 const route = useRoute();
+const router = useRouter();
 const code = computed(() => route.params.group);
 const group = computed(() => session.me?.groups.find((g) => g.code === code.value));
 const menu = computed(() => adminMenu(code.value));
@@ -18,10 +22,24 @@ const tabs = computed(() => adminTabs(code.value));
 // Nút + giữa thanh tab mở bảng chọn: Đọc bill / Phiếu thu / Phiếu chi (wireframe M2).
 const creating = ref(false);
 const createOptions = computed(() => [
-    { label: 'Đọc bill chuyển khoản', text: 'Chụp hoặc chọn ảnh bill, AI điền sẵn. Có ở bản cập nhật tới.', icon: ScanText, to: null },
+    { label: 'Đọc bill chuyển khoản', text: 'Chọn ảnh bill trong máy, AI điền sẵn phiếu.', icon: ScanText, bill: true },
     { label: 'Phiếu thu', text: 'Tiền vào quỹ: đóng quỹ, ủng hộ…', icon: ArrowDownLeft, to: `/${code.value}/quan-tri/phieu/moi?loai=thu`, tone: 'text-income' },
     { label: 'Phiếu chi', text: 'Tiền ra: liên hoan, thăm ốm, hiếu hỉ…', icon: ArrowUpRight, to: `/${code.value}/quan-tri/phieu/moi?loai=chi`, tone: 'text-expense' },
 ]);
+
+// Đọc bill: chọn ảnh ngay trong bảng (cần thao tác chạm của người dùng để mở thư viện ảnh), đọc xong mở form điền sẵn.
+async function onBill(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    creating.value = false;
+    try {
+        const scan = await readBill(code.value, file);
+        router.push(`/${code.value}/quan-tri/phieu/moi?scan=${scan.id}`);
+    } catch (e) {
+        toast(Object.values(e.errors ?? {})[0]?.[0] ?? e.message ?? 'Không tải được ảnh bill.', 'error');
+    }
+}
 
 function active(item) {
     return item.exact ? route.path === item.to : route.path.startsWith(item.to);
@@ -73,11 +91,13 @@ function active(item) {
 
         <Sheet :open="creating" title="Tạo phiếu" @close="creating = false">
             <div class="space-y-2">
-                <component :is="opt.to ? 'RouterLink' : 'div'" v-for="opt in createOptions" :key="opt.label" :to="opt.to" class="flex items-center gap-3 rounded-2xl border border-border p-3" :class="opt.to ? 'hover:bg-muted' : 'opacity-60'" @click="opt.to && (creating = false)">
-                    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-muted" :class="opt.tone"><component :is="opt.icon" class="size-6" /></span>
+                <component :is="opt.bill ? 'label' : 'RouterLink'" v-for="opt in createOptions" :key="opt.label" :to="opt.to" class="flex cursor-pointer items-center gap-3 rounded-2xl border border-border p-3 hover:bg-muted" @click="opt.to && (creating = false)">
+                    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-muted" :class="opt.bill ? 'text-primary' : opt.tone"><component :is="opt.icon" class="size-6" /></span>
                     <span><span class="block font-semibold">{{ opt.label }}</span><span class="text-sm text-muted-foreground">{{ opt.text }}</span></span>
+                    <input v-if="opt.bill" type="file" accept="image/*" class="sr-only" @change="onBill" />
                 </component>
             </div>
         </Sheet>
+        <BillReadingOverlay />
     </div>
 </template>

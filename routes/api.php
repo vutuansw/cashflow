@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Group\InteractionController;
 use App\Http\Controllers\Group\TimelineController;
+use App\Http\Controllers\GroupAdmin\BillScanController;
 use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
 use App\Http\Controllers\GroupAdmin\MemberController;
@@ -72,6 +73,9 @@ Route::prefix('/g/{group}/admin')
         Route::put('/settings', [SettingsController::class, 'update']);
         Route::post('/settings/images', [SettingsController::class, 'uploadImage']);
         Route::delete('/settings/images/{kind}', [SettingsController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
+
+        Route::post('/bill-scans', [BillScanController::class, 'store']);
+        Route::get('/bill-scans/{scan}', [BillScanController::class, 'show'])->whereNumber('scan');
 
         Route::get('/transactions', [TransactionController::class, 'index']);
         Route::get('/transactions/options', [TransactionController::class, 'options']);

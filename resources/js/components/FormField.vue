@@ -7,6 +7,7 @@ defineProps({
     modelValue: [String, Number],
     type: { type: String, default: 'text' },
     required: Boolean,
+    ai: Boolean, // ô do AI đọc bill điền, xem plan/04 mục 1
 });
 defineEmits(['update:modelValue']);
 </script>
@@ -15,6 +16,7 @@ defineEmits(['update:modelValue']);
     <label class="block">
         <span class="mb-1.5 block text-sm font-medium">
             {{ label }}<span v-if="required" class="text-expense"> *</span>
+            <span v-if="ai" class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">AI đọc</span>
         </span>
         <slot>
             <input

@@ -17,7 +17,9 @@ return [
 
     'api_key' => env('OPENROUTER_API_KEY', ''),
 
-    'url' => env('OPENROUTER_URL') ?: 'https://openrouter.ai/api/v1/chat/completions',
+    // OPENROUTER_URL là đường dẫn đầy đủ; OPENROUTER_BASE_URL (như .env của farm) thì tự nối /chat/completions.
+    'url' => env('OPENROUTER_URL')
+        ?: (env('OPENROUTER_BASE_URL') ? rtrim(env('OPENROUTER_BASE_URL'), '/').'/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,6 +44,8 @@ return [
         'max_dimension' => 1600,
         'max_bytes' => 12 * 1024 * 1024,
         'allowed_mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
+        // Chống bấm liên tục: số lượt đọc bill mỗi phút cho một người.
+        'per_minute' => 10,
     ],
 
     // Quy đổi chi phí hiển thị ở /system.

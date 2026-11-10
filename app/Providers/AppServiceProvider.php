@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\Ai\BillExtractor;
+use App\Services\Ai\FakeBillExtractor;
+use App\Services\Ai\OpenRouterBillExtractor;
 use App\Support\CurrentGroup;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -17,6 +20,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // Mỗi request một nhóm hiện tại; scoped để không rò sang request sau nếu chạy Octane/queue.
         $this->app->scoped(CurrentGroup::class);
+
+        // AI đọc bill: OpenRouter thật, hoặc bản giả cho test và máy dev chưa có khóa (plan/04 mục 5).
+        $this->app->bind(BillExtractor::class, fn () => config('ai.driver') === 'fake'
+            ? new FakeBillExtractor
+            : new OpenRouterBillExtractor);
     }
 
     public function boot(): void

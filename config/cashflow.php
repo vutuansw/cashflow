@@ -88,6 +88,18 @@ return [
         'photo_upload_max_kb' => 10 * 1024,
     ],
 
+    // Từ khóa (đã bỏ dấu) trong nội dung chuyển khoản để đoán loại thu chi khi
+    // AI đọc bill, xem plan/04 mục 4. Khóa là tên loại mặc định; loại nhóm tự
+    // thêm thì so theo chính tên loại. Cụm dài khớp trước cụm ngắn.
+    'bill_keywords' => [
+        'Đám hiếu' => ['dam hieu', 'vieng', 'phung', 'tang le', 'dam tang', 'chia buon', 'hieu'],
+        'Đám hỉ' => ['dam cuoi', 'dam hi', 'dam hy', 'mung cuoi', 'cuoi', 'hy su', 'hi', 'hy'],
+        'Thăm ốm' => ['tham om', 'om dau', 'nam vien', 'benh vien', 'benh', 'om'],
+        'Thăm đẻ' => ['tham de', 'sinh con', 'em be', 'mung em be', 'day thang', 'de'],
+        'Liên hoan' => ['lien hoan', 'an uong', 'di an', 'tiec', 'nhau', 'buffet', 'lau'],
+        'Đóng quỹ năm' => ['dong quy', 'nop quy', 'quy nam', 'quy'],
+    ],
+
     // Xử lý ảnh tải lên, xem plan/03 mục 3.
     'images' => [
         'large' => 1600,
