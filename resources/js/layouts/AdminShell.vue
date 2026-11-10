@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-vue-next';
 import BrandMark from '../components/BrandMark.vue';
@@ -7,6 +7,7 @@ import Sheet from '../components/Sheet.vue';
 import BillReadingOverlay from '../components/BillReadingOverlay.vue';
 import { readBill } from '../lib/billScan.js';
 import { toast } from '../lib/notice.js';
+import { pending, refreshPending } from '../lib/pending.js';
 import { adminMenu, adminTabs } from '../lib/nav.js';
 import { session } from '../lib/session.js';
 
@@ -41,6 +42,10 @@ async function onBill(event) {
     }
 }
 
+onMounted(() => refreshPending(code.value));
+watch(code, (c) => refreshPending(c));
+const badge = (item) => (item.to.endsWith('/cho-duyet') && pending.count ? (pending.count > 99 ? '99+' : pending.count) : null);
+
 function active(item) {
     return item.exact ? route.path === item.to : route.path.startsWith(item.to);
 }
@@ -58,6 +63,7 @@ function active(item) {
             <nav class="mt-4 space-y-1">
                 <RouterLink v-for="item in menu" :key="item.to" :to="item.to" class="flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted" :class="{ 'bg-primary/10 text-primary': active(item) }">
                     <component :is="item.icon" class="size-5" /> {{ item.label }}
+                    <span v-if="badge(item)" class="ml-auto rounded-full bg-expense px-1.5 text-xs font-semibold text-white">{{ badge(item) }}</span>
                 </RouterLink>
             </nav>
             <RouterLink to="/ca-nhan" class="mt-auto flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted">
@@ -82,7 +88,8 @@ function active(item) {
                     <span class="-mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg"><component :is="tab.icon" class="size-6" /></span>
                     <span>{{ tab.label }}</span>
                 </button>
-                <RouterLink v-else :to="tab.to" class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium" :class="active(tab) ? 'text-primary' : 'text-muted-foreground'">
+                <RouterLink v-else :to="tab.to" class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium" :class="active(tab) ? 'text-primary' : 'text-muted-foreground'">
+                    <span v-if="badge(tab)" class="absolute left-1/2 top-1.5 ml-1.5 min-w-4 rounded-full bg-expense px-1 text-center text-[10px] font-semibold leading-4 text-white">{{ badge(tab) }}</span>
                     <component :is="tab.icon" class="size-5" />
                     <span>{{ tab.label }}</span>
                 </RouterLink>

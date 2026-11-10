@@ -10,6 +10,7 @@ import { BANKS } from '../../lib/banks.js';
 import { copyText } from '../../lib/clipboard.js';
 import { ignore, useForm } from '../../lib/form.js';
 import { toast } from '../../lib/notice.js';
+import { formatDateTime } from '../../lib/time.js';
 import { loadMe, session } from '../../lib/session.js';
 import { shrinkImage } from '../../lib/image.js';
 import { ImagePlus, Trash2 } from 'lucide-vue-next';
@@ -78,6 +79,28 @@ async function removeImage(kind) {
     const res = await adminApi(code.value, `/settings/images/${kind}`, { method: 'DELETE' });
     form.avatar_url = res.avatar_url;
     form.cover_url = res.cover_url;
+}
+
+const sepayBusy = ref(false);
+async function toggleSepay(enabled) {
+    if (!enabled && !confirm('Tắt SePay? API key hiện tại sẽ hết hiệu lực, webhook gửi tới sẽ bị từ chối.')) return;
+    sepayBusy.value = true;
+    try {
+        const res = await adminApi(code.value, '/settings/sepay', { method: 'POST', body: { enabled } });
+        form.sepay = res.sepay;
+    } finally {
+        sepayBusy.value = false;
+    }
+}
+async function rotateSepay() {
+    if (!confirm('Tạo API key mới? Bạn phải dán key mới vào cấu hình webhook bên SePay, key cũ hết hiệu lực ngay.')) return;
+    const res = await adminApi(code.value, '/settings/sepay', { method: 'POST', body: { enabled: true, rotate: true } });
+    form.sepay = res.sepay;
+    toast('Đã tạo API key mới.');
+}
+async function toggleNotify(value) {
+    const res = await adminApi(code.value, '/settings/notifications', { method: 'PUT', body: { sepay: value } });
+    form.notify_settings = res.notify_settings;
 }
 
 async function openTransfer() {
@@ -166,9 +189,51 @@ async function destroy() {
                 <FormField v-model="form.bank_account_name" label="Tên chủ tài khoản" placeholder="NGUYEN VAN AN" :error="state.errors.bank_account_name" />
             </section>
 
+            <!-- SePay: tự nhận biến động số dư, xem plan/05 mục 2 -->
+            <section id="sepay" class="card space-y-3 p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="font-semibold">Tự nhận biến động số dư qua SePay</h2>
+                        <p class="text-sm text-muted-foreground">Tiền chuyển vào tài khoản nhóm tự hiện ở mục Chờ duyệt, nhận ra người đóng theo mã chiến dịch.</p>
+                    </div>
+                    <button type="button" role="switch" :aria-checked="form.sepay?.enabled" class="relative mt-1 h-7 w-12 shrink-0 rounded-full transition" :class="form.sepay?.enabled ? 'bg-primary' : 'bg-muted'" :disabled="sepayBusy" @click="toggleSepay(!form.sepay?.enabled)">
+                        <span class="absolute top-0.5 size-6 rounded-full bg-white shadow transition-all" :class="form.sepay?.enabled ? 'left-[1.375rem]' : 'left-0.5'"></span>
+                    </button>
+                </div>
+                <template v-if="form.sepay?.enabled">
+                    <FormField label="Webhook URL">
+                        <div class="flex gap-2"><input class="field font-mono text-sm" :value="form.sepay.webhook_url" readonly /><button type="button" class="btn-outline shrink-0" @click="copyText(form.sepay.webhook_url, 'Đã chép Webhook URL.')">Chép</button></div>
+                    </FormField>
+                    <FormField label="API key">
+                        <div class="flex gap-2"><input class="field font-mono text-sm" :value="form.sepay.api_key" readonly /><button type="button" class="btn-outline shrink-0" @click="copyText(form.sepay.api_key, 'Đã chép API key.')">Chép</button></div>
+                    </FormField>
+                    <button type="button" class="text-sm font-medium text-primary" :disabled="sepayBusy" @click="rotateSepay">Tạo API key mới</button>
+                    <p class="rounded-xl bg-muted p-3 text-sm">
+                        <template v-if="form.sepay.last_hook_at">Đã kết nối · lần cuối nhận {{ formatDateTime(form.sepay.last_hook_at) }}</template>
+                        <template v-else>Chưa nhận webhook nào. Làm theo hướng dẫn dưới rồi dùng chức năng giả lập giao dịch của SePay để thử.</template>
+                    </p>
+                    <details class="rounded-xl border border-border p-3 text-sm">
+                        <summary class="cursor-pointer font-medium">Hướng dẫn cài trên my.sepay.vn</summary>
+                        <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+                            <li>Đăng ký tài khoản tại my.sepay.vn và liên kết tài khoản ngân hàng nhận quỹ (đúng số tài khoản ở trên).</li>
+                            <li>Vào <b>Tích hợp WebHooks</b> → <b>Thêm webhooks</b>.</li>
+                            <li>Chọn tài khoản ngân hàng; sự kiện chọn cả <b>Có tiền vào</b> và <b>Có tiền ra</b>.</li>
+                            <li>Gọi đến URL: dán <b>Webhook URL</b> ở trên.</li>
+                            <li>Kiểu chứng thực: <b>API Key</b>, dán <b>API key</b> ở trên.</li>
+                            <li>"Bỏ qua nếu nội dung giao dịch không có code thanh toán": chọn <b>Không</b>.</li>
+                            <li>Lưu, rồi dùng <b>Giả lập giao dịch</b> của SePay với nội dung là mã chiến dịch + tên để thử.</li>
+                        </ol>
+                    </details>
+                </template>
+            </section>
+
             <section class="card space-y-4 p-4">
                 <h2 class="font-semibold">Thông báo email</h2>
                 <FormField v-model="emails" label="Email nhận thông báo" hint="Cách nhau bằng dấu phẩy, tối đa 5. Để trống thì gửi trưởng nhóm." :error="state.errors.notify_emails || state.errors['notify_emails.0']" />
+                <label class="flex min-h-11 items-center gap-3">
+                    <input type="checkbox" class="size-5 accent-[var(--primary)]" :checked="form.notify_settings?.sepay" @change="toggleNotify($event.target.checked)" />
+                    <span class="text-sm">Gửi email khi có giao dịch SePay mới chờ duyệt (gộp tối đa 15 phút một lần)</span>
+                </label>
             </section>
 
             <button class="btn-primary sticky bottom-20 w-full shadow-lg lg:bottom-4" :disabled="state.busy">Lưu cài đặt</button>

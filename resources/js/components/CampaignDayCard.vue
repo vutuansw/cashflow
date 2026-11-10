@@ -5,7 +5,7 @@ import { formatMoney } from '../lib/money.js';
 import { relativeDay } from '../lib/time.js';
 
 // Các khoản đóng quỹ cùng chiến dịch trong một ngày, gộp làm một thẻ (plan/03 mục 4). Bấm để xem danh sách.
-const props = defineProps({ post: Object });
+const props = defineProps({ post: Object, code: String });
 const open = ref(false);
 const names = computed(() => {
     const list = props.post.payers.map((p) => p.name);
@@ -18,7 +18,10 @@ const names = computed(() => {
         <div class="flex items-start gap-3">
             <CategoryIcon :name="post.category?.icon" :color="post.category?.color" />
             <div class="min-w-0 flex-1">
-                <h3 class="font-semibold leading-snug">{{ post.campaign?.name ?? post.category?.name }}</h3>
+                <h3 class="font-semibold leading-snug">
+                    <RouterLink v-if="post.campaign" :to="`/${code}/chien-dich/${post.campaign.slug}`" class="hover:underline">{{ post.campaign.name }}</RouterLink>
+                    <template v-else>{{ post.category?.name }}</template>
+                </h3>
                 <p class="text-xs text-muted-foreground">{{ relativeDay(post.occurred_at) }} · {{ post.count }} người đóng</p>
             </div>
             <p class="shrink-0 font-semibold tabular-nums text-income">+{{ formatMoney(post.total).replace(' đ', '') }}</p>

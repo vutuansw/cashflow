@@ -1,0 +1,137 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { CheckCircle2, ChevronLeft, CircleDashed, CircleDot, Copy, Download, Lock, Share2 } from 'lucide-vue-next';
+import { api, ApiError } from '../lib/api.js';
+import { copyText } from '../lib/clipboard.js';
+import { formatMoney } from '../lib/money.js';
+import { formatDate } from '../lib/time.js';
+import { BANKS } from '../lib/banks.js';
+
+// Trang đóng quỹ /{ma-nhom}/chien-dich/{slug}: tiến độ, QR, ai đã đóng/chưa đóng (chỉ tên). Xem plan/05 mục 1 và wireframe M2 màn 4.
+const route = useRoute();
+const code = computed(() => route.params.group);
+const data = ref(null);
+const group = ref(null);
+const error = ref(null);
+const tab = ref('paid');
+
+onMounted(async () => {
+    group.value = await api(`/g/${code.value}`).catch(() => null);
+    try {
+        data.value = await api(`/g/${code.value}/campaigns/${route.params.slug}`);
+        document.title = `${data.value.name} · ${group.value?.name ?? 'Quỹ nhóm'}`;
+    } catch (e) {
+        error.value = e instanceof ApiError ? e.status : 500;
+    }
+});
+
+const paid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'paid' || p.status === 'partial'));
+const unpaid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'unpaid'));
+const percent = computed(() => {
+    const d = data.value;
+    if (!d) return 0;
+    if (d.members_total) return Math.min(100, (d.members_paid / d.members_total) * 100);
+    const target = d.target_amount || d.expected_total;
+    return target ? Math.min(100, (d.collected / target) * 100) : 0;
+});
+const bankName = computed(() => BANKS.find((b) => b.code === data.value?.bank?.code)?.name ?? data.value?.bank?.code);
+const accountDisplay = computed(() => (data.value?.bank?.account_no ?? '').replace(/(\d{4})(?=\d)/g, '$1 '));
+
+async function share() {
+    const url = location.href;
+    const text = `${data.value.name}: chuyển khoản theo mã QR trên trang này nhé.`;
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: data.value.name, text, url });
+            return;
+        } catch {
+            // Người dùng đóng bảng chia sẻ: không làm gì.
+            return;
+        }
+    }
+    copyText(url, 'Đã chép link trang đóng quỹ.');
+}
+</script>
+
+<template>
+    <div class="mx-auto min-h-dvh max-w-xl pb-10">
+        <header class="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b border-border bg-background/90 px-2 backdrop-blur">
+            <RouterLink :to="`/${code}`" class="icon-btn" aria-label="Về trang nhóm"><ChevronLeft class="size-5" /></RouterLink>
+            <p class="min-w-0 flex-1 truncate font-semibold">{{ group?.name ?? code }}</p>
+            <button v-if="data" type="button" class="icon-btn" aria-label="Chia sẻ" @click="share"><Share2 class="size-5" /></button>
+        </header>
+
+        <div v-if="error === 403" class="card m-4 p-6 text-center">
+            <Lock class="mx-auto size-8 text-muted-foreground" />
+            <p class="mt-3 font-semibold">Nhóm riêng tư</p>
+            <RouterLink :to="`/dang-nhap?next=${route.fullPath}`" class="btn-primary mt-4 w-full">Đăng nhập</RouterLink>
+        </div>
+        <div v-else-if="error" class="card m-4 p-6 text-center">
+            <p class="font-semibold">Không tìm thấy chiến dịch</p>
+            <RouterLink :to="`/${code}`" class="btn-outline mt-4">Về trang nhóm</RouterLink>
+        </div>
+
+        <div v-else-if="data" class="space-y-3 p-4">
+            <section>
+                <h1 class="text-xl font-semibold">{{ data.name }}</h1>
+                <p class="text-sm text-muted-foreground">
+                    {{ data.amount_per_member ? `${formatMoney(data.amount_per_member)} / người` : 'Đóng tùy tâm' }}<template v-if="data.ends_on"> · hạn {{ formatDate(data.ends_on) }}</template>
+                    <template v-if="data.status === 'closed'"> · <span class="font-medium text-expense">Đã kết thúc</span></template>
+                </p>
+                <p v-if="data.description" class="mt-2 whitespace-pre-line text-sm">{{ data.description }}</p>
+                <div class="mt-3 h-2.5 rounded-full bg-muted" role="progressbar" :aria-valuenow="Math.round(percent)" aria-valuemax="100"><div class="h-2.5 rounded-full bg-primary" :style="{ width: `${percent}%` }"></div></div>
+                <p class="mt-1 text-sm">
+                    <template v-if="data.members_total"><b>{{ data.members_paid }}/{{ data.members_total }}</b> người · </template>
+                    {{ formatMoney(data.collected) }}<template v-if="data.target_amount || data.expected_total"> / {{ formatMoney(data.target_amount || data.expected_total) }}</template>
+                </p>
+            </section>
+
+            <!-- QR chuyển khoản -->
+            <section v-if="data.bank" class="card p-4 text-center">
+                <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
+                <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
+                <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
+                <div class="mt-3 space-y-2 text-left text-sm">
+                    <div v-if="data.amount_per_member" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                        <span>Số tiền: <b>{{ formatMoney(data.amount_per_member) }}</b></span>
+                        <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(String(data.amount_per_member), 'Đã chép số tiền.')"><Copy class="size-4" /> Chép</button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                        <span>Nội dung: <b class="font-mono">{{ data.transfer_code }}</b> <i class="text-muted-foreground">+ tên bạn</i></span>
+                        <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(`${data.transfer_code} `, 'Đã chép mã, dán vào nội dung rồi gõ thêm tên bạn.')"><Copy class="size-4" /> Chép</button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                        <span>Số tài khoản: <b>{{ data.bank.account_no }}</b></span>
+                        <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(data.bank.account_no, 'Đã chép số tài khoản.')"><Copy class="size-4" /> Chép</button>
+                    </div>
+                </div>
+                <a :href="data.bank.qr_download" class="btn-outline mt-3 w-full"><Download class="size-4" /> Tải ảnh QR</a>
+                <p class="mt-2 text-xs text-muted-foreground">Đang xem trên điện thoại? Tải ảnh QR rồi mở app ngân hàng, chọn quét ảnh từ thư viện.</p>
+            </section>
+            <p v-else-if="data.status === 'open'" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
+
+            <!-- Đã đóng / chưa đóng -->
+            <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center text-sm font-semibold" role="tablist">
+                <button type="button" role="tab" :aria-selected="tab === 'paid'" class="min-h-10 rounded-lg" :class="tab === 'paid' ? 'bg-card shadow' : 'text-muted-foreground'" @click="tab = 'paid'">Đã đóng ({{ paid.length }})</button>
+                <button type="button" role="tab" :aria-selected="tab === 'unpaid'" class="min-h-10 rounded-lg" :class="tab === 'unpaid' ? 'bg-card shadow' : 'text-muted-foreground'" @click="tab = 'unpaid'">Chưa đóng ({{ unpaid.length }})</button>
+            </div>
+            <ul class="card divide-y divide-border text-sm">
+                <li v-for="(p, i) in tab === 'paid' ? paid : unpaid" :key="i" class="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <span class="flex min-w-0 items-center gap-2">
+                        <CheckCircle2 v-if="p.status === 'paid'" class="size-4 shrink-0 text-income" aria-label="Đã đủ" />
+                        <CircleDot v-else-if="p.status === 'partial'" class="size-4 shrink-0 text-amber-600" aria-label="Đóng thiếu" />
+                        <CircleDashed v-else class="size-4 shrink-0 text-muted-foreground" aria-label="Chưa đóng" />
+                        <span class="truncate">{{ p.name }}</span>
+                    </span>
+                    <span v-if="p.status === 'partial'" class="shrink-0 tabular-nums text-amber-700">{{ formatMoney(p.paid).replace(' đ', '') }}/{{ formatMoney(p.expected) }}</span>
+                    <span v-else-if="p.last_paid_at" class="shrink-0 text-muted-foreground">{{ formatDate(p.last_paid_at).slice(0, 5) }}</span>
+                </li>
+                <li v-if="!(tab === 'paid' ? paid : unpaid).length" class="p-4 text-center text-muted-foreground">{{ tab === 'paid' ? 'Chưa có ai đóng.' : 'Mọi người đã đóng đủ. Cảm ơn cả nhóm!' }}</li>
+            </ul>
+            <p class="text-center text-xs text-muted-foreground">Khoản chuyển khoản được cập nhật sau khi thủ quỹ xác nhận.</p>
+
+            <button type="button" class="btn-outline w-full" @click="share"><Share2 class="size-4" /> Chia sẻ trang này</button>
+        </div>
+    </div>
+</template>

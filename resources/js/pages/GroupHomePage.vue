@@ -177,7 +177,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         <template v-if="c.members_total">{{ c.members_paid }}/{{ c.members_total }} người · </template>
                         Đã thu {{ formatMoney(c.collected) }}<template v-if="c.members_total && c.amount_per_member"> / {{ formatMoney(c.members_total * c.amount_per_member) }}</template>
                     </p>
-                    <!-- Trang đóng quỹ có QR làm ở M4 (plan/05). -->
+                    <RouterLink :to="`/${code}/chien-dich/${c.slug}`" class="btn-primary mt-3 w-full">Đóng quỹ ngay</RouterLink>
                 </section>
 
                 <!-- Bộ lọc -->
@@ -192,7 +192,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 <!-- Timeline -->
                 <template v-for="item in feed" :key="item.key">
                     <p v-if="item.divider" class="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ item.divider }}</p>
-                    <CampaignDayCard v-else-if="item.post.kind === 'campaign_day'" :post="item.post" />
+                    <CampaignDayCard v-else-if="item.post.kind === 'campaign_day'" :post="item.post" :code="code" />
                     <PostCard v-else :post="item.post" :code="code" :viewer="viewer" @comments="commenting = $event" @login="login" />
                 </template>
 
