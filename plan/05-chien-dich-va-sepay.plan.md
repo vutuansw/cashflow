@@ -28,7 +28,7 @@ Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 │ Số tiền: 500.000đ   [Chép]    │
 │ Nội dung: QNA12N26 <Tên bạn>  │
 │                       [Chép]  │
-│ [Tải ảnh QR]                  │
+│ [Tôi đã chuyển khoản, gửi bill]│
 ├──────────────────────────────┤
 │ Đã đóng (30) │ Chưa đóng (12) │
 │ ✓ Trần Văn Minh   08/11       │
@@ -39,7 +39,7 @@ Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 - Ảnh QR lấy từ dịch vụ QR của SePay (VietQR), không cần khóa:
   `https://qr.sepay.vn/img?acc={STK}&bank={bank_code}&amount={số tiền}&des={transfer_code}`
   QR chung một nội dung là mã chiến dịch; trang hướng dẫn người đóng **thêm tên mình** vào sau mã. Số tiền điền sẵn khi chiến dịch có số tiền mỗi người.
-- Nút **Tải ảnh QR** để lưu về máy rồi mở app ngân hàng quét từ thư viện (đang xem trên chính điện thoại thì không quét được màn hình của mình).
+- ~~Nút Tải ảnh QR~~: bỏ (chốt 10/11/2026), thay bằng nút **Tôi đã chuyển khoản, gửi bill** cho người đã chuyển trước khi nhận link, xem mục 5.
 - Nhóm chưa khai báo ngân hàng → trang chiến dịch không hiện QR, chỉ hiện tiến độ.
 - Danh sách đã đóng/chưa đóng chỉ hiện **tên**; đóng thiếu hiện "đã đóng 300.000/500.000". Không bao giờ hiện SĐT.
 - Chiến dịch "Đóng" thì không hiện QR nữa, vẫn xem được kết quả.
@@ -110,7 +110,59 @@ Quản trị nhóm → **Chờ duyệt** (có số đỏ trên menu):
 
 Người đóng tiền **chỉ được tính là đã đóng sau khi QTV duyệt**.
 
-## 5. Kiểm thử
+## 5. Thành viên tự gửi bill (chốt 10/11/2026)
+
+Người đã chuyển khoản (trước hoặc sau khi nhận link) tự báo bằng ảnh bill, thay cho tính năng tải ảnh QR.
+
+**Trên trang đóng quỹ** (chiến dịch đang mở; ai xem được trang là gửi được, không cần đăng nhập):
+1. Nút **Tôi đã chuyển khoản, gửi bill** dưới khối QR; giữ nguyên QR và các nút Chép.
+2. Bảng gửi: chọn **tên mình** trong danh sách chưa đóng/đóng thiếu (tìm không dấu), hoặc "Không thấy tên tôi" → gõ họ tên; **chọn ảnh bill** (bắt buộc, thu nhỏ trên máy trước khi tải); số tiền đã chuyển (điền sẵn số tiền mỗi người, sửa được); ghi chú (không bắt buộc).
+3. Gửi xong báo "Đã gửi, thủ quỹ sẽ xác nhận". Trong danh sách, tên đó hiện nhãn **Chờ xác nhận**; **chưa tính là đã đóng** cho tới khi QTV duyệt (giống SePay).
+
+**Máy chủ:**
+- Bảng mới `payment_claims`: group_id, campaign_id, contact_id (null nếu gõ tên), payer_name, amount (người gửi khai), bill_scan_id (→ bill_scans: ảnh + kết quả AI), note, status (pending, approved, ignored), ignore_reason, transaction_id (phiếu tạo ra), reviewed_by, reviewed_at, ip, timestamps.
+- Ảnh lưu như bill chứng từ (đĩa riêng, chỉ QTV xem). **AI đọc bill** (BillScanService) để QTV thấy sẵn số tiền, ngày giờ, nội dung CK, cảnh báo nếu ảnh không giống bill hoặc số tiền AI đọc khác số người gửi khai. Tính vào hạn mức AI của nhóm; hết hạn mức thì vẫn nhận bill, chỉ bỏ qua bước AI.
+- Chống spam: chỉ nhận ảnh ≤ 10 MB; 5 lần gửi/giờ/IP mỗi nhóm; ô honeypot; một người (contact) chỉ có 1 bill đang chờ mỗi chiến dịch (gửi lại thì thay ảnh cũ).
+- Email gộp cho QTV như giao dịch SePay ("có bill thành viên gửi chờ duyệt"), dùng chung cài đặt tắt/bật.
+
+**Hàng chờ duyệt** (mục 4) thêm tab **Bill thành viên**, mỗi dòng: ảnh bill (bấm phóng to), người gửi, chiến dịch, số tiền khai và số AI đọc, ngày giờ trên bill, ghi chú.
+- **Duyệt**: tạo phiếu thu gắn chiến dịch + người, số tiền và ngày giờ theo bill (AI đọc, không có thì số khai và giờ gửi), ảnh bill gắn vào phiếu làm chứng từ. Người đó chuyển sang Đã đóng.
+- **Sửa**: mở form phiếu điền sẵn rồi lưu. **Bỏ qua** kèm lý do (ảnh sai, trùng…), khôi phục được.
+- Chấm đỏ "Chờ duyệt" đếm cả bill thành viên.
+
+**Chống trùng** (một lần chuyển chỉ ra một phiếu). Áp dụng cho mọi đường vào quỹ: bill thành viên gửi, bill QTV đọc bằng AI (plan/04), giao dịch SePay. Các trường hợp phải bắt: người đã quét QR (SePay đã báo, chờ hoặc đã duyệt) lại gửi bill; gửi lại đúng ảnh cũ sau khi bill trước đã duyệt; QTV đã nhập tay hoặc đọc bill khoản đó rồi thành viên mới gửi.
+1. **Mã giao dịch ngân hàng** (dấu hiệu mạnh nhất): AI đọc mã tham chiếu trên bill (vd `FT26314829175`), SePay gửi `referenceCode`. Mã trên bill trùng mã của một giao dịch SePay, hoặc trùng mã của bill đã gắn vào phiếu trong nhóm → cùng một lần chuyển: **không cho tạo phiếu thứ hai**, nút Duyệt đổi thành **"Gắn bill vào phiếu đã có"** (ảnh thành chứng từ của phiếu đó, không cộng thêm tiền). Lưu mã đã chuẩn hóa (chữ hoa, bỏ ký tự lạ) để so.
+2. **Ảnh trùng**: lưu SHA-256 của file ảnh gốc ở `bill_scans.file_hash`. Gửi lại đúng ảnh đã có trong nhóm → báo ngay "Bill này đã được gửi trước đó", không tạo bản ghi mới.
+3. **Khớp mềm** khi không có mã: so với giao dịch SePay (đang chờ **và** đã duyệt) và phiếu đã có: cùng số tiền, nội dung có mã chiến dịch, giờ trên bill lệch không quá 30 phút. Khớp thì dòng bill hiện **"Có thể trùng với…"** kèm liên kết, mặc định chọn **Ghép** (một phiếu, gắn cả giao dịch SePay lẫn ảnh bill); muốn tạo phiếu riêng phải bấm xác nhận thêm.
+4. **Đã đóng đủ**: người đã đủ tiền trong chiến dịch mà gửi bill → trang đóng quỹ hỏi "Bạn đã được ghi nhận đóng đủ, vẫn gửi?"; trong hàng chờ có nhãn **Đã đóng đủ**.
+
+Chiều ngược lại: QTV duyệt một giao dịch SePay mà có bill thành viên đang chờ khớp (lớp 1 hoặc 3) → tự gắn bill vào phiếu vừa tạo và đóng bill đó lại.
+
+**Bỏ:** route `/api/g/{group}/campaigns/{slug}/qr.png` và nút Tải ảnh QR.
+
+## 5b. Mở app ngân hàng trên điện thoại (chốt 10/11/2026)
+
+Trên điện thoại không tự quét được mã QR đang hiện trên chính màn hình, nên nút chính là **mở thẳng app ngân hàng**, dùng deeplink VietQR:
+
+`https://dl.vietqr.io/pay?app={appId}&ba={số TK}@{mã ngân hàng}&am={số tiền}&tn={nội dung}`
+
+- Danh sách app lấy từ `https://api.vietqr.io/v2/android-app-deeplinks` và `.../ios-app-deeplinks` (tên, logo, `autofill`, mức phổ biến). Máy chủ lấy về, cache 1 ngày, trả cho trang theo hệ điều hành (đoán từ User-Agent). Ngày 10/11/2026: Android 35 app, iPhone 33 app.
+- Chỉ 5 app **tự điền sẵn** số tài khoản, số tiền, nội dung (`autofill = 1`): MB Bank, VietinBank iPay, BIDV SmartBanking, ACB ONE, OCB OMNI. Các app khác (Vietcombank, Techcombank, VPBank, TPBank, Agribank…) chỉ mở được app.
+
+Trang đóng quỹ trên điện thoại:
+1. Nút chính **Mở app ngân hàng để chuyển** → lưới biểu tượng app xếp theo mức phổ biến; app tự điền có nhãn **Tự điền sẵn**.
+2. Bấm app tự điền: mở app với đủ thông tin, nội dung là `{mã chiến dịch} ` để người đóng gõ thêm tên.
+3. Bấm app không tự điền: trước khi mở app, tự chép nội dung chuyển khoản vào bộ nhớ và nhắc "Đã chép nội dung, dán vào ô nội dung chuyển khoản". Nút Chép số TK, số tiền vẫn ở trên trang.
+4. Nhớ app đã chọn lần trước (lưu trên máy người dùng) và đưa lên đầu.
+5. QR thu nhỏ, nằm dưới nút chính (cho trường hợp nhờ người khác quét hộ). Trên máy tính giữ QR to như hiện nay, không hiện lưới app.
+6. VietQR lỗi hoặc không lấy được danh sách → ẩn lưới app, các nút Chép vẫn dùng được.
+
+Cần kiểm trên điện thoại thật khi deploy (M6): cách ghi mã ngân hàng trong `ba`, từng app tự điền có điền đúng nội dung và số tiền không.
+
+## 6. Kiểm thử
 
 - Feature test webhook: sai API key, nhóm bị khóa, gửi trùng `id`, nhận ra mã chiến dịch có dấu cách/chữ thường (`qna12 n26`), gợi ý người đóng có dấu/không dấu, tiền ra.
+- Thành viên gửi bill: khách gửi được ở nhóm public, nhóm private thì bị chặn; giới hạn lần gửi; chưa duyệt thì chưa tính đã đóng; duyệt ra phiếu có bill; nhóm khác không thấy bill của nhóm này.
+- Chống trùng: trùng mã giao dịch với SePay (chờ hoặc đã duyệt) không tạo phiếu thứ hai; gửi lại cùng ảnh bị chặn; khớp mềm mặc định ghép; duyệt SePay tự đóng bill chờ khớp.
+- Deeplink: tạo link đúng tham số theo app; danh sách app cache, VietQR lỗi thì trang vẫn chạy.
 - Lệnh `php artisan cashflow:sepay-simulate {ma-nhom} {so-tien} "{noi-dung}"` gửi webhook giả vào máy local để thử luồng mà không cần SePay.
