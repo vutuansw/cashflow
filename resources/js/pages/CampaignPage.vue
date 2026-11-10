@@ -1,8 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, CircleDashed, CircleDot, Copy, Download, Lock, Share2 } from 'lucide-vue-next';
+import { CheckCircle2, CircleDashed, CircleDot, Clock, Copy, Landmark, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
 import BackButton from '../components/BackButton.vue';
+import BankAppSheet from '../components/BankAppSheet.vue';
+import ClaimSheet from '../components/ClaimSheet.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
@@ -10,23 +12,39 @@ import { formatDate } from '../lib/time.js';
 import { BANKS } from '../lib/banks.js';
 
 // Trang đóng quỹ /{ma-nhom}/chien-dich/{slug}: tiến độ, QR, ai đã đóng/chưa đóng (chỉ tên). Xem plan/05 mục 1 và wireframe M2 màn 4.
+// Điện thoại: mở thẳng app ngân hàng (mục 5b). Đã chuyển rồi thì gửi bill cho thủ quỹ (mục 5).
 const route = useRoute();
 const code = computed(() => route.params.group);
 const data = ref(null);
 const group = ref(null);
 const error = ref(null);
 const tab = ref('paid');
+const claiming = ref(false);
+const choosingApp = ref(false);
+const apps = ref([]);
+// Trên điện thoại không tự quét được mã QR đang hiện trên chính màn hình.
+const isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+async function load() {
+    data.value = await api(`/g/${code.value}/campaigns/${route.params.slug}`);
+}
 
 onMounted(async () => {
     group.value = await api(`/g/${code.value}`).catch(() => null);
     try {
-        data.value = await api(`/g/${code.value}/campaigns/${route.params.slug}`);
+        await load();
         document.title = `${data.value.name} · ${group.value?.name ?? 'Quỹ nhóm'}`;
     } catch (e) {
         error.value = e instanceof ApiError ? e.status : 500;
+        return;
+    }
+    // VietQR lỗi thì không có lưới app, trang vẫn dùng QR và các nút Chép.
+    if (isPhone && data.value.bank) {
+        apps.value = (await api(`/g/${code.value}/campaigns/${route.params.slug}/bank-apps`).catch(() => null))?.apps ?? [];
     }
 });
 
+const useApps = computed(() => isPhone && apps.value.length > 0);
 const paid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'paid' || p.status === 'partial'));
 const unpaid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'unpaid'));
 const percent = computed(() => {
@@ -41,7 +59,7 @@ const accountDisplay = computed(() => (data.value?.bank?.account_no ?? '').repla
 
 async function share() {
     const url = location.href;
-    const text = `${data.value.name}: chuyển khoản theo mã QR trên trang này nhé.`;
+    const text = `${data.value.name}: chuyển khoản theo hướng dẫn trên trang này nhé. Chuyển rồi thì gửi bill ngay trên trang.`;
     if (navigator.share) {
         try {
             await navigator.share({ title: data.value.name, text, url });
@@ -88,11 +106,18 @@ async function share() {
                 </p>
             </section>
 
-            <!-- QR chuyển khoản -->
+            <!-- Chuyển khoản: điện thoại mở app ngân hàng, máy tính quét QR -->
             <section v-if="data.bank" class="card p-4 text-center">
-                <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
-                <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
-                <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
+                <template v-if="useApps">
+                    <button type="button" class="btn-primary w-full" @click="choosingApp = true"><Landmark class="size-5" /> Mở app ngân hàng để chuyển</button>
+                    <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
+                    <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
+                </template>
+                <template v-else>
+                    <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
+                    <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
+                    <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
+                </template>
                 <div class="mt-3 space-y-2 text-left text-sm">
                     <div v-if="data.amount_per_member" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
                         <span>Số tiền: <b>{{ formatMoney(data.amount_per_member) }}</b></span>
@@ -107,10 +132,18 @@ async function share() {
                         <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(data.bank.account_no, 'Đã chép số tài khoản.')"><Copy class="size-4" /> Chép</button>
                     </div>
                 </div>
-                <a :href="data.bank.qr_download" class="btn-outline mt-3 w-full"><Download class="size-4" /> Tải ảnh QR</a>
-                <p class="mt-2 text-xs text-muted-foreground">Đang xem trên điện thoại? Tải ảnh QR rồi mở app ngân hàng, chọn quét ảnh từ thư viện.</p>
+                <div v-if="useApps" class="mt-3 flex items-center gap-3 rounded-xl border border-border p-2 text-left">
+                    <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="aspect-square w-24 shrink-0 rounded-lg bg-white object-contain" />
+                    <p class="text-xs text-muted-foreground">Mã QR cho người khác quét hộ, hoặc khi bạn mở trang này trên máy tính.</p>
+                </div>
             </section>
             <p v-else-if="data.status === 'open'" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
+
+            <!-- Đã chuyển rồi: gửi bill cho thủ quỹ -->
+            <button v-if="data.status === 'open'" type="button" class="card flex w-full items-center gap-3 p-3 text-left hover:bg-muted" @click="claiming = true">
+                <ReceiptText class="size-6 shrink-0 text-primary" />
+                <span class="min-w-0 flex-1 text-sm"><span class="block font-semibold">Tôi đã chuyển khoản, gửi bill</span><span class="text-muted-foreground">Gửi ảnh bill để thủ quỹ ghi nhận cho bạn</span></span>
+            </button>
 
             <!-- Đã đóng / chưa đóng -->
             <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center text-sm font-semibold" role="tablist">
@@ -125,7 +158,8 @@ async function share() {
                         <CircleDashed v-else class="size-4 shrink-0 text-muted-foreground" aria-label="Chưa đóng" />
                         <span class="truncate">{{ p.name }}</span>
                     </span>
-                    <span v-if="p.status === 'partial'" class="shrink-0 tabular-nums text-amber-700">{{ formatMoney(p.paid).replace(' đ', '') }}/{{ formatMoney(p.expected) }}</span>
+                    <span v-if="p.pending_claim" class="chip shrink-0 !bg-amber-100 !text-amber-800"><Clock class="size-3" /> Chờ xác nhận</span>
+                    <span v-else-if="p.status === 'partial'" class="shrink-0 tabular-nums text-amber-700">{{ formatMoney(p.paid).replace(' đ', '') }}/{{ formatMoney(p.expected) }}</span>
                     <span v-else-if="p.last_paid_at" class="shrink-0 text-muted-foreground">{{ formatDate(p.last_paid_at).slice(0, 5) }}</span>
                 </li>
                 <li v-if="!(tab === 'paid' ? paid : unpaid).length" class="p-4 text-center text-muted-foreground">{{ tab === 'paid' ? 'Chưa có ai đóng.' : 'Mọi người đã đóng đủ. Cảm ơn cả nhóm!' }}</li>
@@ -133,6 +167,9 @@ async function share() {
             <p class="text-center text-xs text-muted-foreground">Khoản chuyển khoản được cập nhật sau khi thủ quỹ xác nhận.</p>
 
             <button type="button" class="btn-outline w-full" @click="share"><Share2 class="size-4" /> Chia sẻ trang này</button>
+
+            <ClaimSheet :open="claiming" :code="code" :campaign="data" @close="claiming = false" @sent="load" />
+            <BankAppSheet :open="choosingApp" :apps="apps" :content="`${data.transfer_code} `" @close="choosingApp = false" />
         </div>
     </div>
 </template>

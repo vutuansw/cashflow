@@ -133,10 +133,16 @@ Người đã chuyển khoản (trước hoặc sau khi nhận link) tự báo b
 **Chống trùng** (một lần chuyển chỉ ra một phiếu). Áp dụng cho mọi đường vào quỹ: bill thành viên gửi, bill QTV đọc bằng AI (plan/04), giao dịch SePay. Các trường hợp phải bắt: người đã quét QR (SePay đã báo, chờ hoặc đã duyệt) lại gửi bill; gửi lại đúng ảnh cũ sau khi bill trước đã duyệt; QTV đã nhập tay hoặc đọc bill khoản đó rồi thành viên mới gửi.
 1. **Mã giao dịch ngân hàng** (dấu hiệu mạnh nhất): AI đọc mã tham chiếu trên bill (vd `FT26314829175`), SePay gửi `referenceCode`. Mã trên bill trùng mã của một giao dịch SePay, hoặc trùng mã của bill đã gắn vào phiếu trong nhóm → cùng một lần chuyển: **không cho tạo phiếu thứ hai**, nút Duyệt đổi thành **"Gắn bill vào phiếu đã có"** (ảnh thành chứng từ của phiếu đó, không cộng thêm tiền). Lưu mã đã chuẩn hóa (chữ hoa, bỏ ký tự lạ) để so.
 2. **Ảnh trùng**: lưu SHA-256 của file ảnh gốc ở `bill_scans.file_hash`. Gửi lại đúng ảnh đã có trong nhóm → báo ngay "Bill này đã được gửi trước đó", không tạo bản ghi mới.
-3. **Khớp mềm** khi không có mã: so với giao dịch SePay (đang chờ **và** đã duyệt) và phiếu đã có: cùng số tiền, nội dung có mã chiến dịch, giờ trên bill lệch không quá 30 phút. Khớp thì dòng bill hiện **"Có thể trùng với…"** kèm liên kết, mặc định chọn **Ghép** (một phiếu, gắn cả giao dịch SePay lẫn ảnh bill); muốn tạo phiếu riêng phải bấm xác nhận thêm.
+3. **Khớp mềm** khi không có mã: so với giao dịch SePay (đang chờ **và** đã duyệt) và phiếu đã có: cùng số tiền, nội dung có mã chiến dịch, giờ trên bill lệch không quá 30 phút, và không phải hai người khác nhau (biết cả hai người mà khác nhau thì không tính, vì cả nhóm hay chuyển cùng lúc cùng số tiền). Khớp thì dòng bill hiện **"Có thể trùng với…"** kèm liên kết, mặc định chọn **Ghép** (một phiếu, gắn cả giao dịch SePay lẫn ảnh bill); muốn tạo phiếu riêng phải bấm xác nhận thêm.
 4. **Đã đóng đủ**: người đã đủ tiền trong chiến dịch mà gửi bill → trang đóng quỹ hỏi "Bạn đã được ghi nhận đóng đủ, vẫn gửi?"; trong hàng chờ có nhãn **Đã đóng đủ**.
 
-Chiều ngược lại: QTV duyệt một giao dịch SePay mà có bill thành viên đang chờ khớp (lớp 1 hoặc 3) → tự gắn bill vào phiếu vừa tạo và đóng bill đó lại.
+Chiều ngược lại: QTV duyệt một giao dịch SePay mà có bill thành viên đang chờ khớp (lớp 1 hoặc 3) → tự gắn bill vào phiếu vừa tạo và đóng bill đó lại Khớp mềm ở chiều này phải cùng người (vì gắn tự động); bill không đọc được giờ thì tính bill gửi trong vòng 3 ngày sau giao dịch.
+
+Ghi chú khi làm (10/11/2026):
+- AI đọc bill thành viên chạy ngay sau khi trả lời người gửi (không bắt họ chờ). Ảnh thu nhỏ trên máy nên lớp 2 chỉ bắt được khi gửi lại đúng file từ cùng trình duyệt; lớp 1 và 3 mới là chính.
+- Bill QTV tự đọc (plan/04) cũng qua lớp 1 và 2: trùng mã thì không lưu được phiếu, ảnh đã gắn vào phiếu hoặc đang chờ duyệt thì báo ngay.
+- Xóa phiếu đã gắn bill thành viên thì bill vẫn theo phiếu (khôi phục phiếu là có lại), không quay về hàng chờ.
+- Ảnh bill thành viên đang chờ hoặc đã bỏ qua không bị lệnh dọn bill mồ côi xóa.
 
 **Bỏ:** route `/api/g/{group}/campaigns/{slug}/qr.png` và nút Tải ảnh QR.
 

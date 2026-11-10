@@ -32,13 +32,45 @@ class BillScanService
     {
         $this->ensureQuota($group);
 
-        $scan = BillScan::forceCreate([
+        return $this->read($group, $this->store($group, $user, $file));
+    }
+
+    /** Lưu ảnh bill (đĩa riêng, chỉ QTV xem) kèm SHA-256 của file nhận được để bắt gửi lại ảnh cũ. */
+    public function store(Group $group, ?User $user, UploadedFile $file): BillScan
+    {
+        return BillScan::forceCreate([
             'group_id' => $group->id,
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
             'path' => $this->images->storeBill($group, $file),
+            'file_hash' => self::hash($file),
             'status' => 'processing',
         ]);
+    }
 
+    public static function hash(UploadedFile $file): string
+    {
+        return hash_file('sha256', $file->getRealPath());
+    }
+
+    /**
+     * Bill thành viên gửi (plan/05 mục 5): hết hạn mức AI thì vẫn giữ bill, chỉ
+     * bỏ qua bước đọc.
+     */
+    public function readIfQuota(Group $group, BillScan $scan): BillScan
+    {
+        $quota = self::quota($group);
+        if ($quota !== null && self::usedThisMonth($group) >= $quota) {
+            $scan->forceFill(['status' => 'failed', 'error' => 'Nhóm đã dùng hết lượt đọc bill tháng này.'])->save();
+
+            return $scan;
+        }
+
+        return $this->read($group, $scan);
+    }
+
+    /** Gọi AI đọc ảnh đã lưu (đọc lại bằng model dự phòng tối đa một lần), ghi kết quả, token, chi phí. */
+    public function read(Group $group, BillScan $scan): BillScan
+    {
         $usage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'cost' => 0.0];
         $model = (string) config('ai.vision.model');
         $fallbackUsed = false;

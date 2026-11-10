@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToGroup;
+use App\Support\BankReference;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,6 +18,15 @@ class SepayTransaction extends Model
         'amount', 'content', 'reference_code', 'raw', 'matched_campaign_id', 'suggested_contact_id',
         'status', 'ignore_reason', 'reviewed_by', 'reviewed_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (SepayTransaction $t) {
+            if ($t->isDirty('reference_code')) {
+                $t->reference_norm = BankReference::normalize($t->reference_code);
+            }
+        });
+    }
 
     protected function casts(): array
     {

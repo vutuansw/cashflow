@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Group\CampaignPageController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
 use App\Http\Controllers\GroupAdmin\MemberController;
 use App\Http\Controllers\GroupAdmin\OverviewController;
+use App\Http\Controllers\GroupAdmin\PaymentClaimController;
 use App\Http\Controllers\GroupAdmin\ReportController;
 use App\Http\Controllers\GroupAdmin\SepayQueueController;
 use App\Http\Controllers\GroupAdmin\SettingsController;
@@ -41,7 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/me/password', [PasswordController::class, 'update']);
 
     Route::middleware('password.fresh')->group(function () {
-        Route::put('/me', [PasswordController::class, 'profile']);
+        // Trang cá nhân, xem plan/08 mục 3-4.
+        Route::put('/me', [ProfileController::class, 'update']);
+        Route::post('/me/images', [ProfileController::class, 'uploadImage'])->middleware('throttle:10,1');
+        Route::delete('/me/images/{kind}', [ProfileController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
         Route::post('/groups', [GroupController::class, 'store'])->middleware('throttle:10,60');
     });
 });
@@ -57,7 +62,8 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
         Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
         Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
-        Route::get('/campaigns/{slug}/qr.png', [CampaignPageController::class, 'qr'])->where('slug', '[a-z0-9-]+');
+        Route::get('/campaigns/{slug}/bank-apps', [CampaignPageController::class, 'bankApps'])->where('slug', '[a-z0-9-]+');
+        Route::post('/campaigns/{slug}/claims', [CampaignPageController::class, 'claim'])->where('slug', '[a-z0-9-]+');
     });
 
     Route::middleware(['auth', 'password.fresh', 'group.role:member'])->group(function () {
@@ -98,6 +104,12 @@ Route::prefix('/g/{group}/admin')
         Route::post('/sepay/{sepay}/approve', [SepayQueueController::class, 'approve'])->whereNumber('sepay');
         Route::post('/sepay/{sepay}/ignore', [SepayQueueController::class, 'ignore'])->whereNumber('sepay');
         Route::post('/sepay/{sepay}/restore', [SepayQueueController::class, 'restore'])->whereNumber('sepay');
+
+        Route::get('/claims', [PaymentClaimController::class, 'index']);
+        Route::get('/claims/{claim}', [PaymentClaimController::class, 'show'])->whereNumber('claim');
+        Route::post('/claims/{claim}/approve', [PaymentClaimController::class, 'approve'])->whereNumber('claim');
+        Route::post('/claims/{claim}/ignore', [PaymentClaimController::class, 'ignore'])->whereNumber('claim');
+        Route::post('/claims/{claim}/restore', [PaymentClaimController::class, 'restore'])->whereNumber('claim');
 
         Route::post('/bill-scans', [BillScanController::class, 'store']);
         Route::get('/bill-scans/{scan}', [BillScanController::class, 'show'])->whereNumber('scan');

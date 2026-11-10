@@ -6,9 +6,12 @@ use App\Models\BillScan;
 use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Contact;
+use App\Models\PaymentClaim;
 use App\Models\SepayTransaction;
 use App\Models\Transaction;
 use App\Models\TransactionPhoto;
+use App\Services\Payments\DuplicateFinder;
+use App\Services\Payments\PaymentClaimService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -32,7 +35,7 @@ class TransactionRequest extends FormRequest
             // Ô tiền gửi lên có thể còn dấu chấm hàng nghìn: "1.500.000".
             $merge['amount'] = preg_replace('/\D/', '', $this->input('amount'));
         }
-        foreach (['campaign_id', 'contact_id', 'bill_scan_id', 'sepay_transaction_id'] as $key) {
+        foreach (['campaign_id', 'contact_id', 'bill_scan_id', 'sepay_transaction_id', 'payment_claim_id'] as $key) {
             if ($this->input($key) === '' || $this->input($key) === 'null') {
                 $merge[$key] = null;
             }
@@ -66,6 +69,7 @@ class TransactionRequest extends FormRequest
             'bill' => ['nullable', 'file', "mimes:{$mimes}", "max:{$maxKb}"],
             'bill_scan_id' => ['nullable', 'integer'],
             'sepay_transaction_id' => ['nullable', 'integer'],
+            'payment_claim_id' => ['nullable', 'integer'],
             'remove_bill_ids' => ['nullable', 'array'],
             'remove_bill_ids.*' => ['integer'],
         ];
@@ -115,6 +119,27 @@ class TransactionRequest extends FormRequest
                     $validator->errors()->add('sepay_transaction_id', 'Giao dịch SePay này không còn chờ duyệt.');
                 } elseif (($sepay->transfer_type === 'in') !== ($this->input('type') === 'income')) {
                     $validator->errors()->add('type', $sepay->transfer_type === 'in' ? 'Tiền vào tài khoản thì phải là phiếu thu.' : 'Tiền ra khỏi tài khoản thì phải là phiếu chi.');
+                }
+            }
+
+            // Duyệt bill thành viên gửi qua form (plan/05 mục 5): chỉ khi tạo phiếu thu mới.
+            $claim = null;
+            if ($this->filled('payment_claim_id')) {
+                $claim = PaymentClaim::find($this->integer('payment_claim_id'));
+                if ($current !== null || $claim === null || $claim->status !== 'pending') {
+                    $validator->errors()->add('payment_claim_id', 'Bill này không còn chờ duyệt.');
+                    $claim = null;
+                } elseif ($this->input('type') !== 'income') {
+                    $validator->errors()->add('type', 'Bill thành viên gửi thì phải là phiếu thu.');
+                }
+            }
+
+            // Chống trùng lớp 1: bill trùng mã giao dịch với lần chuyển đã có thì không ra phiếu thứ hai.
+            $scan = $claim?->scan ?? ($this->filled('bill_scan_id') ? BillScan::find($this->integer('bill_scan_id')) : null);
+            if ($scan !== null && $current === null) {
+                $match = app(DuplicateFinder::class)->forScan($scan, $this->filled('sepay_transaction_id') ? $this->integer('sepay_transaction_id') : null);
+                if ($match !== null) {
+                    $validator->errors()->add($claim ? 'payment_claim_id' : 'bill_scan_id', 'Bill này trùng mã giao dịch với '.PaymentClaimService::matchLabel($match).'. Không tạo phiếu thứ hai cho cùng một lần chuyển.');
                 }
             }
 

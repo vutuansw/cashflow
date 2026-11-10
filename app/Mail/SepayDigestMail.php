@@ -13,11 +13,19 @@ class SepayDigestMail extends Mailable
 {
     use Queueable;
 
-    public function __construct(public Group $group, public Collection $items) {}
+    public function __construct(public Group $group, public Collection $items, public ?Collection $claims = null)
+    {
+        $this->claims ??= collect();
+    }
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "[{$this->group->name}] {$this->items->count()} giao dịch mới chờ duyệt");
+        $parts = array_filter([
+            $this->items->count() ? "{$this->items->count()} giao dịch" : null,
+            $this->claims->count() ? "{$this->claims->count()} bill thành viên" : null,
+        ]);
+
+        return new Envelope(subject: "[{$this->group->name}] ".implode(', ', $parts).' mới chờ duyệt');
     }
 
     public function content(): Content

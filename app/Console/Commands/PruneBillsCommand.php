@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\BillScan;
+use App\Models\PaymentClaim;
 use App\Services\Media\ImageStore;
 use Illuminate\Console\Command;
 
@@ -22,6 +23,8 @@ class PruneBillsCommand extends Command
         BillScan::acrossGroups()
             ->whereNull('transaction_id')
             ->whereNotNull('path')
+            // Bill thành viên gửi còn trong hàng chờ (hoặc đã bỏ qua, khôi phục được) thì giữ.
+            ->whereNotIn('id', PaymentClaim::acrossGroups()->whereIn('status', ['pending', 'ignored'])->whereNotNull('bill_scan_id')->select('bill_scan_id'))
             ->where('created_at', '<', now()->subDays((int) $this->option('days')))
             ->chunkById(200, function ($scans) use ($images, &$count) {
                 foreach ($scans as $scan) {

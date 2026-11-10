@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToGroup;
+use App\Support\BankReference;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,16 @@ class BillScan extends Model
         'user_id', 'transaction_id', 'path', 'status', 'model', 'fallback_used', 'result', 'draft',
         'prompt_tokens', 'completion_tokens', 'cost_usd', 'error',
     ];
+
+    protected static function booted(): void
+    {
+        // Mã giao dịch AI đọc được, chuẩn hóa để so trùng với SePay và bill khác (plan/05 mục 5).
+        static::saving(function (BillScan $scan) {
+            if ($scan->isDirty('result')) {
+                $scan->reference_norm = BankReference::normalize($scan->result['reference_code'] ?? null);
+            }
+        });
+    }
 
     protected function casts(): array
     {

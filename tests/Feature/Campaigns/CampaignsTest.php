@@ -9,7 +9,6 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Services\Campaigns\CampaignService;
 use App\Support\CurrentGroup;
-use Illuminate\Support\Facades\Http;
 use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
 use Tests\TestCase;
@@ -99,10 +98,8 @@ class CampaignsTest extends TestCase
             ->json();
         $this->assertStringContainsString('qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&des='.$campaign->transfer_code, $r['bank']['qr_url']);
         $this->assertArrayNotHasKey('phone', $r['people'][0]);
-        $this->assertArrayNotHasKey('contact_id', $r['people'][0]);
-
-        Http::fake(['qr.sepay.vn/*' => Http::response('PNGDATA', 200, ['Content-Type' => 'image/png'])]);
-        $this->get($r['bank']['qr_download'])->assertOk()->assertHeader('Content-Type', 'image/png')->assertDownload("qr-{$campaign->slug}.png");
+        $this->assertArrayNotHasKey('qr_download', $r['bank']);
+        $this->get("/api/g/{$group->code}/campaigns/{$campaign->slug}/qr.png")->assertNotFound();
 
         // Đóng chiến dịch: không hiện QR nữa.
         $campaign->update(['status' => 'closed']);

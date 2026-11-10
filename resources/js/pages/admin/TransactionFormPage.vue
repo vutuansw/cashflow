@@ -8,6 +8,7 @@ import FormField from '../../components/FormField.vue';
 import MoneyInput from '../../components/MoneyInput.vue';
 import PhotoViewer from '../../components/PhotoViewer.vue';
 import { adminApi } from '../../lib/api.js';
+import { formatMoney } from '../../lib/money.js';
 import { useForm, ignore } from '../../lib/form.js';
 import { previewUrl, shrinkImage } from '../../lib/image.js';
 import { formatDate, formatDateTime } from '../../lib/time.js';
@@ -92,7 +93,7 @@ watch(suggestedTitle, (v) => {
 // Phiếu thu nhập tay mặc định gắn chiến dịch đang mở mới nhất (danh sách đã xếp mới nhất trước).
 // Phiếu từ bill/SePay thì giữ đúng chiến dịch nhận ra được, không tự gán.
 const newestCampaignId = () => options.value.campaigns[0]?.id ?? null;
-const autoCampaign = () => !id.value && !scan.value && !sepay.value;
+const autoCampaign = () => !id.value && !scan.value && !sepay.value && !claim.value;
 
 watch(() => form.type, () => {
     if (!categories.value.some((c) => c.id === form.category_id)) form.category_id = categories.value[0]?.id ?? null;
@@ -110,6 +111,7 @@ watch(() => form.campaign_id, (v) => {
 // AI đọc bill: lượt đọc hiện tại, các ô AI điền (hiện nhãn "AI đọc" tới khi người dùng sửa), người có thể là.
 const scan = ref(null);
 const sepay = ref(null); // giao dịch SePay đang duyệt qua form (plan/05 mục 4)
+const claim = ref(null); // bill thành viên gửi đang duyệt qua form (plan/05 mục 5)
 const aiFields = ref([]);
 const candidates = ref([]);
 const isAi = (key) => aiFields.value.includes(key);
@@ -211,6 +213,15 @@ onMounted(async () => {
                 scan.value = null;
             }
         }
+        if (route.query.claim) {
+            const c = await adminApi(code.value, `/claims/${Number(route.query.claim)}`).catch(() => null);
+            if (c) {
+                claim.value = c;
+                await applyScan({ id: null, draft: c.draft, attached: c.status !== 'pending', message: '' });
+                scan.value = null;
+                if (c.bill_url) bills.value.push({ claim: true, url: c.bill_url, lg: c.bill_url });
+            }
+        }
         if (route.query.scan) {
             const s = await adminApi(code.value, `/bill-scans/${Number(route.query.scan)}`).catch(() => null);
             if (s) await applyScan(s);
@@ -266,6 +277,7 @@ function payload() {
     let n = 0;
     photos.value.forEach((p) => data.append('photo_order[]', p.id ? `p:${p.id}` : `n:${n++}`));
     if (sepay.value?.status === 'pending') data.append('sepay_transaction_id', sepay.value.id);
+    if (claim.value?.status === 'pending') data.append('payment_claim_id', claim.value.id);
     const scanned = bills.value.find((b) => b.scanId);
     if (scanned && !scan.value?.attached) data.append('bill_scan_id', scanned.scanId);
     const newBill = bills.value.find((b) => b.file);
@@ -280,7 +292,7 @@ async function save() {
     ).catch(ignore);
     if (!saved) return;
     toast(id.value ? 'Đã lưu thay đổi.' : `Đã lưu ${isIncome.value ? 'phiếu thu' : 'phiếu chi'}.`);
-    router.push(sepay.value ? `/${code.value}/quan-tri/cho-duyet` : `/${code.value}/quan-tri/phieu`);
+    router.push(sepay.value ? `/${code.value}/quan-tri/cho-duyet` : claim.value ? `/${code.value}/quan-tri/cho-duyet?loai=bill` : `/${code.value}/quan-tri/phieu`);
 }
 
 async function remove() {
@@ -298,8 +310,8 @@ async function restore() {
 const errorOf = (key) => state.errors[key] ?? Object.entries(state.errors).find(([k]) => k.startsWith(`${key}.`))?.[1];
 const actionLabel = { created: 'Tạo phiếu', updated: 'Sửa', deleted: 'Xóa', restored: 'Khôi phục' };
 const crumbs = computed(() => [
-    sepay.value
-        ? { label: 'Chờ duyệt', to: `/${code.value}/quan-tri/cho-duyet` }
+    sepay.value || claim.value
+        ? { label: 'Chờ duyệt', to: `/${code.value}/quan-tri/cho-duyet${claim.value ? '?loai=bill' : ''}` }
         : { label: 'Phiếu thu chi', to: `/${code.value}/quan-tri/phieu` },
 ]);
 const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' : 'Sửa phiếu chi') : isIncome.value ? 'Phiếu thu mới' : 'Phiếu chi mới'));
@@ -322,6 +334,14 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <p class="mt-1 text-muted-foreground">{{ sepay.status === 'pending' ? 'Kiểm tra các ô có nhãn "Tự điền" rồi bấm Lưu để duyệt.' : 'Giao dịch này đã được xử lý.' }}</p>
             </div>
 
+            <!-- Duyệt bill thành viên gửi qua form -->
+            <div v-if="claim" class="card p-3 text-sm">
+                <p class="font-medium">Bill {{ claim.name }} gửi · {{ formatDateTime(claim.submitted_at) }}</p>
+                <p v-if="claim.note" class="mt-1">“{{ claim.note }}”</p>
+                <p class="mt-1 text-muted-foreground">{{ claim.status === 'pending' ? `Người gửi khai ${formatMoney(claim.amount)}. Kiểm tra các ô rồi bấm Lưu để duyệt.` : 'Bill này đã được xử lý.' }}</p>
+                <p v-if="state.errors.payment_claim_id" class="mt-1 text-expense">{{ state.errors.payment_claim_id }}</p>
+            </div>
+
             <!-- Ảnh bill: AI đọc và điền sẵn (plan/04) -->
             <div v-if="scan" class="card flex items-center gap-3 p-3">
                 <button v-if="scan.bill_url" type="button" class="h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-muted" @click="viewing = { list: [{ lg: scan.bill_url }], start: 0 }"><img :src="scan.bill_url" alt="Ảnh bill" class="size-full object-cover" /></button>
@@ -330,7 +350,7 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                     <p class="text-muted-foreground">{{ scan.attached ? 'Bill này đã gắn vào một phiếu khác.' : scan.message }}</p>
                 </div>
             </div>
-            <label v-else-if="!id && !sepay" class="card flex cursor-pointer items-center gap-3 border-dashed p-3 hover:bg-muted">
+            <label v-else-if="!id && !sepay && !claim" class="card flex cursor-pointer items-center gap-3 border-dashed p-3 hover:bg-muted">
                 <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ScanText class="size-6" /></span>
                 <span class="text-sm"><span class="block font-medium">Có ảnh bill chuyển khoản?</span><span class="text-muted-foreground">Chọn ảnh, AI đọc và điền sẵn phiếu giúp bạn.</span></span>
                 <input type="file" accept="image/*" class="sr-only" @change="onBill" />
@@ -414,14 +434,14 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <div class="mt-2 flex flex-wrap gap-2">
                     <div v-for="(b, i) in bills" :key="b.id ?? b.url" class="relative h-24 w-16 overflow-hidden rounded-lg bg-muted">
                         <button type="button" class="size-full" @click="viewing = { list: bills, start: i }"><img :src="b.url" alt="Ảnh bill" class="size-full object-cover" /></button>
-                        <button type="button" class="absolute right-0.5 top-0.5 grid size-6 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh bill" @click="removeBill(i)"><X class="size-3.5" /></button>
+                        <button v-if="!b.claim" type="button" class="absolute right-0.5 top-0.5 grid size-6 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh bill" @click="removeBill(i)"><X class="size-3.5" /></button>
                     </div>
                     <label v-if="!bills.some((b) => b.file)" class="grid h-24 w-16 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-muted">
                         <Camera class="size-5" />
                         <input type="file" accept="image/*" class="sr-only" @change="addBill" />
                     </label>
                 </div>
-                <p v-if="state.errors.bill" class="mt-1 text-sm text-expense">{{ state.errors.bill }}</p>
+                <p v-if="state.errors.bill || state.errors.bill_scan_id" class="mt-1 text-sm text-expense">{{ state.errors.bill || state.errors.bill_scan_id }}</p>
             </div>
 
             <label class="flex min-h-11 items-center gap-3">

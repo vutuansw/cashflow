@@ -6,12 +6,14 @@ use App\Models\BillScan;
 use App\Models\Category;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\PaymentClaim;
 use App\Models\SepayTransaction;
 use App\Models\Transaction;
 use App\Models\TransactionHistory;
 use App\Models\TransactionPhoto;
 use App\Models\User;
 use App\Services\Media\ImageStore;
+use App\Services\Payments\DuplicateFinder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,6 +37,7 @@ class TransactionWriter
     public function __construct(
         private readonly ImageStore $images,
         private readonly GroupStats $stats,
+        private readonly DuplicateFinder $duplicates,
     ) {}
 
     /**
@@ -53,6 +56,14 @@ class TransactionWriter
                 if ($sepay !== null && ($sepay->status !== 'pending' || Transaction::withTrashed()->where('sepay_transaction_id', $sepay->id)->exists())) {
                     throw ValidationException::withMessages(['sepay_transaction_id' => 'Giao dịch SePay này đã được duyệt hoặc bỏ qua.']);
                 }
+                // Duyệt bill thành viên gửi (plan/05 mục 5): ảnh bill của yêu cầu thành chứng từ của phiếu.
+                $claim = empty($data['payment_claim_id']) ? null : PaymentClaim::lockForUpdate()->find($data['payment_claim_id']);
+                if ($claim !== null) {
+                    if ($claim->status !== 'pending') {
+                        throw ValidationException::withMessages(['payment_claim_id' => 'Bill này đã được duyệt hoặc bỏ qua.']);
+                    }
+                    $scan = $claim->scan ?? $scan;
+                }
 
                 $transaction = Transaction::forceCreate($this->attributes($data) + [
                     'group_id' => $group->id,
@@ -66,6 +77,17 @@ class TransactionWriter
                 $this->attachBill($transaction, $user, $scan, $billPath);
 
                 $sepay?->forceFill(['status' => 'approved', 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
+                $claim?->forceFill(['status' => 'approved', 'transaction_id' => $transaction->id, 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
+
+                // Chiều ngược lại: bill thành viên đang chờ cho đúng lần chuyển này thì gắn luôn vào phiếu.
+                if ($sepay !== null) {
+                    foreach ($this->duplicates->claimsFor($transaction, $sepay) as $other) {
+                        if ($other->id !== $claim?->id) {
+                            $other->scan?->update(['transaction_id' => $transaction->id]);
+                            $other->forceFill(['status' => 'approved', 'transaction_id' => $transaction->id, 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
+                        }
+                    }
+                }
 
                 $this->log($transaction, $user, 'created', ['after' => $this->snapshot($transaction)]);
 
@@ -161,6 +183,27 @@ class TransactionWriter
         // Chỉ xóa file cũ khi database đã ghi xong.
         $this->images->delete($deleteFiles);
         $this->stats->forget($transaction->group_id);
+
+        return $transaction;
+    }
+
+    /**
+     * Gắn bill thành viên vào phiếu đã có cho cùng lần chuyển (plan/05 mục 5):
+     * không cộng thêm tiền, chỉ thêm chứng từ và đóng yêu cầu lại.
+     */
+    public function attachClaim(Transaction $transaction, User $user, PaymentClaim $claim): Transaction
+    {
+        DB::connection('groups')->transaction(function () use ($transaction, $user, $claim) {
+            $claim = PaymentClaim::lockForUpdate()->findOrFail($claim->id);
+            if ($claim->status !== 'pending') {
+                throw ValidationException::withMessages(['payment_claim_id' => 'Bill này đã được duyệt hoặc bỏ qua.']);
+            }
+            $claim->scan?->update(['transaction_id' => $transaction->id]);
+            $claim->forceFill(['status' => 'approved', 'transaction_id' => $transaction->id, 'reviewed_by' => $user->id, 'reviewed_at' => now()])->save();
+            if ($claim->scan !== null) {
+                $this->log($transaction, $user, 'updated', ['media' => ['bills_added' => 1]]);
+            }
+        });
 
         return $transaction;
     }

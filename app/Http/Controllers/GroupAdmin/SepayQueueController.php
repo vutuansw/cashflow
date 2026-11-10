@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\PaymentClaim;
 use App\Models\SepayTransaction;
 use App\Models\Transaction;
 use App\Services\Sepay\SepayMatcher;
@@ -42,10 +43,13 @@ class SepayQueueController extends Controller
         ];
     }
 
-    /** Số giao dịch chờ duyệt cho chấm đỏ trên menu. */
+    /** Số giao dịch SePay + bill thành viên chờ duyệt cho chấm đỏ trên menu. */
     public function count()
     {
-        return ['pending' => SepayTransaction::query()->where('status', 'pending')->count()];
+        $sepay = SepayTransaction::query()->where('status', 'pending')->count();
+        $claims = PaymentClaim::query()->where('status', 'pending')->count();
+
+        return ['pending' => $sepay + $claims, 'sepay' => $sepay, 'claims' => $claims];
     }
 
     /** Bản nháp để mở form phiếu điền sẵn (như AI đọc bill). */
