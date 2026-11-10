@@ -20,10 +20,10 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasEncryptedPhone, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'phone', 'email', 'password', 'must_change_password', 'avatar_path', 'status'];
+    protected $fillable = ['name', 'phone', 'email', 'password', 'must_change_password', 'avatar_path', 'cover_path', 'bio', 'status'];
 
     /** Giá trị mặc định giống migration, để model vừa tạo đọc được ngay (strict mode). */
-    protected $attributes = ['must_change_password' => false, 'status' => 'active'];
+    protected $attributes = ['must_change_password' => false, 'status' => 'active', 'avatar_path' => null, 'cover_path' => null, 'bio' => null];
 
     protected $hidden = ['password', 'remember_token', 'phone', 'phone_hash'];
 

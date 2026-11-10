@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
-/** Đổi mật khẩu, quên mật khẩu qua email, đặt lại mật khẩu. Xem plan/02 mục 1. */
+/** Đổi mật khẩu, quên mật khẩu qua email, đặt lại mật khẩu. Xem plan/02 mục 1. Sửa thông tin cá nhân ở ProfileController. */
 class PasswordController extends Controller
 {
     public function update(Request $request)
@@ -73,18 +73,5 @@ class PasswordController extends Controller
         }
 
         return response()->json(['message' => __($status)]);
-    }
-
-    public function profile(Request $request)
-    {
-        $user = $request->user();
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['nullable', 'email', 'max:190', 'unique:users,email,'.$user->id],
-        ]);
-
-        $user->update($data);
-
-        return new MeResource($user);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services\Media;
 
 use App\Models\Group;
+use App\Models\User;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -68,14 +69,20 @@ class ImageStore
     /** Ảnh đại diện (vuông) hoặc ảnh bìa (tỉ lệ 3:1) của nhóm. */
     public function storeGroupImage(Group $group, UploadedFile $file, string $kind): string
     {
-        $image = $this->read($file);
-
-        $image = $kind === 'avatar'
-            ? $image->cover(config('cashflow.images.avatar'), config('cashflow.images.avatar'))
-            : $image->cover(config('cashflow.images.cover'), (int) round(config('cashflow.images.cover') / 3));
-
         $path = $this->basePath($group, 'brand', $kind).'.webp';
-        $this->put($path, $image);
+        $this->put($path, $this->cropForKind($this->read($file), $kind));
+
+        return $path;
+    }
+
+    /**
+     * Ảnh đại diện hoặc ảnh bìa trang cá nhân. Tài khoản dùng chung nhiều nhóm
+     * nên lưu trong users/{id}, không nằm trong thư mục nhóm. Xem plan/08 mục 4.
+     */
+    public function storeProfileImage(User $user, UploadedFile $file, string $kind): string
+    {
+        $path = "users/{$user->id}/profile/".now()->format('Y/m')."/{$kind}-".Str::lower(Str::random(24)).'.webp';
+        $this->put($path, $this->cropForKind($this->read($file), $kind));
 
         return $path;
     }
@@ -98,6 +105,17 @@ class ImageStore
                 'photos' => 'Không đọc được ảnh "'.$file->getClientOriginalName().'". Hãy chọn ảnh JPG, PNG hoặc WebP.',
             ]);
         }
+    }
+
+    /** Ảnh đại diện cắt vuông ở giữa; ảnh bìa cắt tỉ lệ 3:1 ở giữa. */
+    private function cropForKind(ImageInterface $image, string $kind): ImageInterface
+    {
+        $avatar = config('cashflow.images.avatar');
+        $cover = config('cashflow.images.cover');
+
+        return $kind === 'avatar'
+            ? $image->cover($avatar, $avatar)
+            : $image->cover($cover, (int) round($cover / 3));
     }
 
     private function put(string $path, ImageInterface $image): void

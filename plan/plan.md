@@ -15,6 +15,7 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [05-chien-dich-va-sepay](05-chien-dich-va-sepay.plan.md) | Chiến dịch thu, mã QR, webhook SePay, hàng chờ duyệt |
 | [06-giao-dien](06-giao-dien.plan.md) | Sơ đồ màn hình, mobile-first, PWA |
 | [07-lo-trinh-va-trien-khai](07-lo-trinh-va-trien-khai.plan.md) | Các mốc code, kiểm thử, deploy lên quynhom.hipotech.vn |
+| [08-trang-ca-nhan](08-trang-ca-nhan.plan.md) | Trang cá nhân kiểu Facebook: ảnh bìa, ảnh đại diện, sửa thông tin, timeline của từng người |
 
 ---
 

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Enums\GroupRole;
 use App\Models\User;
 use App\Services\GroupServiceStatus;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,6 +21,9 @@ class MeResource extends JsonResource
             'name' => $this->name,
             'phone' => $this->phone,
             'email' => $this->email,
+            'bio' => $this->bio,
+            'avatar_url' => MediaUrl::profile($this->resource, 'avatar'),
+            'cover_url' => MediaUrl::profile($this->resource, 'cover'),
             'must_change_password' => $this->must_change_password,
             'groups' => $this->groups()->orderBy('name')->get()->map(fn ($group) => [
                 'code' => $group->code,

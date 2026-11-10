@@ -7,6 +7,7 @@ use App\Models\BillScan;
 use App\Models\Group;
 use App\Models\Transaction;
 use App\Models\TransactionPhoto;
+use App\Models\User;
 use App\Services\Groups\GroupViewer;
 use App\Services\Media\ImageStore;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Phục vụ ảnh từ đĩa riêng tư sau khi kiểm quyền, xem plan/03 mục 3:
  * - ảnh sự kiện: ai xem được timeline nhóm thì xem được (phiếu ẩn khỏi timeline hoặc đã xóa: chỉ QTV);
  * - ảnh bill chứng từ: chỉ QTV;
- * - ảnh đại diện, ảnh bìa: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện).
+ * - ảnh đại diện, ảnh bìa: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện);
+ * - ảnh đại diện, ảnh bìa trang cá nhân: công khai qua tên file ngẫu nhiên (plan/08 mục 4).
  */
 class MediaController extends Controller
 {
@@ -48,6 +50,15 @@ class MediaController extends Controller
     public function brand(Group $group, string $kind, string $name)
     {
         $path = $kind === 'avatar' ? $group->avatar_path : $group->cover_path;
+        abort_if($path === null || pathinfo($path, PATHINFO_FILENAME) !== $name, 404);
+
+        return $this->file($path, true);
+    }
+
+    /** Ảnh đại diện/bìa trang cá nhân: công khai, chỉ trả đúng file đang dùng. Xem plan/08 mục 4. */
+    public function profile(int $user, string $kind, string $name)
+    {
+        $path = User::query()->whereKey($user)->value($kind.'_path');
         abort_if($path === null || pathinfo($path, PATHINFO_FILENAME) !== $name, 404);
 
         return $this->file($path, true);

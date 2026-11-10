@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\BillScan;
 use App\Models\Group;
 use App\Models\TransactionPhoto;
+use App\Models\User;
 
 /**
  * Đường dẫn ảnh đi qua route /media có kiểm quyền (routes/web.php), không bao
@@ -28,5 +29,16 @@ class MediaUrl
         $path = $kind === 'avatar' ? $group->avatar_path : $group->cover_path;
 
         return $path === null ? null : "/media/{$group->code}/brand/{$kind}/".pathinfo($path, PATHINFO_FILENAME);
+    }
+
+    /**
+     * Ảnh đại diện/bìa trang cá nhân, công khai như ảnh nhóm. Mã nhóm dài ít
+     * nhất 3 ký tự nên tiền tố /media/u không trùng nhóm nào. Xem plan/08 mục 4.
+     */
+    public static function profile(User $user, string $kind): ?string
+    {
+        $path = $kind === 'avatar' ? $user->avatar_path : $user->cover_path;
+
+        return $path === null ? null : "/media/u/{$user->id}/{$kind}/".pathinfo($path, PATHINFO_FILENAME);
     }
 }
