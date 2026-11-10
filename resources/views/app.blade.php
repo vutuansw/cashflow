@@ -20,6 +20,11 @@
     @endif
     <meta name="theme-color" content="#15803d">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Quỹ nhóm">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-background font-sans text-foreground antialiased">

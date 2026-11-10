@@ -1,0 +1,17 @@
+{
+  "name": "Quỹ nhóm",
+  "short_name": "Quỹ nhóm",
+  "description": "Quản lý quỹ tiền thu chi của hội nhóm theo dòng thời gian.",
+  "lang": "vi",
+  "start_url": "/nhom?pwa=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f6",
+  "theme_color": "#15803d",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

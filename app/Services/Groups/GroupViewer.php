@@ -29,7 +29,8 @@ class GroupViewer
             return $cached;
         }
 
-        $user = $request->user();
+        // Luôn là tài khoản người dùng nhóm (guard web), không bao giờ là quản trị /system.
+        $user = $request->user('web');
         $member = $user === null ? null : GroupMember::query()
             ->where('group_id', $group->id)
             ->where('user_id', $user->id)

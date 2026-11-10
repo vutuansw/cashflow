@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 // Cron trên server: * * * * * php artisan schedule:run (plan/07 mục 4).
 Schedule::command('cashflow:prune-bills')->dailyAt('03:10');
+Schedule::command('cashflow:purge')->dailyAt('03:30');

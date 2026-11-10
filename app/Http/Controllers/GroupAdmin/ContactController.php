@@ -14,6 +14,11 @@ use App\Support\VietnameseText;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /** Danh bạ thành viên và nhập nhanh hàng loạt, xem plan/02 mục 4. */
 class ContactController extends Controller
@@ -82,6 +87,58 @@ class ContactController extends Controller
         $data = $request->validate(['text' => ['required', 'string', 'max:200000']]);
 
         return ['rows' => $parser->parse($data['text'], $group->id)];
+    }
+
+    /**
+     * Nhập từ file Excel theo mẫu (plan/02 mục 4): đọc trang đầu tiên, đổi thành
+     * các dòng cách tab rồi dùng chung bộ đọc với ô dán, ra màn hình xem trước.
+     */
+    public function importFile(Request $request, Group $group, ContactImportParser $parser)
+    {
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120']], [], ['file' => 'file danh bạ']);
+
+        try {
+            $sheet = IOFactory::load($request->file('file')->getRealPath())->getSheet(0);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages(['file' => 'Không đọc được file. Hãy dùng file Excel (.xlsx) theo mẫu.']);
+        }
+
+        $lines = [];
+        foreach ($sheet->toArray(null, true, false, false) as $row) {
+            $cells = array_map(function ($v) {
+                if (is_float($v) && floor($v) === $v) {
+                    $v = (int) $v; // SĐT hoặc ngày dạng số sê-ri Excel
+                }
+
+                return str_replace(["\t", "\r", "\n"], ' ', trim((string) $v));
+            }, array_slice($row, 0, 4));
+            if (implode('', $cells) !== '') {
+                $lines[] = implode("\t", $cells);
+            }
+            if (count($lines) > ContactImportParser::MAX_ROWS + 1) {
+                break;
+            }
+        }
+
+        return ['rows' => $parser->parse(implode("\n", $lines), $group->id)];
+    }
+
+    /** File Excel mẫu: Họ tên, SĐT (định dạng chữ để giữ số 0), Ngày sinh, Địa chỉ. */
+    public function importTemplate()
+    {
+        $book = new Spreadsheet;
+        $sheet = $book->getActiveSheet()->setTitle('Danh bạ');
+        $sheet->fromArray([['Họ tên', 'SĐT', 'Ngày sinh', 'Địa chỉ'], ['Nguyễn Thị Lan', '0912345678', '12/03/1995', 'Hà Nội']], null, 'A1');
+        $sheet->getStyle('B:B')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet->getCell('B2')->setValueExplicit('0912345678', DataType::TYPE_STRING);
+        $sheet->getStyle('A1:D1')->getFont()->setBold(true);
+        foreach (['A' => 28, 'B' => 16, 'C' => 14, 'D' => 36] as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+
+        return response()->streamDownload(fn () => (new Xlsx($book))->save('php://output'), 'quynhom-mau-danh-ba.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function import(Request $request, Group $group, ContactImportParser $parser)

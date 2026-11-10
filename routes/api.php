@@ -12,6 +12,7 @@ use App\Http\Controllers\GroupAdmin\CategoryController;
 use App\Http\Controllers\GroupAdmin\ContactController;
 use App\Http\Controllers\GroupAdmin\MemberController;
 use App\Http\Controllers\GroupAdmin\OverviewController;
+use App\Http\Controllers\GroupAdmin\ReportController;
 use App\Http\Controllers\GroupAdmin\SepayQueueController;
 use App\Http\Controllers\GroupAdmin\SettingsController;
 use App\Http\Controllers\GroupAdmin\TransactionController;
@@ -119,6 +120,10 @@ Route::prefix('/g/{group}/admin')
         Route::post('/contacts', [ContactController::class, 'store']);
         Route::post('/contacts/import/preview', [ContactController::class, 'importPreview']);
         Route::post('/contacts/import', [ContactController::class, 'import']);
+        Route::post('/contacts/import/file', [ContactController::class, 'importFile']);
+        Route::get('/contacts/import/template', [ContactController::class, 'importTemplate']);
+
+        Route::get('/reports/{type}', [ReportController::class, 'show'])->whereIn('type', ['so-quy', 'theo-loai', 'theo-thang', 'campaign']);
         Route::put('/contacts/{contact}', [ContactController::class, 'update']);
         Route::delete('/contacts/{contact}', [ContactController::class, 'destroy']);
 

@@ -5,6 +5,7 @@ import { ArrowDownLeft, ArrowUpRight, Plus, ScanText, UserRound } from 'lucide-v
 import BrandMark from '../components/BrandMark.vue';
 import Sheet from '../components/Sheet.vue';
 import BillReadingOverlay from '../components/BillReadingOverlay.vue';
+import InstallHint from '../components/InstallHint.vue';
 import { readBill } from '../lib/billScan.js';
 import { toast } from '../lib/notice.js';
 import { pending, refreshPending } from '../lib/pending.js';
@@ -79,7 +80,7 @@ function active(item) {
                 </div>
                 <slot name="actions" />
             </header>
-            <main class="mx-auto max-w-4xl px-4 py-4 lg:px-8 lg:py-6"><slot /></main>
+            <main class="mx-auto max-w-4xl px-4 py-4 lg:px-8 lg:py-6"><InstallHint class="lg:hidden" /><slot /></main>
         </div>
 
         <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">

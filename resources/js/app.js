@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
+import './lib/install.js';
 import { canManage, homePath, loadMe, session } from './lib/session.js';
 
 // Bảng route của SPA, xem plan/plan.md mục 4 và plan/06 mục 3.
@@ -58,3 +59,8 @@ router.beforeEach(async (to) => {
 });
 
 createApp(App).use(router).mount('#app');
+
+// PWA: đăng ký service worker (chỉ cache file tĩnh, xem public/sw.js và plan/06 mục 4).
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

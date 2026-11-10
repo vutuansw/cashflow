@@ -13,5 +13,5 @@ Route::prefix('/media/{group}')->middleware('group')->group(function () {
 
 // Mọi đường dẫn giao diện do vue-router xử lý; chỉ trừ API và file tĩnh.
 Route::get('/{path?}', SpaController::class)
-    ->where('path', '^(?!api/|up$|build/|storage/|media/).*$')
+    ->where('path', '^(?!api/|up$|build/|storage/|media/|icons/|sw\.js$|manifest\.webmanifest$|offline\.html$).*$')
     ->name('spa');
