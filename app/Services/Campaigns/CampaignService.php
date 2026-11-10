@@ -112,21 +112,46 @@ class CampaignService
 
     /**
      * Mã nội dung chuyển khoản: chữ in hoa + số, 6-12 ký tự, duy nhất toàn hệ
-     * thống. Từ mã nhóm + năm, vd chi-doan-a12 năm 2026 thành QUYLOP2026.
+     * thống. Ghép trọn từng cụm của mã nhóm (tối đa 8 ký tự, không cắt giữa
+     * chữ) + 2 số cuối của năm, vd chi-doan-a12 năm 2026 thành CHIDOAN26.
      * Ngân hàng hay bỏ dấu cách, gạch, ký tự đặc biệt nên chỉ dùng chữ và số.
+     * Trùng mã đã có thì thêm một chữ cái B, C, D...; xem plan/05 mục 1.
      */
     public static function generateCode(Group $group, ?string $startsOn = null): string
     {
-        $prefix = substr(strtoupper((string) preg_replace('/[^a-z0-9]/i', '', Str::ascii($group->code))), 0, 6);
+        $parts = array_values(array_filter(array_map(
+            fn ($part) => strtoupper((string) preg_replace('/[^a-z0-9]/i', '', Str::ascii($part))),
+            explode('-', $group->code),
+        )));
+
+        $prefix = '';
+        foreach ($parts as $i => $part) {
+            if ($i === 0 && strlen($part) > 8) {
+                $prefix = substr($part, 0, 8);
+                break;
+            }
+            if (strlen($prefix.$part) > 8) {
+                break;
+            }
+            $prefix .= $part;
+        }
         $prefix = str_pad($prefix, 4, 'Q');
         $year = substr($startsOn ? substr($startsOn, 0, 4) : (string) now()->year, 2);
 
-        $code = $prefix.$year;
-        $attempt = 0;
-        while (Campaign::acrossGroups()->where('transfer_code', $code)->exists()) {
-            $code = $prefix.$year.strtoupper(Str::random(2 + intdiv($attempt++, 5)));
-            $code = (string) preg_replace('/[^A-Z0-9]/', '', $code);
+        // Trùng (vd chiến dịch thứ hai cùng năm) thì thêm một chữ cái: CHIDOAN26B, CHIDOAN26C...
+        $base = $prefix.$year;
+        $taken = Campaign::acrossGroups()->where('transfer_code', 'like', $base.'%')->pluck('transfer_code')->flip();
+        $code = $base;
+        foreach (['', ...range('B', 'Z')] as $letter) {
+            $code = $base.$letter;
+            if (! isset($taken[$code])) {
+                return $code;
+            }
         }
+        do {
+            $code = $base.strtoupper((string) preg_replace('/[^a-z]/i', '', Str::random(8)));
+            $code = substr($code, 0, min(12, strlen($base) + 2));
+        } while (Campaign::acrossGroups()->where('transfer_code', $code)->exists());
 
         return substr($code, 0, 12);
     }

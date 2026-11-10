@@ -38,7 +38,7 @@ class CampaignsTest extends TestCase
             'name' => 'Thu quỹ năm 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 500000, 'starts_on' => '2026-11-01',
         ])->assertCreated()
             ->assertJsonPath('slug', 'thu-quy-nam-2026')
-            ->assertJsonPath('transfer_code', 'QUYLOP2026')
+            ->assertJsonPath('transfer_code', 'CHIDOAN26')
             ->assertJsonPath('members_total', 3) // chủ nhóm + 2 người, không có người đã rời
             ->assertJsonPath('expected_total', 1500000)
             ->json();
@@ -57,7 +57,7 @@ class CampaignsTest extends TestCase
         // Mã trùng toàn hệ thống: nhóm khác cũng tên chi-doan-a12... không được dùng lại.
         $other = $this->makeGroup();
         $this->actingAs($this->ownerOf($other))->postJson($this->adminUrl($other, 'campaigns'), [
-            'name' => 'Quỹ', 'category_id' => $this->fund($other), 'transfer_code' => 'chidoa26',
+            'name' => 'Quỹ', 'category_id' => $this->fund($other), 'transfer_code' => 'chidoan26',
         ])->assertJsonValidationErrors('transfer_code');
 
         // Đã có giao dịch: không đổi mã, không xóa.
@@ -157,6 +157,13 @@ class CampaignsTest extends TestCase
 
         $code = CampaignService::generateCode($group);
         $this->assertMatchesRegularExpression('/^[A-Z0-9]{6,12}$/', $code);
+        $this->assertSame('ABQQ'.substr((string) now()->year, 2).'B', $code); // trùng thì thêm chữ cái
+
+        // Lấy trọn từng cụm, không cắt giữa chữ.
+        $yy = substr((string) now()->year, 2);
+        $this->assertSame("NHOMDEMO{$yy}", CampaignService::generateCode(new Group(['code' => 'nhomdemo'])));
+        $this->assertSame("HOICUU{$yy}", CampaignService::generateCode(new Group(['code' => 'hoi-cuu-sinh-vien'])));
+        $this->assertSame("DONGHUON{$yy}", CampaignService::generateCode(new Group(['code' => 'donghuongthaibinh'])));
         $this->assertNotSame('ABQQ'.substr((string) now()->year, 2), $code);
     }
 }
