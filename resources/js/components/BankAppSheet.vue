@@ -8,7 +8,7 @@ import { toast } from '../lib/notice.js';
 const props = defineProps({ open: Boolean, apps: Array, content: String });
 const emit = defineEmits(['close']);
 
-const KEY = 'quynhom:bank-app';
+const KEY = 'wepo:bank-app';
 const last = ref(read());
 
 function read() {
@@ -52,7 +52,8 @@ async function openApp(app) {
 
 <template>
     <Sheet :open="open" title="Chọn app ngân hàng" @close="emit('close')">
-        <p class="text-sm text-muted-foreground">App có nhãn <b class="text-income">Tự điền</b> điền sẵn số tài khoản, số tiền và nội dung. App khác: nội dung được chép sẵn, bạn dán vào ô nội dung rồi gõ thêm tên.</p>
+        <p v-if="content" class="text-sm text-muted-foreground">App có nhãn <b class="text-income">Tự điền</b> điền sẵn số tài khoản, số tiền và nội dung. App khác: nội dung được chép sẵn, bạn dán vào ô nội dung chuyển khoản.</p>
+        <p v-else class="text-sm text-muted-foreground">App có nhãn <b class="text-income">Tự điền</b> điền sẵn số tài khoản và số tiền. Ô nội dung cứ để mặc định có tên bạn, đừng xóa tên.</p>
         <ul class="mt-4 grid grid-cols-4 gap-x-2 gap-y-4">
             <li v-for="app in sorted" :key="app.id">
                 <a :href="app.url" class="flex flex-col items-center gap-1 text-center" @click.prevent="openApp(app)">

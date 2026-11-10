@@ -4,6 +4,7 @@ namespace Tests\Feature\Transactions;
 
 use App\Enums\GroupRole;
 use App\Models\Category;
+use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Transaction;
@@ -61,6 +62,7 @@ class MemberProfileTest extends TestCase
             ->assertJsonPath('member.bio', 'Thành viên chi đoàn')
             ->assertJsonPath('member.role_label', GroupRole::Member->label())
             ->assertJsonPath('member.is_me', false)
+            ->assertJsonPath('member.joined_at', $m->created_at->toIso8601String())
             ->assertJsonPath('stats.campaigns_total', 1)
             ->assertJsonPath('stats.campaigns_paid', 1)
             ->assertJsonPath('stats.open_campaigns.0.status', 'paid')
@@ -132,5 +134,29 @@ class MemberProfileTest extends TestCase
         $this->actingAs($other)->getJson("/api/g/{$group->code}")->assertOk()
             ->assertJsonPath('viewer.logged_in', true)
             ->assertJsonPath('viewer.member_id', null);
+    }
+
+    public function test_danh_sach_thanh_vien_chi_ten_anh_va_vai_tro(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        $admin = $this->memberOf($group, GroupRole::Admin, ['name' => 'Hiển']);
+        $lan = $this->memberOf($group, GroupRole::Member, ['name' => 'Lan']);
+        Contact::forceCreate(['group_id' => $group->id, 'full_name' => 'Nam', 'phone' => '0912345678']);
+        Contact::forceCreate(['group_id' => $group->id, 'full_name' => 'Đã rời', 'status' => 'left']);
+
+        $rows = collect($this->getJson("/api/g/{$group->code}/members")->assertOk()->json('data'))->keyBy('name');
+
+        // Cùng số với "N thành viên" ở đầu trang: người đang tham gia trong danh bạ.
+        $this->assertCount($this->getJson("/api/g/{$group->code}")->json('members_count'), $rows);
+        $this->assertFalse($rows->has('Đã rời'));
+        $this->assertSame('Quản trị viên', $rows['Hiển']['role_label']);
+        $this->assertSame($this->memberRow($group, $lan)->id, $rows['Lan']['member_id']);
+        $this->assertNull($rows['Lan']['role_label']);
+        $this->assertNull($rows['Nam']['member_id']);
+        $this->assertArrayNotHasKey('phone', $rows['Nam']);
+
+        // Nhóm riêng tư: khách không xem được.
+        $private = $this->makeGroup(['visibility' => 'private']);
+        $this->getJson("/api/g/{$private->code}/members")->assertForbidden();
     }
 }

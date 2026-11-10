@@ -12,7 +12,7 @@ Route::get('/media/u/{user}/{kind}/{name}', [MediaController::class, 'profile'])
 Route::prefix('/media/{group}')->middleware('group')->group(function () {
     Route::get('/p/{photo}/{size}', [MediaController::class, 'photo'])->whereNumber('photo')->whereIn('size', ['sm', 'lg']);
     Route::get('/b/{scan}', [MediaController::class, 'bill'])->whereNumber('scan');
-    Route::get('/brand/{kind}/{name}', [MediaController::class, 'brand'])->whereIn('kind', ['avatar', 'cover'])->where('name', '[a-z0-9-]+');
+    Route::get('/brand/cover/{name}', [MediaController::class, 'groupCover'])->where('name', '[a-z0-9-]+');
 });
 
 // Mọi đường dẫn giao diện do vue-router xử lý; chỉ trừ API và file tĩnh.

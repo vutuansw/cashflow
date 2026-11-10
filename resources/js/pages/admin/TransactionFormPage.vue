@@ -357,10 +357,12 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
             </label>
 
             <!-- Thu / Chi -->
-            <p v-if="isAi('type')" class="-mb-3 text-sm font-medium">Thu hay chi <span class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{{ aiTag }}</span></p>
-            <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center font-semibold" :class="{ 'ring-2 ring-primary/40': isAi('type') }" role="radiogroup" aria-label="Thu hay chi">
-                <button type="button" role="radio" :aria-checked="isIncome" class="min-h-10 rounded-lg" :class="isIncome ? 'bg-card text-income shadow' : 'text-muted-foreground'" @click="form.type = 'income'">Thu</button>
-                <button type="button" role="radio" :aria-checked="!isIncome" class="min-h-10 rounded-lg" :class="!isIncome ? 'bg-card text-expense shadow' : 'text-muted-foreground'" @click="form.type = 'expense'">Chi</button>
+            <div>
+                <p v-if="isAi('type')" class="mb-1.5 text-sm font-medium">Thu hay chi <span class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{{ aiTag }}</span></p>
+                <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center font-semibold" :class="{ 'ring-2 ring-primary/40': isAi('type') }" role="radiogroup" aria-label="Thu hay chi">
+                    <button type="button" role="radio" :aria-checked="isIncome" class="min-h-10 rounded-lg" :class="isIncome ? 'bg-card text-income shadow' : 'text-muted-foreground'" @click="form.type = 'income'">Thu</button>
+                    <button type="button" role="radio" :aria-checked="!isIncome" class="min-h-10 rounded-lg" :class="!isIncome ? 'bg-card text-expense shadow' : 'text-muted-foreground'" @click="form.type = 'expense'">Chi</button>
+                </div>
             </div>
 
             <FormField label="Số tiền" required :ai="isAi('amount') && aiTag" :error="state.errors.amount">
@@ -378,12 +380,23 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <p v-if="state.errors.category_id" class="mt-1 text-sm text-expense">{{ state.errors.category_id }}</p>
             </div>
 
-            <FormField v-if="isIncome && options.campaigns.length" label="Chiến dịch" :ai="isAi('campaign_id') && aiTag" :error="state.errors.campaign_id">
-                <select v-model="form.campaign_id" class="field" :class="{ 'ai-field': isAi('campaign_id') }">
-                    <option :value="null">Không thuộc chiến dịch</option>
-                    <option v-for="c in options.campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-            </FormField>
+            <!-- Chỉ có chiến dịch đang mở nên danh sách ngắn: dùng nút chip thay select (popup select gốc hay lệch chỗ khi trang bị thu phóng). -->
+            <div v-if="isIncome && options.campaigns.length">
+                <p class="mb-1.5 text-sm font-medium">Chiến dịch<template v-if="isAi('campaign_id')"> <span class="ml-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{{ aiTag }}</span></template></p>
+                <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Chiến dịch">
+                    <button
+                        v-for="c in [{ id: null, name: 'Không thuộc chiến dịch' }, ...options.campaigns]"
+                        :key="c.id ?? 'none'"
+                        type="button"
+                        role="radio"
+                        :aria-checked="form.campaign_id === c.id"
+                        class="inline-flex min-h-10 items-center rounded-full border px-3 text-sm font-medium"
+                        :class="form.campaign_id === c.id ? 'border-transparent bg-primary text-white' : 'border-border bg-card'"
+                        @click="form.campaign_id = c.id"
+                    >{{ c.name }}</button>
+                </div>
+                <p v-if="state.errors.campaign_id" class="mt-1 text-sm text-expense">{{ state.errors.campaign_id }}</p>
+            </div>
 
             <div class="grid grid-cols-2 gap-2">
                 <FormField label="Ngày" required :ai="isAi('date') && aiTag" :error="state.errors.occurred_at"><input v-model="form.date" type="date" class="field" :class="{ 'ai-field': isAi('date') }" required /></FormField>

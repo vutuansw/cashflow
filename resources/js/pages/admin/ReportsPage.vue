@@ -3,9 +3,12 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Download } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
+import PeriodNav from '../../components/PeriodNav.vue';
+import SegmentedControl from '../../components/SegmentedControl.vue';
 import { adminApi } from '../../lib/api.js';
 import { formatMoney } from '../../lib/money.js';
 import { formatDate, formatDateTime } from '../../lib/time.js';
+import { usePeriod } from '../../lib/period.js';
 
 // Báo cáo: sổ quỹ, theo loại, theo tháng, chiến dịch; xuất Excel. Xem plan/03 mục 7.
 const route = useRoute();
@@ -18,29 +21,34 @@ const types = [
     { v: 'campaign', l: 'Chiến dịch' },
 ];
 const type = ref(route.query.loai ?? 'so-quy');
-const pad = (n) => String(n).padStart(2, '0');
-const today = new Date();
-const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const presets = {
-    month: () => [iso(new Date(today.getFullYear(), today.getMonth(), 1)), iso(today)],
-    year: () => [`${today.getFullYear()}-01-01`, `${today.getFullYear()}-12-31`],
-    lastYear: () => [`${today.getFullYear() - 1}-01-01`, `${today.getFullYear() - 1}-12-31`],
-};
-const preset = ref('year');
-const from = ref(presets.year()[0]);
-const to = ref(presets.year()[1]);
+// Kỳ báo cáo như màn danh sách phiếu: Tháng / Năm lùi tiến bằng ‹ ›, hoặc "Tùy chọn" nhập từ ngày đến ngày.
+const period = usePeriod(route.query, { kinds: ['month', 'year'] });
+const custom = ref(false);
+const from = ref(period.range.value.from);
+const to = ref(period.range.value.to);
+const kindOptions = [...period.options, { v: 'custom', l: 'Tùy chọn' }];
+const kind = computed({
+    get: () => (custom.value ? 'custom' : period.state.kind),
+    set: (v) => {
+        if (v === 'custom') {
+            // Bắt đầu từ kỳ đang xem để chỉ cần sửa một đầu.
+            [from.value, to.value] = [period.range.value.from, period.range.value.to];
+            custom.value = true;
+            return;
+        }
+        custom.value = false;
+        period.setKind(v);
+    },
+});
+const range = computed(() => (custom.value ? { from: from.value, to: to.value } : period.range.value));
 const campaigns = ref([]);
 const campaignId = ref(null);
 const data = ref(null);
 const loading = ref(false);
 const error = ref('');
 
-watch(preset, (p) => {
-    if (presets[p]) [from.value, to.value] = presets[p]();
-});
-
 const query = computed(() => {
-    const params = new URLSearchParams(type.value === 'campaign' ? { campaign_id: campaignId.value ?? '' } : { from: from.value, to: to.value });
+    const params = new URLSearchParams(type.value === 'campaign' ? { campaign_id: campaignId.value ?? '' } : range.value);
     return params.toString();
 });
 const excelUrl = computed(() => `/api/g/${code.value}/admin/reports/${type.value}?${query.value}&format=xlsx`);
@@ -75,22 +83,16 @@ watch([type, query], () => {
 
 <template>
     <AdminShell title="Báo cáo" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
-        <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
-            <button v-for="t in types" :key="t.v" type="button" class="chip !min-h-9 shrink-0 whitespace-nowrap !px-3.5 !text-sm" :class="type === t.v ? '!bg-primary !text-primary-foreground' : ''" @click="type = t.v">{{ t.l }}</button>
-        </div>
+        <SegmentedControl v-model="type" :options="types" label="Loại báo cáo" />
 
         <section class="card mt-3 space-y-3 p-3">
             <template v-if="type !== 'campaign'">
-                <select v-model="preset" class="field">
-                    <option value="month">Tháng này</option>
-                    <option value="year">Năm nay</option>
-                    <option value="lastYear">Năm trước</option>
-                    <option value="custom">Tùy chọn</option>
-                </select>
-                <div v-if="preset === 'custom'" class="grid grid-cols-2 gap-2">
+                <SegmentedControl v-model="kind" :options="kindOptions" label="Kỳ báo cáo" />
+                <div v-if="custom" class="grid grid-cols-2 gap-2">
                     <input v-model="from" type="date" class="field" aria-label="Từ ngày" />
                     <input v-model="to" type="date" class="field" aria-label="Đến ngày" />
                 </div>
+                <PeriodNav v-else :label="period.label.value" :can-next="period.canNext.value" @prev="period.shift(-1)" @next="period.shift(1)" />
             </template>
             <select v-else v-model="campaignId" class="field" aria-label="Chiến dịch">
                 <option v-if="!campaigns.length" :value="null">Chưa có chiến dịch</option>

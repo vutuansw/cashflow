@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminShell from '../../layouts/AdminShell.vue';
+import CoverArt from '../../components/CoverArt.vue';
 import FormField from '../../components/FormField.vue';
 import MoneyInput from '../../components/MoneyInput.vue';
 import Sheet from '../../components/Sheet.vue';
@@ -54,30 +55,28 @@ async function save() {
     toast('Đã lưu cài đặt.');
 }
 
-// Ảnh bìa (tỉ lệ 3:1) và ảnh đại diện (vuông), hiện trên trang nhóm và khi dán link vào Zalo/Facebook.
-const uploading = ref(null);
-async function uploadImage(kind, event) {
+// Ảnh bìa (tỉ lệ 3:1) đầu trang nhóm, cũng là ảnh xem trước khi dán link vào Zalo/Facebook.
+// Nhóm không có ảnh đại diện (plan/08 mục 10d).
+const uploading = ref(false);
+async function uploadCover(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    uploading.value = kind;
+    uploading.value = true;
     try {
         const body = new FormData();
-        body.append('kind', kind);
         body.append('image', await shrinkImage(file, 2000));
         const res = await adminApi(code.value, '/settings/images', { method: 'POST', body });
-        form.avatar_url = res.avatar_url;
         form.cover_url = res.cover_url;
-        toast(kind === 'cover' ? 'Đã đổi ảnh bìa.' : 'Đã đổi ảnh đại diện.');
+        toast('Đã đổi ảnh bìa.');
     } catch (e) {
         toast(Object.values(e.errors ?? {})[0]?.[0] ?? e.message, 'error');
     } finally {
-        uploading.value = null;
+        uploading.value = false;
     }
 }
-async function removeImage(kind) {
-    const res = await adminApi(code.value, `/settings/images/${kind}`, { method: 'DELETE' });
-    form.avatar_url = res.avatar_url;
+async function removeCover() {
+    const res = await adminApi(code.value, '/settings/images/cover', { method: 'DELETE' });
     form.cover_url = res.cover_url;
 }
 
@@ -133,26 +132,20 @@ async function destroy() {
     <AdminShell title="Cài đặt nhóm" :crumbs="[{ label: 'Thêm', to: `/${$route.params.group}/quan-tri/them` }]" mobile-only>
         <form v-if="loaded" class="space-y-6" @submit.prevent="save">
             <section class="card overflow-hidden">
-                <div class="relative h-28 bg-gradient-to-br from-primary/30 to-primary/5 sm:h-36" :style="form.cover_url ? { backgroundImage: `url(${form.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+                <!-- Cùng tỉ lệ 3:1 và nền mặc định như đầu trang nhóm, để thấy đúng ảnh sẽ hiện thế nào -->
+                <div class="relative aspect-[3/1] bg-cover bg-center" :style="form.cover_url ? { backgroundImage: `url(${form.cover_url})` } : {}">
+                    <CoverArt v-if="!form.cover_url" />
                     <div class="absolute right-2 top-2 flex gap-1">
-                        <label class="btn-outline !min-h-9 cursor-pointer !px-3 text-sm"><ImagePlus class="size-4" /> {{ uploading === 'cover' ? 'Đang tải…' : 'Ảnh bìa' }}<input type="file" accept="image/*" class="sr-only" :disabled="uploading" @change="uploadImage('cover', $event)" /></label>
-                        <button v-if="form.cover_url" type="button" class="btn-outline !min-h-9 !px-2" aria-label="Bỏ ảnh bìa" @click="removeImage('cover')"><Trash2 class="size-4" /></button>
+                        <label class="btn-outline !min-h-9 cursor-pointer !px-3 text-sm"><ImagePlus class="size-4" /> {{ uploading ? 'Đang tải…' : form.cover_url ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa' }}<input type="file" accept="image/*" class="sr-only" :disabled="uploading" @change="uploadCover" /></label>
+                        <button v-if="form.cover_url" type="button" class="btn-outline !min-h-9 !px-2" aria-label="Bỏ ảnh bìa" @click="removeCover"><Trash2 class="size-4" /></button>
                     </div>
                 </div>
-                <div class="-mt-8 flex items-end gap-3 px-4 pb-4">
-                    <label class="relative block size-16 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-4 border-card bg-primary text-primary-foreground" aria-label="Đổi ảnh đại diện">
-                        <img v-if="form.avatar_url" :src="form.avatar_url" alt="" class="size-full object-cover" />
-                        <span v-else class="grid size-full place-items-center text-2xl font-bold">{{ form.name?.charAt(0) }}</span>
-                        <span class="absolute inset-x-0 bottom-0 bg-black/50 py-0.5 text-center text-[10px] text-white">{{ uploading === 'avatar' ? '…' : 'Đổi' }}</span>
-                        <input type="file" accept="image/*" class="sr-only" :disabled="uploading" @change="uploadImage('avatar', $event)" />
-                    </label>
-                    <p class="pb-1 text-sm text-muted-foreground">Ảnh bìa và ảnh đại diện hiện trên trang nhóm, kể cả nhóm riêng tư, và khi dán link vào Zalo, Facebook.</p>
-                </div>
+                <p class="p-4 text-sm text-muted-foreground">Ảnh bìa hiện ở đầu trang nhóm (kể cả nhóm riêng tư).</p>
             </section>
 
             <section class="card space-y-4 p-4">
                 <h2 class="font-semibold">Thông tin nhóm</h2>
-                <FormField label="Link nhóm" hint="Mã nhóm chỉ quản trị Quỹ nhóm mới đổi được, vì đổi sẽ làm hỏng link đã chia sẻ.">
+                <FormField label="Link nhóm" hint="Mã nhóm chỉ quản trị WePo mới đổi được, vì đổi sẽ làm hỏng link đã chia sẻ.">
                     <div class="flex gap-2">
                         <input class="field" :value="link" readonly />
                         <button type="button" class="btn-outline shrink-0" @click="copyText(link, 'Đã chép link nhóm.')">Chép</button>

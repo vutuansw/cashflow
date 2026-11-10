@@ -41,7 +41,7 @@ Mọi bảng có `created_at`, `updated_at`. Tiền là `bigint unsigned` đơn 
 | code | varchar(32) unique | Mã quản lý, vd `chidoan-a12` |
 | name | varchar(150) | |
 | description | text null | |
-| avatar_path, cover_path | varchar null | Ảnh đại diện, ảnh bìa timeline |
+| avatar_path, cover_path | varchar null | Ảnh bìa timeline. `avatar_path` không còn dùng (nhóm không có ảnh đại diện, plan/08 mục 10d) |
 | visibility | enum(public, private) | |
 | owner_id | bigint → users | Trưởng nhóm |
 | opening_balance | bigint | Số dư đầu kỳ, mặc định 0 |
@@ -49,7 +49,7 @@ Mọi bảng có `created_at`, `updated_at`. Tiền là `bigint unsigned` đơn 
 | bank_code | varchar(30) null | Mã ngân hàng theo danh sách của SePay QR (vd `MBBank`) |
 | bank_account_no | text null | **Mã hóa** |
 | bank_account_name | varchar(120) null | Tên chủ tài khoản (hiển thị trên trang đóng quỹ) |
-| sepay_api_key | text null | **Mã hóa**; do Quỹ nhóm sinh, QTV dán vào SePay |
+| sepay_api_key | text null | **Mã hóa**; do WePo sinh, QTV dán vào SePay |
 | sepay_last_hook_at | timestamp null | Lần cuối nhận webhook, để báo "đã kết nối" |
 | notify_emails | json null | Danh sách email nhận thông báo; trống thì gửi trưởng nhóm |
 | deleted_at | soft delete | |

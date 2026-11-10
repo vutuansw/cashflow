@@ -7,8 +7,10 @@ use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\User;
 use App\Services\Campaigns\CampaignService;
 use App\Support\CurrentGroup;
+use App\Support\TransferContent;
 use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
 use Tests\TestCase;
@@ -92,11 +94,14 @@ class CampaignsTest extends TestCase
         app(CurrentGroup::class)->set($group);
         $campaign = app(CampaignService::class)->create($group, $this->ownerOf($group), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 500000]);
 
+        // Khách: QR không có nội dung để app ngân hàng tự điền tên người chuyển (plan/05 mục 1).
         $r = $this->getJson("/api/g/{$group->code}/campaigns/{$campaign->slug}")->assertOk()
             ->assertJsonPath('transfer_code', $campaign->transfer_code)
+            ->assertJsonPath('transfer_content', null)
             ->assertJsonPath('bank.account_no', '0123456789')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->json();
-        $this->assertStringContainsString('qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&des='.$campaign->transfer_code, $r['bank']['qr_url']);
+        $this->assertSame('https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&template=compact', $r['bank']['qr_url']);
         $this->assertArrayNotHasKey('phone', $r['people'][0]);
         $this->assertArrayNotHasKey('qr_download', $r['bank']);
         $this->get("/api/g/{$group->code}/campaigns/{$campaign->slug}/qr.png")->assertNotFound();
@@ -162,5 +167,35 @@ class CampaignsTest extends TestCase
         $this->assertSame("HOICUU{$yy}", CampaignService::generateCode(new Group(['code' => 'hoi-cuu-sinh-vien'])));
         $this->assertSame("DONGHUON{$yy}", CampaignService::generateCode(new Group(['code' => 'donghuongthaibinh'])));
         $this->assertNotSame('ABQQ'.substr((string) now()->year, 2), $code);
+    }
+
+    public function test_noi_dung_qr_theo_nguoi_xem(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        $group->update(['bank_code' => 'MBBank', 'bank_account_no' => '0123456789']);
+        app(CurrentGroup::class)->set($group);
+        $campaign = app(CampaignService::class)->create($group, $this->ownerOf($group), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'transfer_code' => 'DT2026', 'amount_per_member' => 500000]);
+        $url = "/api/g/{$group->code}/campaigns/{$campaign->slug}";
+
+        // Thành viên gắn danh bạ: tên trong danh bạ (bỏ dấu, in hoa) rồi tới mã.
+        $member = $this->memberOf($group, GroupRole::Member, ['name' => 'Tuấn tài khoản']);
+        Contact::query()->where('user_id', $member->id)->update(['full_name' => 'Vũ Đức Tuấn']);
+        $r = $this->actingAs($member)->getJson($url)->assertOk()->assertJsonPath('transfer_content', 'VU DUC TUAN DT2026')->json();
+        $this->assertStringContainsString('&des=VU+DUC+TUAN+DT2026', $r['bank']['qr_url']);
+
+        // Đăng nhập nhưng không thuộc nhóm: coi như khách.
+        $this->actingAs(User::factory()->create())->getJson($url)->assertOk()->assertJsonPath('transfer_content', null);
+    }
+
+    public function test_noi_dung_ck_rut_gon_ten_giu_ma(): void
+    {
+        $this->assertSame('VU DUC TUAN DT2026', TransferContent::build('Vũ Đức Tuấn', 'DT2026'));
+        $this->assertSame('DO VAN KHANH QUYLOP2026', TransferContent::build('  Đỗ Văn   Khánh ', 'QUYLOP2026'));
+        // 29 ký tự > 25: rút còn "đệm + tên", mã giữ nguyên ở cuối.
+        $this->assertSame('THU TRANG QUYLOP2026', TransferContent::build('Phạm Thị Thu Trang', 'QUYLOP2026'));
+        // "PHUONG THAO QUYLOP2026ABCDEF" vẫn 28 ký tự: chỉ còn tên.
+        $this->assertSame('THAO QUYLOP2026ABCDEF', TransferContent::build('Nguyễn Thị Phương Thảo', 'QUYLOP2026ABCDEF'));
+        $this->assertNull(TransferContent::build('  ', 'DT2026'));
+        $this->assertNull(TransferContent::build(null, 'DT2026'));
     }
 }

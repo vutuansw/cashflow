@@ -190,4 +190,66 @@ class SepayTest extends TestCase
         $this->artisan('cashflow:sepay-simulate', ['group' => 'chi-doan-a12', 'amount' => 500000, 'content' => 'QNA12N26 Tran Van Minh'])->assertSuccessful();
         $this->assertSame(1, SepayTransaction::count());
     }
+
+    public function test_khong_co_ma_thi_doan_chien_dich_duy_nhat_dang_mo(): void
+    {
+        // Khách quét QR không nội dung: app ngân hàng điền "TEN chuyen tien".
+        $this->hook(['id' => 21, 'content' => 'TRAN VAN MINH chuyen tien'])->assertOk();
+        $t = SepayTransaction::where('sepay_id', 21)->first();
+        $this->assertSame($this->campaignId, $t->matched_campaign_id);
+        $this->assertTrue($t->campaign_guessed);
+        $this->assertSame(Contact::where('full_name', 'Trần Văn Minh')->value('id'), $t->suggested_contact_id);
+
+        $item = collect($this->getJson($this->adminUrl($this->group, 'sepay'))->assertOk()->json('data'))->firstWhere('id', $t->id);
+        $this->assertTrue($item['campaign_guessed']);
+
+        // Không vào Duyệt cả loạt; duyệt riêng thì được.
+        $this->postJson($this->adminUrl($this->group, 'sepay/approve'), ['ids' => [$t->id]])->assertOk()
+            ->assertJsonPath('approved', 0)->assertJsonPath('failed.0.id', $t->id);
+        $this->postJson($this->adminUrl($this->group, "sepay/{$t->id}/approve"))->assertOk();
+        $this->assertSame($this->campaignId, Transaction::sole()->campaign_id);
+
+        // Có mã thì không phải đoán; tiền ra thì không gán chiến dịch.
+        $this->hook(['id' => 22])->assertOk();
+        $this->assertFalse(SepayTransaction::where('sepay_id', 22)->first()->campaign_guessed);
+        $this->hook(['id' => 23, 'transferType' => 'out', 'content' => 'chuyen tien'])->assertOk();
+        $this->assertNull(SepayTransaction::where('sepay_id', 23)->first()->matched_campaign_id);
+
+        // Hai chiến dịch đang mở: không đoán.
+        app(CurrentGroup::class)->set($this->group);
+        app(CampaignService::class)->create($this->group, $this->ownerOf($this->group), [
+            'name' => 'Quỹ khuyến học', 'category_id' => Category::where('name', 'Đóng quỹ năm')->value('id'), 'transfer_code' => 'KH2026',
+        ]);
+        $this->hook(['id' => 24, 'content' => 'TRAN VAN MINH chuyen tien'])->assertOk();
+        $other = SepayTransaction::where('sepay_id', 24)->first();
+        $this->assertNull($other->matched_campaign_id);
+        $this->assertFalse($other->campaign_guessed);
+    }
+
+    public function test_nhan_ten_va_ma_hoa_thuong_co_dau_khong_dau(): void
+    {
+        $minh = Contact::where('full_name', 'Trần Văn Minh')->value('id');
+        $cases = [
+            31 => 'TRAN VAN MINH QNA12N26',          // nội dung QR app tạo: in hoa, không dấu, tên trước
+            32 => 'trần văn minh qna12n26',          // thường, có dấu
+            33 => 'TRẦN VĂN MINH QNA12N26',          // hoa, có dấu
+            34 => 'Tran van Minh - Qna12 N26',       // lẫn lộn, mã bị tách
+            35 => 'qna12n26 tRần vĂn mInH ck',
+        ];
+        foreach ($cases as $id => $content) {
+            $this->hook(['id' => $id, 'content' => $content])->assertOk();
+            $t = SepayTransaction::where('sepay_id', $id)->first();
+            $this->assertSame($this->campaignId, $t->matched_campaign_id, $content);
+            $this->assertFalse($t->campaign_guessed, $content);
+            $this->assertSame($minh, $t->suggested_contact_id, $content);
+        }
+
+        // Tên có "Đ": viết "D" hay "Đ", hoa hay thường đều ra.
+        app(CurrentGroup::class)->set($this->group);
+        $duc = Contact::create(['full_name' => 'Đỗ Văn Đức'])->id;
+        foreach ([41 => 'DO VAN DUC QNA12N26', 42 => 'đỗ văn đức QNA12N26', 43 => 'ĐỖ VĂN ĐỨC qna12n26'] as $id => $content) {
+            $this->hook(['id' => $id, 'content' => $content])->assertOk();
+            $this->assertSame($duc, SepayTransaction::where('sepay_id', $id)->first()->suggested_contact_id, $content);
+        }
+    }
 }

@@ -1,8 +1,10 @@
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus, Trash2 } from 'lucide-vue-next';
 import SystemShell from '../../layouts/SystemShell.vue';
+import FilterBar from '../../components/FilterBar.vue';
+import FilterOptions from '../../components/FilterOptions.vue';
 import { systemApi } from '../../lib/systemApi.js';
 import { formatDate } from '../../lib/time.js';
 
@@ -27,20 +29,27 @@ watch(f, () => {
 onMounted(load);
 
 const reviewLabel = { pending_review: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' };
+const serviceLabel = { active: 'Hoạt động', locked: 'Đang khóa' };
+
+// Bộ lọc dùng chung (FilterBar): ô tìm + bảng "Lọc" (duyệt, dịch vụ, đã xóa), nhãn điều kiện đang bật bên dưới.
+const deletedModel = computed({ get: () => (f.deleted ? '1' : ''), set: (v) => (f.deleted = v === '1') });
+const chips = computed(() => [
+    f.review && { key: 'review', label: reviewLabel[f.review] },
+    f.service && { key: 'service', label: serviceLabel[f.service] },
+    f.deleted && { key: 'deleted', label: 'Đã xóa' },
+].filter(Boolean));
+const removeChip = (key) => (f[key] = key === 'deleted' ? false : '');
+const resetFilters = () => Object.assign(f, { review: '', service: '', deleted: false });
 </script>
 
 <template>
     <SystemShell title="Nhóm">
         <template #actions><RouterLink to="/system/nhom/moi" class="btn-primary !min-h-10 !px-3"><Plus class="size-4" /> Tạo nhóm</RouterLink></template>
-        <div class="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
-            <div class="relative">
-                <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input v-model="f.q" type="search" class="field pl-9" placeholder="Mã, tên nhóm hoặc SĐT trưởng nhóm" />
-            </div>
-            <select v-model="f.review" class="field sm:w-36"><option value="">Mọi trạng thái duyệt</option><option value="pending_review">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option></select>
-            <select v-model="f.service" class="field sm:w-32"><option value="">Mọi dịch vụ</option><option value="active">Hoạt động</option><option value="locked">Đang khóa</option></select>
-            <label class="flex min-h-11 items-center gap-2 text-sm"><input v-model="f.deleted" type="checkbox" class="size-4" /> Đã xóa</label>
-        </div>
+        <FilterBar v-model:q="f.q" placeholder="Mã, tên nhóm hoặc SĐT trưởng nhóm" :chips="chips" :total="meta?.total ?? null" unit="nhóm" title="Lọc nhóm" @remove="removeChip" @reset="resetFilters">
+            <FilterOptions v-model="f.review" title="Trạng thái duyệt" :options="[{ v: '', l: 'Tất cả' }, ...Object.entries(reviewLabel).map(([v, l]) => ({ v, l }))]" />
+            <FilterOptions v-model="f.service" title="Dịch vụ" :options="[{ v: '', l: 'Tất cả' }, ...Object.entries(serviceLabel).map(([v, l]) => ({ v, l }))]" />
+            <FilterOptions v-model="deletedModel" title="Nhóm đã xóa" :options="[{ v: '', l: 'Ẩn' }, { v: '1', l: 'Chỉ xem nhóm đã xóa', icon: Trash2 }]" />
+        </FilterBar>
         <ul class="card mt-3 divide-y divide-border">
             <li v-for="g in rows ?? []" :key="g.id">
                 <RouterLink :to="`/system/nhom/${g.id}`" class="flex items-center gap-3 p-3 hover:bg-muted/50">

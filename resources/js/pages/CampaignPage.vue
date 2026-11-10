@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, CircleDashed, CircleDot, Clock, Copy, Landmark, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
+import { CheckCircle2, ChevronDown, CircleDashed, CircleDot, Clock, Copy, Landmark, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
 import BackButton from '../components/BackButton.vue';
 import BankAppSheet from '../components/BankAppSheet.vue';
 import ClaimSheet from '../components/ClaimSheet.vue';
@@ -34,7 +34,7 @@ onMounted(async () => {
     group.value = await api(`/g/${code.value}`).catch(() => null);
     try {
         await load();
-        document.title = `${data.value.name} · ${group.value?.name ?? 'Quỹ nhóm'}`;
+        document.title = `${data.value.name} · ${group.value?.name ?? 'WePo'}`;
     } catch (e) {
         error.value = e instanceof ApiError ? e.status : 500;
         return;
@@ -48,6 +48,12 @@ onMounted(async () => {
 const useApps = computed(() => isPhone && apps.value.length > 0);
 const paid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'paid' || p.status === 'partial'));
 const unpaid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'unpaid'));
+// Danh sách dài thì chỉ hiện 5 người đầu, bấm "Xem thêm" để mở hết; đổi tab thì thu lại.
+const PREVIEW = 5;
+const expanded = ref(false);
+const list = computed(() => (tab.value === 'paid' ? paid.value : unpaid.value));
+const shown = computed(() => (expanded.value ? list.value : list.value.slice(0, PREVIEW)));
+watch(tab, () => (expanded.value = false));
 const percent = computed(() => {
     const d = data.value;
     if (!d) return 0;
@@ -124,9 +130,10 @@ async function share() {
                         <span>Số tiền: <b>{{ formatMoney(data.amount_per_member) }}</b></span>
                         <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(String(data.amount_per_member), 'Đã chép số tiền.')"><Copy class="size-4" /> Chép</button>
                     </div>
-                    <div class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
-                        <span>Nội dung: <b class="font-mono">{{ data.transfer_code }}</b> <i class="text-muted-foreground">+ tên bạn</i></span>
-                        <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(`${data.transfer_code} `, 'Đã chép mã, dán vào nội dung rồi gõ thêm tên bạn.')"><Copy class="size-4" /> Chép</button>
+                    <!-- Nội dung CK chỉ có khi biết người xem (plan/05 mục 1); khách thì để app ngân hàng tự điền tên người chuyển. -->
+                    <div v-if="data.transfer_content" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                        <span>Nội dung: <b class="font-mono">{{ data.transfer_content }}</b></span>
+                        <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(data.transfer_content, 'Đã chép nội dung chuyển khoản.')"><Copy class="size-4" /> Chép</button>
                     </div>
                     <div class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
                         <span>Số tài khoản: <b>{{ data.bank.account_no }}</b></span>
@@ -152,7 +159,7 @@ async function share() {
                 <button type="button" role="tab" :aria-selected="tab === 'unpaid'" class="min-h-10 rounded-lg" :class="tab === 'unpaid' ? 'bg-card shadow' : 'text-muted-foreground'" @click="tab = 'unpaid'">Chưa đóng ({{ unpaid.length }})</button>
             </div>
             <ul class="card divide-y divide-border text-sm">
-                <li v-for="(p, i) in tab === 'paid' ? paid : unpaid" :key="i" class="flex items-center justify-between gap-3 px-3 py-2.5">
+                <li v-for="(p, i) in shown" :key="i" class="flex items-center justify-between gap-3 px-3 py-2.5">
                     <span class="flex min-w-0 items-center gap-2">
                         <CheckCircle2 v-if="p.status === 'paid'" class="size-4 shrink-0 text-income" aria-label="Đã đủ" />
                         <CircleDot v-else-if="p.status === 'partial'" class="size-4 shrink-0 text-amber-600" aria-label="Đóng thiếu" />
@@ -163,14 +170,20 @@ async function share() {
                     <span v-else-if="p.status === 'partial'" class="shrink-0 tabular-nums text-amber-700">{{ formatMoney(p.paid).replace(' đ', '') }}/{{ formatMoney(p.expected) }}</span>
                     <span v-else-if="p.last_paid_at" class="shrink-0 text-muted-foreground">{{ formatDate(p.last_paid_at).slice(0, 5) }}</span>
                 </li>
-                <li v-if="!(tab === 'paid' ? paid : unpaid).length" class="p-4 text-center text-muted-foreground">{{ tab === 'paid' ? 'Chưa có ai đóng.' : 'Mọi người đã đóng đủ. Cảm ơn cả nhóm!' }}</li>
+                <li v-if="!list.length" class="p-4 text-center text-muted-foreground">{{ tab === 'paid' ? 'Chưa có ai đóng.' : 'Mọi người đã đóng đủ. Cảm ơn cả nhóm!' }}</li>
+                <li v-if="list.length > PREVIEW">
+                    <button type="button" class="flex min-h-11 w-full items-center justify-center gap-1 font-semibold text-primary" :aria-expanded="expanded" @click="expanded = !expanded">
+                        {{ expanded ? 'Thu gọn' : `Xem thêm ${list.length - PREVIEW} người` }}
+                        <ChevronDown class="size-4 transition-transform" :class="{ 'rotate-180': expanded }" />
+                    </button>
+                </li>
             </ul>
             <p class="text-center text-xs text-muted-foreground">Khoản chuyển khoản được cập nhật sau khi thủ quỹ xác nhận.</p>
 
             <button type="button" class="btn-outline w-full" @click="share"><Share2 class="size-4" /> Chia sẻ trang này</button>
 
             <ClaimSheet :open="claiming" :code="code" :campaign="data" @close="claiming = false" @sent="load" />
-            <BankAppSheet :open="choosingApp" :apps="apps" :content="`${data.transfer_code} `" @close="choosingApp = false" />
+            <BankAppSheet :open="choosingApp" :apps="apps" :content="data.transfer_content" @close="choosingApp = false" />
         </div>
     </div>
 </template>

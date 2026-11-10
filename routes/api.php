@@ -62,6 +62,7 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/timeline', [TimelineController::class, 'feed']);
         Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
         Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
+        Route::get('/members', [MemberProfileController::class, 'index']);
         Route::get('/members/{member}', [MemberProfileController::class, 'show'])->whereNumber('member');
         Route::get('/members/{member}/timeline', [MemberProfileController::class, 'timeline'])->whereNumber('member');
         Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
@@ -87,7 +88,7 @@ Route::prefix('/g/{group}/admin')
         Route::get('/settings', [SettingsController::class, 'show']);
         Route::put('/settings', [SettingsController::class, 'update']);
         Route::post('/settings/images', [SettingsController::class, 'uploadImage']);
-        Route::delete('/settings/images/{kind}', [SettingsController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
+        Route::delete('/settings/images/cover', [SettingsController::class, 'deleteImage']);
 
         Route::post('/settings/sepay', [SettingsController::class, 'sepay']);
         Route::put('/settings/notifications', [SettingsController::class, 'notifications']);

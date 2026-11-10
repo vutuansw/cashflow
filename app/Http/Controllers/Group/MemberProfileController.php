@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Presenters\TransactionPresenter;
 use App\Models\Campaign;
 use App\Models\CampaignMember;
+use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Transaction;
@@ -24,6 +25,41 @@ class MemberProfileController extends Controller
 {
     public const PER_PAGE = 20;
 
+    /**
+     * Danh sách thành viên /{ma-nhom}/thanh-vien (bấm "19 thành viên" ở đầu trang nhóm): mọi người đang tham gia
+     * trong danh bạ, cùng số đếm với đầu trang. Chỉ tên, ảnh và vai trò quản trị như hàng avatar; không SĐT, ngày
+     * sinh, địa chỉ. Người có tài khoản có member_id để mở trang thành viên. Xem plan/08 mục 10e.
+     */
+    public function index(Group $group)
+    {
+        $accounts = GroupMember::query()
+            ->where('group_id', $group->id)
+            ->where('status', 'active')
+            ->whereNotNull('contact_id')
+            ->with('user:id,avatar_path')
+            ->get(['id', 'user_id', 'contact_id', 'role'])
+            ->keyBy('contact_id');
+
+        $people = Contact::acrossGroups()
+            ->where('group_id', $group->id)
+            ->where('status', 'active')
+            ->orderBy('sort_order')->orderBy('full_name')
+            ->get(['id', 'full_name'])
+            ->map(function (Contact $c) use ($accounts) {
+                $m = $accounts->get($c->id);
+
+                return [
+                    'name' => $c->full_name,
+                    'member_id' => $m?->id,
+                    'avatar_url' => $m?->user ? MediaUrl::profile($m->user, 'avatar') : null,
+                    'role' => $m?->role->value,
+                    'role_label' => $m?->role->canManage() ? $m->role->label() : null,
+                ];
+            });
+
+        return ['data' => $people->values()];
+    }
+
     public function show(Request $request, Group $group, int $member, CampaignProgress $progress)
     {
         $viewer = GroupViewer::of($request, $group);
@@ -40,6 +76,7 @@ class MemberProfileController extends Controller
                 'role' => $m->role->value,
                 'role_label' => $m->role->label(),
                 'removed' => $m->status !== 'active',
+                'joined_at' => $m->created_at?->toIso8601String(),
                 'is_me' => $viewer->user?->id === $user->id,
             ],
             'stats' => $this->stats($m->contact_id, $progress),

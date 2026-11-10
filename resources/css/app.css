@@ -4,7 +4,7 @@
 @source '../js/**/*.vue';
 
 /*
-| Token giao diện Quỹ nhóm, xem plan/06. Ngoài khối này không rải mã màu.
+| Token giao diện WePo, xem plan/06. Ngoài khối này không rải mã màu.
 | Màu nhấn xanh lá (thương hiệu, khoản thu), đỏ cho khoản chi. Có chế độ tối
 | theo hệ điều hành.
 */
@@ -29,6 +29,10 @@
   /* Cột biểu đồ thu/chi: đã chạy validate_palette (mù màu, độ sáng, tương phản) cho cả hai nền. */
   --chart-income: #15803d;
   --chart-expense: #dc2626;
+
+  /* Avatar chưa có ảnh: nền xám đặc, chữ cái đầu xám đậm (tương phản ~6:1). */
+  --avatar-empty: #d8dadf;
+  --avatar-empty-foreground: #4b4f56;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,6 +54,9 @@
 
     --chart-income: #21b04f;
     --chart-expense: #d42a2a;
+
+    --avatar-empty: #4e5155;
+    --avatar-empty-foreground: #e4e6eb;
   }
 }
 
@@ -68,6 +75,8 @@
   --color-expense: var(--expense);
   --color-chart-income: var(--chart-income);
   --color-chart-expense: var(--chart-expense);
+  --color-avatar-empty: var(--avatar-empty);
+  --color-avatar-empty-foreground: var(--avatar-empty-foreground);
 }
 
 /* Vài lớp dùng lại khắp nơi (Tailwind 4: khai bằng @utility để @apply được). Vùng chạm tối thiểu 44px, xem plan/06 mục 1. */
@@ -101,6 +110,15 @@ select.chip {
 @utility btn-primary { @apply btn bg-primary text-primary-foreground hover:bg-primary-hover; }
 @utility btn-outline { @apply btn border border-border bg-card hover:bg-muted; }
 @utility btn-danger { @apply btn bg-expense text-white hover:opacity-90; }
+/* Nút nền xám như "Chỉnh sửa" trên trang cá nhân Facebook. */
+@utility btn-soft { @apply btn min-h-10 bg-muted text-sm hover:bg-border; }
+/* Nút tròn viền xanh chỉ có biểu tượng ở phần đầu trang cá nhân (bút "Chỉnh sửa"); nhớ kèm aria-label. */
+/* Lựa chọn trong bảng lọc (loại, nguồn); thêm filter-chip-on khi đang chọn. */
+@utility filter-chip { @apply inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-medium hover:bg-muted; }
+@utility filter-chip-on { @apply border-primary bg-primary/10 text-primary hover:bg-primary/15; }
+/* Một mục trong DropdownMenu. */
+@utility menu-item { @apply flex min-h-11 w-full items-center gap-3 px-4 text-left text-sm font-medium hover:bg-muted; }
+@utility btn-pill { @apply inline-grid size-10 place-items-center rounded-full border border-primary/40 bg-card text-primary transition hover:bg-primary/5; }
 @utility icon-btn { @apply inline-grid size-11 place-items-center rounded-xl hover:bg-muted; }
 @utility card { @apply rounded-2xl border border-border bg-card; }
 @utility chip { @apply inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium; }

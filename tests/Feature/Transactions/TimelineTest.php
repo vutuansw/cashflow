@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Transactions;
 
+use App\Enums\GroupRole;
 use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Contact;
@@ -84,7 +85,8 @@ class TimelineTest extends TestCase
         $this->getJson('/api/g/chidoan-a12')->assertOk()
             ->assertJsonPath('name', 'Chi đoàn A12')
             ->assertJsonPath('can_view', false)
-            ->assertJsonMissingPath('members_count');
+            ->assertJsonMissingPath('members_count')
+            ->assertJsonMissingPath('members_preview');
         $this->getJson('/api/g/chidoan-a12/timeline')->assertForbidden()->assertJsonPath('code', 'private_group');
         $this->getJson('/api/g/chidoan-a12/summary')->assertForbidden();
         $this->get("/media/chidoan-a12/p/{$photo->id}/sm")->assertNotFound();
@@ -165,10 +167,10 @@ class TimelineTest extends TestCase
 
         $this->get('/nhomdemo')->assertOk()
             ->assertSee('<meta name="robots" content="noindex">', false)
-            ->assertSee('<meta property="og:title" content="Nhóm Demo · Quỹ nhóm">', false);
+            ->assertSee('<meta property="og:title" content="Nhóm Demo · WePo">', false);
 
         $this->get('/')->assertOk()->assertDontSee('noindex');
-        $this->get('/khong-co-nhom')->assertOk()->assertSee('<title>Quỹ nhóm</title>', false);
+        $this->get('/khong-co-nhom')->assertOk()->assertSee('<title>WePo</title>', false);
     }
 
     public function test_anh_bia_cong_khai_ca_nhom_private(): void
@@ -183,10 +185,32 @@ class TimelineTest extends TestCase
 
         $this->assertStringContainsString('immutable', $this->get($url)->assertOk()->headers->get('Cache-Control'));
         $this->get(preg_replace('#/[^/]+$#', '/doan-mo', $url))->assertNotFound();
-        $this->getJson("/api/g/{$group->code}")->assertJsonPath('cover_url', $url);
+        $this->getJson("/api/g/{$group->code}")->assertJsonPath('cover_url', $url)->assertJsonMissingPath('avatar_url');
+
+        // Nhóm không có ảnh đại diện (plan/08 mục 10d).
+        $this->actingAs($this->ownerOf($group))->post($this->adminUrl($group, 'settings/images'), [
+            'kind' => 'avatar', 'image' => UploadedFile::fake()->image('a.jpg'),
+        ], ['Accept' => 'application/json'])->assertJsonValidationErrors('kind');
 
         $path = Group::find($group->id)->cover_path;
         [$w, $h] = getimagesizefromstring(Storage::disk('media')->get($path));
         $this->assertSame([1600, 533], [$w, $h]);
+    }
+
+    public function test_hang_avatar_thanh_vien_nguoi_co_tai_khoan_truoc(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        Contact::forceCreate(['group_id' => $group->id, 'full_name' => 'An chưa có tài khoản']);
+        $lan = $this->memberOf($group, GroupRole::Member, ['name' => 'Lan']);
+        $lan->update(['avatar_path' => 'users/x/avatar-abc.webp']);
+
+        $preview = $this->getJson("/api/g/{$group->code}")->assertOk()->json('members_preview');
+
+        $this->assertSame('Lan', $preview[0]['name']);
+        $this->assertStringContainsString('/media/u/', $preview[0]['avatar_url']);
+        $this->assertNotNull($preview[0]['member_id']);
+        $this->assertSame('An chưa có tài khoản', end($preview)['name']);
+        $this->assertNull(end($preview)['member_id']);
+        $this->assertArrayNotHasKey('phone', $preview[0]);
     }
 }

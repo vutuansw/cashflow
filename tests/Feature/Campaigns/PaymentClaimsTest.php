@@ -301,7 +301,8 @@ class PaymentClaimsTest extends TestCase
         $r = $this->getJson($url, $iphone)->assertOk()->assertJsonPath('os', 'ios')->json('apps');
         $this->assertSame(['mb', 'vcb'], array_column($r, 'id')); // phổ biến trước
         $this->assertTrue($r[0]['autofill']);
-        $this->assertSame('https://dl.vietqr.io/pay?app=mb&ba=0123456789%40mb&am=500000&tn=QNA12N26', $r[0]['url']);
+        // Khách: không có nội dung, app ngân hàng tự điền tên người chuyển (plan/05 mục 1).
+        $this->assertSame('https://dl.vietqr.io/pay?app=mb&ba=0123456789%40mb&am=500000', $r[0]['url']);
 
         $this->getJson($url, $iphone)->assertOk();
         Http::assertSentCount(1); // lấy từ cache

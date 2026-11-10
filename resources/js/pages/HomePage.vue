@@ -4,8 +4,8 @@ import { homePath, session } from '../lib/session.js';
 
 const features = [
     { icon: Receipt, title: 'Thu chi theo dòng thời gian', text: 'Mỗi khoản thu chi là một bài trên timeline của nhóm, kèm ảnh sự kiện.' },
-    { icon: QrCode, title: 'Đóng quỹ bằng mã QR', text: 'Chiến dịch thu có QR chuyển khoản điền sẵn nội dung, tự nhận biến động số dư qua SePay.' },
-    { icon: Users, title: 'Minh bạch cho cả nhóm', text: 'Ai đã đóng, ai chưa đóng, quỹ còn bao nhiêu: xem ngay bằng một đường link.' },
+    { icon: QrCode, title: 'Đóng quỹ bằng mã QR', text: 'Chiến dịch thu có mã QR, tự nhận biến động số dư qua Ngân hàng.' },
+    { icon: Users, title: 'Giải phóng thời gian cho Thủ quỹ', text: 'Các khoản thu chi đều được tự động hóa, hoặc dùng AI đọc bill chuyển khoản, phần mềm tự tổng hợp báo cáo.' },
 ];
 </script>
 
@@ -35,8 +35,9 @@ const features = [
         <div class="mt-auto grid gap-3 pt-10">
             <RouterLink v-if="session.me" :to="homePath()" class="btn-primary">Vào nhóm của tôi</RouterLink>
             <template v-else>
-                <RouterLink to="/dang-ky" class="btn-primary">Đăng ký nhóm</RouterLink>
-                <RouterLink to="/dang-nhap" class="btn-outline">Đăng nhập</RouterLink>
+                <RouterLink to="/dang-nhap" class="btn-primary">Đăng nhập</RouterLink>
+                <RouterLink to="/dang-ky" class="btn-outline">Đăng ký nhóm</RouterLink>
+                <p class="text-center text-sm text-muted-foreground">Chưa có tài khoản? <RouterLink to="/dang-ky" class="font-semibold text-primary hover:underline">Tạo tài khoản</RouterLink></p>
             </template>
         </div>
     </main>

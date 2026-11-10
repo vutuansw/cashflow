@@ -32,7 +32,7 @@ class SpaController extends Controller
                 $meta['description'] = $group->isPublic()
                     ? ($group->description ?: 'Thu chi quỹ '.$group->name.', minh bạch theo dòng thời gian.')
                     : 'Nhóm riêng tư trên '.config('cashflow.brand.name').'.';
-                $cover = MediaUrl::brand($group, 'cover') ?? MediaUrl::brand($group, 'avatar');
+                $cover = MediaUrl::groupCover($group);
                 $meta['image'] = $cover ? url($cover) : null;
             }
         }

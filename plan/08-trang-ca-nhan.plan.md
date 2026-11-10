@@ -55,7 +55,7 @@ Bấm "Sửa trang cá nhân" thì mở Sheet (bottom sheet trên điện thoạ
 | Họ tên* | Như hiện tại, tối đa 120 ký tự |
 | Giới thiệu | **Mới** — cột `users.bio` varchar(160) null, văn bản thuần (xem Q3) |
 | Email | Như hiện tại, để lấy lại mật khẩu |
-| Số điện thoại | Chỉ đọc, kèm dòng "Muốn đổi số, nhờ trưởng nhóm liên hệ quản trị Quỹ nhóm" |
+| Số điện thoại | Chỉ đọc, kèm dòng "Muốn đổi số, nhờ trưởng nhóm liên hệ quản trị WePo" |
 
 Chỉ chính chủ sửa được thông tin và ảnh của mình. QTV không sửa hộ, vì một tài khoản có thể thuộc nhiều nhóm.
 
@@ -73,7 +73,7 @@ Chỉ chính chủ sửa được thông tin và ảnh của mình. QTV không s
 
 ## 5. Timeline của một người
 
-Trong Quỹ nhóm, thành viên không tự đăng bài. Bài trên timeline là **phiếu thu chi** do QTV tạo. Vì vậy timeline của một người là:
+Trong WePo, thành viên không tự đăng bài. Bài trên timeline là **phiếu thu chi** do QTV tạo. Vì vậy timeline của một người là:
 
 - Các phiếu có `contact_id` = dòng danh bạ gắn với tài khoản đó trong nhóm (`group_members.contact_id`). Gồm cả phiếu thu (người đó đóng quỹ) lẫn phiếu chi (người đó được thăm hoặc nhận tiền).
 - Chỉ lấy phiếu `show_on_timeline = true` và chưa bị xóa, giống timeline nhóm.
@@ -153,8 +153,9 @@ Thay đổi:
 | Đầu trang nhóm, thành viên | Icon `UserRound` → `/ca-nhan` | **Ảnh đại diện của tôi** → `/{ma-nhom}/thanh-vien/{member_id}` |
 | Đầu trang nhóm, QTV | Chỉ nút "Quản trị" | Nút "Quản trị" **và** ảnh đại diện → trang của tôi |
 | Đầu trang nhóm, đăng nhập nhưng không thuộc nhóm | Icon → `/ca-nhan` | Ảnh đại diện → `/ca-nhan` |
-| `/ca-nhan` | Không có link | Mục "Trang của tôi" liệt kê các nhóm, mỗi dòng → `/{ma-nhom}/thanh-vien/{member_id}` |
-| Thanh bên quản trị, trang chọn nhóm | Icon `UserRound` | Ảnh đại diện (vẫn → `/ca-nhan`) |
+| `/ca-nhan` | Không có link | Menu ⋯ → "Xem như người khác" → `/{ma-nhom}/thanh-vien/{member_id}` của nhóm đang chọn (bỏ thẻ "Trang của tôi" ngày 10/11/2026) |
+| Trang quản trị | Icon + tên ở cuối thanh bên → `/ca-nhan` | Ảnh đại diện + tên **ở góc phải thanh trên** (điện thoại chỉ có ảnh) → trang của tôi trong nhóm. Bỏ khỏi thanh bên. Tab "Thêm" vẫn có "Cá nhân, đổi mật khẩu" |
+| Trang chọn nhóm | Icon `UserRound` | Ảnh đại diện (vẫn → `/ca-nhan`) |
 
 Luồng của một người: timeline → "Đăng nhập" → về lại timeline → bấm ảnh đại diện góc phải → trang của tôi → "Sửa trang cá nhân" → `/ca-nhan`.
 
@@ -163,6 +164,26 @@ Kiểm thử: `viewer.member_id` đúng với thành viên, null với khách v�
 Trên điện thoại, nút "Quản trị" chỉ còn icon ⚙ để tên nhóm không bị cắt quá ngắn.
 
 Tiến độ 10/11/2026: đã làm xong mục này (avatar ở thanh trên của P4 cũng xong theo).
+
+## 10c. Giao diện phần đầu trang cá nhân (chốt 10/11/2026)
+
+- Ảnh bìa 3:1 mờ dần xuống nền trắng; chưa có ảnh thì nền xanh có sóng và cành lá. Avatar tròn viền trắng, tên và dòng "vai trò | nhóm" đè lên phần mờ, căn giữa theo chiều dọc với avatar. Không nhắc số đã đóng ở phần đầu (đã có trong thẻ Giới thiệu).
+- Trang thành viên: nút tròn biểu tượng bút (chỉ khi xem trang của mình) → `/ca-nhan`. Menu ⋯: chép link, chỉnh sửa trang cá nhân, về trang nhóm.
+- `/ca-nhan`: nút tròn biểu tượng bánh răng mở menu xổ xuống "Thay đổi thông tin", "Chọn nhóm", "Đổi mật khẩu", "Đăng xuất". Nút đổi ảnh bìa là nút tròn nhỏ biểu tượng máy ảnh ở góc trên ảnh bìa. Menu ⋯: xem như người khác, đổi ảnh đại diện, đổi ảnh bìa. Bỏ thẻ "Trang của tôi" và thẻ tài khoản ở cuối trang.
+- Bên dưới: cột trái "Giới thiệu", cột phải "Hoạt động" (điện thoại xếp dọc).
+## 10d. Trang nhóm kiểu nhóm Facebook (chốt 10/11/2026)
+
+- Nhóm **không có ảnh đại diện** (bỏ hẳn: Cài đặt nhóm chỉ còn ảnh bìa, API `/settings/images` chỉ nhận ảnh bìa, `GET /api/g/{code}` không còn `avatar_url`, ảnh xem trước khi dán link chỉ lấy ảnh bìa). Cột `groups.avatar_path` còn trong database nhưng không dùng. Phần đầu chỉ có ảnh bìa 3:1 rộng (bo góc dưới); chưa có ảnh bìa thì nền xanh sóng + cành lá.
+- Tên nhóm lớn, "Nhóm Công khai/Riêng tư · N thành viên", hàng avatar thành viên (8 trên điện thoại, 12 trên máy tính, còn lại "+N"). `GET /api/g/{code}` trả thêm `members_preview` (tối đa 20: tên, `member_id`, `avatar_url`; người có ảnh trước, rồi người có tài khoản, rồi người chỉ có trong danh bạ), chỉ khi xem được nhóm. Bấm avatar người có tài khoản ra trang thành viên.
+- Nút: khách "Đăng nhập"; "Chia sẻ"; (không có nút "Đóng quỹ" ở phần đầu, nút này nằm trong thẻ từng chiến dịch đang mở); QTV "Quản trị"; người đăng nhập có nút avatar ▾ (Trang của tôi, Chọn nhóm khác). "Trang của tôi" là lối duy nhất tới trang cá nhân: thành viên ra trang của mình trong nhóm (sửa bằng nút bút ở đó), người không thuộc nhóm ra `/ca-nhan`.
+- Thanh tab: Dòng thời gian · Thống kê · Chiến dịch (chiến dịch đang mở mới nhất).
+- Máy tính hai cột: dòng thời gian bên trái (bỏ khung lọc Tất cả/Thu/Chi/Loại ngày 10/11/2026; API timeline vẫn nhận type, category_id); Chiến dịch đang mở bên phải (dính khi cuộn). Điện thoại: Chiến dịch rồi mới tới dòng thời gian. Bỏ thẻ Giới thiệu (10/11/2026): công khai/riêng tư và số thành viên đã có ở phần đầu. Bỏ thẻ Số dư + biểu đồ khỏi trang nhóm (10/11/2026), xem ở tab Thống kê.
+
+## 10e. Danh sách thành viên của nhóm (bổ sung 10/11/2026)
+
+- Bấm "N thành viên" (hoặc "+N" cạnh hàng avatar) ở đầu trang nhóm ra `/{ma-nhom}/thanh-vien`.
+- API `GET /api/g/{group}/members` (cùng quyền xem timeline): người đang tham gia trong danh bạ, cùng số với "N thành viên". Mỗi người chỉ có tên, ảnh đại diện, vai trò quản trị (Trưởng nhóm / Quản trị viên); không SĐT, ngày sinh, địa chỉ.
+- Trang chia "Ban quản trị" và "Thành viên", tìm theo tên không dấu. Người có tài khoản bấm vào ra trang thành viên; người chỉ có trong danh bạ thì không bấm được.
 
 ## 11. Câu hỏi cần chốt
 

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ArrowLeftRight, BookUser, CheckCircle2, ChevronRight, Circle, Inbox, Landmark } from 'lucide-vue-next';
+import { ArrowLeftRight, BookUser, CheckCircle2, ChevronRight, Circle, Inbox, Landmark, Newspaper } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CategoryDonut from '../../components/CategoryDonut.vue';
 import CategoryIcon from '../../components/CategoryIcon.vue';
@@ -41,8 +41,18 @@ function compareText(now, before) {
     <AdminShell title="Tổng quan">
         <div v-if="route.query.moi" class="card mb-4 border-primary/40 bg-primary/5 p-4">
             <p class="font-semibold">Nhóm đã được tạo!</p>
-            <p class="mt-1 text-sm text-muted-foreground">Link nhóm: quynhom.hipotech.vn/{{ code }}. Làm 3 bước dưới đây để bắt đầu.</p>
+            <p class="mt-1 text-sm text-muted-foreground">Link nhóm: wepo.hipotech.vn/{{ code }}. Làm 3 bước dưới đây để bắt đầu.</p>
         </div>
+
+        <!-- Lối nhanh sang dòng thời gian của nhóm (trang thành viên và người ngoài nhìn thấy) -->
+        <RouterLink :to="`/${code}`" class="card mb-3 flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60">
+            <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Newspaper class="size-5" /></span>
+            <span class="min-w-0 flex-1">
+                <span class="block text-sm font-semibold">Xem timeline nhóm</span>
+                <span class="block truncate text-xs text-muted-foreground">Trang thành viên nhìn thấy</span>
+            </span>
+            <ChevronRight class="size-5 shrink-0 text-muted-foreground" />
+        </RouterLink>
 
         <p v-if="!data" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
 

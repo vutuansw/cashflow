@@ -197,6 +197,13 @@ class TransactionsTest extends TestCase
             ->assertJsonPath('data.0.title', 'Phiếu 50000');
 
         $this->getJson($this->adminUrl($group, 'transactions?type=income&q=100000'))->assertJsonCount(1, 'data');
+
+        // Lọc chỉ chi: danh sách chỉ còn phiếu chi, nhưng tổng vẫn giữ cả thu lẫn chi của kỳ (ô Thu không về 0).
+        $this->getJson($this->adminUrl($group, 'transactions?from=2026-02-01&to=2026-02-28&type=expense'))->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('totals.income', 200_000)
+            ->assertJsonPath('totals.expense', 50_000)
+            ->assertJsonPath('totals.count', 1);
         $this->getJson($this->adminUrl($group, 'transactions/options'))->assertOk()->assertJsonCount(6, 'categories');
     }
 }

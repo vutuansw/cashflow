@@ -43,27 +43,25 @@ class SettingsController extends Controller
         return $this->payload($request, $group);
     }
 
-    /** Ảnh đại diện hoặc ảnh bìa trên trang nhóm. */
+    /** Ảnh bìa đầu trang nhóm. Nhóm không có ảnh đại diện (plan/08 mục 10d). */
     public function uploadImage(Request $request, Group $group, ImageStore $images)
     {
-        $data = $request->validate([
-            'kind' => ['required', 'in:avatar,cover'],
+        $request->validate([
+            'kind' => ['nullable', 'in:cover'],
             'image' => ['required', 'file', 'mimes:'.implode(',', config('cashflow.images.mimes')), 'max:'.config('cashflow.limits.photo_upload_max_kb')],
         ]);
 
-        $column = $data['kind'].'_path';
-        $old = $group->{$column};
-        $group->update([$column => $images->storeGroupImage($group, $request->file('image'), $data['kind'])]);
+        $old = $group->cover_path;
+        $group->update(['cover_path' => $images->storeGroupCover($group, $request->file('image'))]);
         $images->delete([$old]);
 
         return $this->payload($request, $group);
     }
 
-    public function deleteImage(Request $request, Group $group, string $kind, ImageStore $images)
+    public function deleteImage(Request $request, Group $group, ImageStore $images)
     {
-        $column = $kind.'_path';
-        $images->delete([$group->{$column}]);
-        $group->update([$column => null]);
+        $images->delete([$group->cover_path]);
+        $group->update(['cover_path' => null]);
 
         return $this->payload($request, $group);
     }
@@ -140,8 +138,7 @@ class SettingsController extends Controller
             'code' => $group->code,
             'name' => $group->name,
             'description' => $group->description,
-            'avatar_url' => MediaUrl::brand($group, 'avatar'),
-            'cover_url' => MediaUrl::brand($group, 'cover'),
+            'cover_url' => MediaUrl::groupCover($group),
             'visibility' => $group->visibility,
             'opening_balance' => $group->opening_balance,
             'opening_balance_date' => $group->opening_balance_date?->toDateString(),

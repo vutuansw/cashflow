@@ -5,6 +5,7 @@ import { Lock } from 'lucide-vue-next';
 import CategoryDonut from '../components/CategoryDonut.vue';
 import MonthBars from '../components/MonthBars.vue';
 import BackButton from '../components/BackButton.vue';
+import PeriodNav from '../components/PeriodNav.vue';
 import { api, ApiError } from '../lib/api.js';
 import { formatMoney } from '../lib/money.js';
 
@@ -30,6 +31,13 @@ onMounted(async () => {
     load();
 });
 watch(year, (v, old) => old && v !== old && load());
+
+// Chọn năm bằng ‹ › như các màn lọc khác; chỉ đi trong các năm có số liệu (data.years).
+const years = computed(() => [...(data.value?.years ?? [])].sort((a, b) => a - b));
+const step = (d) => {
+    const i = years.value.indexOf(year.value) + d;
+    if (i >= 0 && i < years.value.length) year.value = years.value[i];
+};
 </script>
 
 <template>
@@ -40,9 +48,7 @@ watch(year, (v, old) => old && v !== old && load());
                 <p class="truncate text-xs text-muted-foreground">{{ group?.name }}</p>
                 <h1 class="font-semibold">Thống kê</h1>
             </div>
-            <select v-if="data" v-model.number="year" class="field !w-auto" aria-label="Năm">
-                <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
-            </select>
+            <PeriodNav v-if="data" class="shrink-0" :label="`Năm ${year}`" :can-prev="year > years[0]" :can-next="year < years.at(-1)" @prev="step(-1)" @next="step(1)" />
         </header>
 
         <div v-if="blocked" class="card m-4 p-6 text-center">

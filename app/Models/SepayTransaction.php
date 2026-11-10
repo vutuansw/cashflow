@@ -15,7 +15,7 @@ class SepayTransaction extends Model
 
     protected $fillable = [
         'sepay_id', 'gateway', 'transaction_date', 'account_number', 'account_mismatch', 'transfer_type',
-        'amount', 'content', 'reference_code', 'raw', 'matched_campaign_id', 'suggested_contact_id',
+        'amount', 'content', 'reference_code', 'raw', 'matched_campaign_id', 'campaign_guessed', 'suggested_contact_id',
         'status', 'ignore_reason', 'reviewed_by', 'reviewed_at',
     ];
 
@@ -33,6 +33,7 @@ class SepayTransaction extends Model
         return [
             'transaction_date' => 'datetime',
             'account_mismatch' => 'boolean',
+            'campaign_guessed' => 'boolean',
             'amount' => 'integer',
             'raw' => 'array',
             'reviewed_at' => 'datetime',

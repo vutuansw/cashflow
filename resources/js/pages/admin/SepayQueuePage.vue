@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { AlertTriangle, Check, Copy, RotateCcw, Settings, Sparkles, UserRound } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
+import SegmentedControl from '../../components/SegmentedControl.vue';
 import Sheet from '../../components/Sheet.vue';
 import PhotoViewer from '../../components/PhotoViewer.vue';
 import { adminApi } from '../../lib/api.js';
@@ -49,7 +50,8 @@ watch(source, (v) => {
     router.replace({ query: { ...route.query, loai: v === 'bill' ? 'bill' : undefined } });
 });
 
-const ready = computed(() => (items.value ?? []).filter((t) => t.ready));
+// Chiến dịch đoán (nội dung không có mã) không đưa vào Duyệt cả loạt, QTV duyệt từng cái.
+const ready = computed(() => (items.value ?? []).filter((t) => t.ready && !t.campaign_guessed));
 
 function errorText(e) {
     return Object.values(e.errors ?? {})[0]?.[0] ?? e.message;
@@ -129,19 +131,10 @@ const aiText = (c) =>
             <RouterLink :to="`/${code}/quan-tri/cai-dat#sepay`" class="font-semibold text-primary">Cài đặt</RouterLink>
         </div>
 
-        <div class="mb-3 grid grid-cols-2 rounded-xl bg-muted p-1 text-center text-sm font-semibold" role="tablist">
-            <button type="button" role="tab" :aria-selected="source === 'sepay'" class="min-h-10 rounded-lg" :class="source === 'sepay' ? 'bg-card shadow' : 'text-muted-foreground'" @click="source = 'sepay'">
-                Chuyển khoản<template v-if="totals.sepay"> <span class="ml-1 rounded-full bg-expense px-1.5 text-xs text-white">{{ totals.sepay }}</span></template>
-            </button>
-            <button type="button" role="tab" :aria-selected="source === 'bill'" class="min-h-10 rounded-lg" :class="source === 'bill' ? 'bg-card shadow' : 'text-muted-foreground'" @click="source = 'bill'">
-                Bill thành viên<template v-if="totals.claims"> <span class="ml-1 rounded-full bg-expense px-1.5 text-xs text-white">{{ totals.claims }}</span></template>
-            </button>
-        </div>
-
-        <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
-            <button v-for="s in [{ v: 'pending', l: 'Chờ duyệt' }, { v: 'ignored', l: 'Đã bỏ qua' }, { v: 'approved', l: 'Đã duyệt' }]" :key="s.v" type="button" class="chip !min-h-9 shrink-0 whitespace-nowrap !px-3.5 !text-sm" :class="status === s.v ? '!bg-primary !text-primary-foreground' : ''" @click="status = s.v">
-                {{ s.l }}<template v-if="counts[s.v]"> ({{ counts[s.v] }})</template>
-            </button>
+        <!-- Nguồn (chuyển khoản / bill thành viên) và trạng thái: ô chọn liền khối như các màn lọc khác -->
+        <div class="space-y-2">
+            <SegmentedControl v-model="source" label="Nguồn" :options="[{ v: 'sepay', l: 'Chuyển khoản', count: totals.sepay, badge: true }, { v: 'bill', l: 'Bill thành viên', count: totals.claims, badge: true }]" />
+            <SegmentedControl v-model="status" label="Trạng thái" :options="[{ v: 'pending', l: 'Chờ duyệt', count: counts.pending ?? 0 }, { v: 'ignored', l: 'Bỏ qua', count: counts.ignored ?? 0 }, { v: 'approved', l: 'Đã duyệt', count: counts.approved ?? 0 }]" />
         </div>
 
         <p v-if="!items" class="py-10 text-center text-sm text-muted-foreground">Đang tải…</p>
@@ -217,7 +210,8 @@ const aiText = (c) =>
                 </div>
                 <p class="mt-1 break-words rounded bg-muted px-2 py-1 font-mono text-sm">{{ t.content || '(không có nội dung)' }}</p>
                 <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span v-if="t.campaign" class="chip !bg-primary/15 !text-primary">{{ t.campaign.name }}</span>
+                    <span v-if="t.campaign && t.campaign_guessed" class="chip !bg-amber-100 !text-amber-800" title="Nội dung không có mã chiến dịch; nhóm chỉ có một chiến dịch đang mở nên đoán là chiến dịch này.">Đoán: {{ t.campaign.name }}</span>
+                    <span v-else-if="t.campaign" class="chip !bg-primary/15 !text-primary">{{ t.campaign.name }}</span>
                     <span v-if="t.contact" class="chip"><UserRound class="size-3" /> {{ t.contact.name }}</span>
                     <span v-if="t.transfer_type === 'out'" class="chip">Tiền ra</span>
                     <span v-if="t.account_mismatch" class="chip !bg-amber-100 !text-amber-800"><AlertTriangle class="size-3" /> Khác tài khoản nhóm đã khai</span>

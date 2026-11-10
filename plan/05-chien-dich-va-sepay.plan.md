@@ -26,8 +26,9 @@ Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 │ MB Bank · 0123 456 789        │
 │ NGUYEN VAN A                  │
 │ Số tiền: 500.000đ   [Chép]    │
-│ Nội dung: QNA12N26 <Tên bạn>  │
+│ Nội dung: VU DUC TUAN QNA12N26│
 │                       [Chép]  │
+│ (khách: không có dòng Nội dung)│
 │ [Tôi đã chuyển khoản, gửi bill]│
 ├──────────────────────────────┤
 │ Đã đóng (30) │ Chưa đóng (12) │
@@ -37,8 +38,13 @@ Ví dụ "Thu quỹ năm 2026", mỗi người 500.000đ.
 ```
 
 - Ảnh QR lấy từ dịch vụ QR của SePay (VietQR), không cần khóa:
-  `https://qr.sepay.vn/img?acc={STK}&bank={bank_code}&amount={số tiền}&des={transfer_code}`
-  QR chung một nội dung là mã chiến dịch; trang hướng dẫn người đóng **thêm tên mình** vào sau mã. Số tiền điền sẵn khi chiến dịch có số tiền mỗi người.
+  `https://qr.sepay.vn/img?acc={STK}&bank={bank_code}&amount={số tiền}&des={nội dung}`
+  Số tiền điền sẵn khi chiến dịch có số tiền mỗi người.
+- **Nội dung chuyển khoản theo người xem** (chốt 10/11/2026 — cần tên người đóng hơn mã chiến dịch):
+  - **Không biết người xem** (chưa đăng nhập, hoặc đăng nhập nhưng không phải thành viên nhóm): QR, deeplink và nút Chép **không có nội dung**. App ngân hàng tự điền mặc định "TÊN CHỦ TK chuyen tien", nhờ đó vẫn ra người đóng. Trang không hiện dòng "Nội dung" và nút Chép nội dung.
+  - **Biết người xem** (thành viên nhóm đã đăng nhập): nội dung là `{TÊN} {mã chiến dịch}`, ví dụ `VU DUC TUAN DT2026`. Tên lấy theo thứ tự: họ tên của danh bạ gắn với thành viên (`group_members.contact_id`, chính là tên app dùng để so khớp) → tên tài khoản.
+  - Tên bỏ dấu, chữ in hoa, chỉ giữ chữ, số và dấu cách. Một số ngân hàng cắt nội dung dài, nên giữ cả chuỗi **không quá 25 ký tự**: quá thì rút tên còn "đệm + tên" (hai chữ cuối), vẫn quá thì chỉ giữ tên; **mã chiến dịch luôn giữ nguyên** ở cuối. Ví dụ `PHAM THI THU TRANG QUYLOP2026` (29) → `THU TRANG QUYLOP2026`.
+  - Trang chiến dịch giờ khác nhau theo người xem, nên phản hồi API của trang không được cache chung (`Cache-Control: private`).
 - ~~Nút Tải ảnh QR~~: bỏ (chốt 10/11/2026), thay bằng nút **Tôi đã chuyển khoản, gửi bill** cho người đã chuyển trước khi nhận link, xem mục 5.
 - Nhóm chưa khai báo ngân hàng → trang chiến dịch không hiện QR, chỉ hiện tiến độ.
 - Danh sách đã đóng/chưa đóng chỉ hiện **tên**; đóng thiếu hiện "đã đóng 300.000/500.000". Không bao giờ hiện SĐT.
@@ -55,7 +61,7 @@ Màn hình **Cài đặt → Ngân hàng và SePay** trong quản trị nhóm:
 
 1. Nhập ngân hàng (chọn từ danh sách ngân hàng của SePay QR), số tài khoản, tên chủ tài khoản → đủ để hiện QR, chưa cần SePay.
 2. Bật "Tự nhận biến động số dư qua SePay" → hệ thống sinh **API key** ngẫu nhiên 40 ký tự cho nhóm và hiển thị:
-   - **Webhook URL**: `https://quynhom.hipotech.vn/api/webhooks/sepay/{ma-nhom}` [Chép]
+   - **Webhook URL**: `https://wepo.hipotech.vn/api/webhooks/sepay/{ma-nhom}` [Chép]
    - **API key** [Chép] [Tạo lại]
    - Hướng dẫn từng bước có ảnh minh họa: đăng ký my.sepay.vn → liên kết ngân hàng → *Tích hợp WebHooks* → *Thêm webhooks*: chọn tài khoản ngân hàng, sự kiện "Có tiền vào" và "Có tiền ra", URL ở trên, kiểu chứng thực **API Key**, dán API key, "Bỏ qua nếu nội dung không có mã thanh toán" = **Không**.
 3. Trạng thái kết nối: "Chưa nhận webhook nào" / "Đã kết nối — lần cuối 08/11 14:02". Có nút **Gửi thử** hướng dẫn dùng chức năng giả lập giao dịch của SePay.
@@ -91,6 +97,7 @@ Các bước:
 4. **Chống trùng**: `sepay_id` đã có trong nhóm → trả 200 luôn, không làm gì (SePay gửi lại khi lần trước không nhận được phản hồi).
 5. Lưu vào `sepay_transactions` trạng thái `pending`, kèm `raw`.
 6. Nhận diện: chuẩn hóa nội dung (bỏ dấu, chữ hoa, bỏ ký tự không phải chữ/số) rồi tìm `transfer_code` của các chiến dịch **đang mở** của nhóm → `matched_campaign_id`. Phần chữ còn lại sau mã (bỏ các từ như "chuyen tien", "CK", mã tham chiếu ngân hàng) so với danh bạ để ra `suggested_contact_id`; nếu không ra thì thử tên người chuyển trong `description`.
+   - **Tiền vào không có mã chiến dịch** (khách quét QR không nội dung, mục 1): nếu nhóm có **đúng một** chiến dịch đang mở thì gợi ý chiến dịch đó, gắn nhãn "Đoán" trên thẻ hàng chờ để QTV để ý; có nhiều chiến dịch đang mở thì để trống cho QTV chọn. Vẫn chờ duyệt như mọi giao dịch, không tự tạo phiếu. *(Đề xuất, chờ chốt.)*
 7. Cập nhật `sepay_last_hook_at`; đẩy job email thông báo (gộp 15 phút).
 8. Trả `200 {"success": true}` — SePay chỉ coi là thành công khi nhận đúng phản hồi này, nếu không sẽ gửi lại.
 
@@ -157,8 +164,8 @@ Trên điện thoại không tự quét được mã QR đang hiện trên chín
 
 Trang đóng quỹ trên điện thoại:
 1. Nút chính **Mở app ngân hàng để chuyển** → lưới biểu tượng app xếp theo mức phổ biến; app tự điền có nhãn **Tự điền sẵn**.
-2. Bấm app tự điền: mở app với đủ thông tin, nội dung là `{mã chiến dịch} ` để người đóng gõ thêm tên.
-3. Bấm app không tự điền: trước khi mở app, tự chép nội dung chuyển khoản vào bộ nhớ và nhắc "Đã chép nội dung, dán vào ô nội dung chuyển khoản". Nút Chép số TK, số tiền vẫn ở trên trang.
+2. Bấm app tự điền: mở app với đủ thông tin; nội dung theo người xem như mục 1 (`{TÊN} {mã}` hoặc để trống cho app ngân hàng tự điền tên).
+3. Bấm app không tự điền: nếu có nội dung (biết người xem) thì trước khi mở app tự chép nội dung vào bộ nhớ và nhắc "Đã chép nội dung, dán vào ô nội dung chuyển khoản"; không có nội dung thì mở app luôn. Nút Chép số TK, số tiền vẫn ở trên trang.
 4. Nhớ app đã chọn lần trước (lưu trên máy người dùng) và đưa lên đầu.
 5. QR thu nhỏ, nằm dưới nút chính (cho trường hợp nhờ người khác quét hộ). Trên máy tính giữ QR to như hiện nay, không hiện lưới app.
 6. VietQR lỗi hoặc không lấy được danh sách → ẩn lưới app, các nút Chép vẫn dùng được.
@@ -171,4 +178,5 @@ Cần kiểm trên điện thoại thật khi deploy (M6): cách ghi mã ngân h
 - Thành viên gửi bill: khách gửi được ở nhóm public, nhóm private thì bị chặn; giới hạn lần gửi; chưa duyệt thì chưa tính đã đóng; duyệt ra phiếu có bill; nhóm khác không thấy bill của nhóm này.
 - Chống trùng: trùng mã giao dịch với SePay (chờ hoặc đã duyệt) không tạo phiếu thứ hai; gửi lại cùng ảnh bị chặn; khớp mềm mặc định ghép; duyệt SePay tự đóng bill chờ khớp.
 - Deeplink: tạo link đúng tham số theo app; danh sách app cache, VietQR lỗi thì trang vẫn chạy.
+- Nội dung QR theo người xem: khách → QR, deeplink không có `des`/`tn`; thành viên gắn danh bạ → `{TÊN} {mã}` bỏ dấu, in hoa; tên dài rút gọn mà mã vẫn còn nguyên; nội dung này đưa vào webhook giả thì nhận ra đúng cả chiến dịch lẫn người đóng.
 - Lệnh `php artisan cashflow:sepay-simulate {ma-nhom} {so-tien} "{noi-dung}"` gửi webhook giả vào máy local để thử luồng mà không cần SePay.

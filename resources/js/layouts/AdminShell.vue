@@ -24,6 +24,7 @@ const code = computed(() => route.params.group);
 const group = computed(() => session.me?.groups.find((g) => g.code === code.value));
 const menu = computed(() => adminMenu(code.value));
 const tabs = computed(() => adminTabs(code.value));
+const myPage = computed(() => (group.value?.member_id ? `/${code.value}/thanh-vien/${group.value.member_id}` : '/ca-nhan'));
 
 // Nút + giữa thanh tab mở bảng chọn: Đọc bill / Phiếu thu / Phiếu chi (wireframe M2).
 const creating = ref(false);
@@ -71,9 +72,6 @@ function active(item) {
                     <span v-if="badge(item)" class="ml-auto rounded-full bg-expense px-1.5 text-xs font-semibold text-white">{{ badge(item) }}</span>
                 </RouterLink>
             </nav>
-            <RouterLink to="/ca-nhan" class="mt-auto flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium hover:bg-muted">
-                <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-7 text-xs" /> <span class="truncate">{{ session.me?.name }}</span>
-            </RouterLink>
         </aside>
 
         <div class="min-w-0 flex-1 pb-24 lg:pb-8">
@@ -85,6 +83,11 @@ function active(item) {
                     <h1 class="truncate text-lg font-semibold">{{ title }}</h1>
                 </div>
                 <slot name="actions" />
+                <!-- Tài khoản đang đăng nhập: bấm vào ra trang của tôi trong nhóm. Xem plan/08 mục 10b. -->
+                <RouterLink :to="myPage" class="-mr-2 flex min-h-11 max-w-56 shrink-0 items-center gap-2 rounded-full p-1 font-medium hover:bg-muted lg:pr-3" :aria-label="`Trang của tôi: ${session.me?.name ?? ''}`">
+                    <UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-9 text-sm" />
+                    <span class="hidden truncate lg:inline">{{ session.me?.name }}</span>
+                </RouterLink>
             </header>
             <main class="mx-auto max-w-4xl px-4 py-4 lg:px-8 lg:py-6"><InstallHint class="lg:hidden" /><slot /></main>
         </div>

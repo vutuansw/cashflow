@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Phục vụ ảnh từ đĩa riêng tư sau khi kiểm quyền, xem plan/03 mục 3:
  * - ảnh sự kiện: ai xem được timeline nhóm thì xem được (phiếu ẩn khỏi timeline hoặc đã xóa: chỉ QTV);
  * - ảnh bill chứng từ: chỉ QTV;
- * - ảnh đại diện, ảnh bìa: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện);
+ * - ảnh bìa nhóm: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện);
  * - ảnh đại diện, ảnh bìa trang cá nhân: công khai qua tên file ngẫu nhiên (plan/08 mục 4).
  */
 class MediaController extends Controller
@@ -47,9 +47,9 @@ class MediaController extends Controller
         return $this->file($item->path, false);
     }
 
-    public function brand(Group $group, string $kind, string $name)
+    public function groupCover(Group $group, string $name)
     {
-        $path = $kind === 'avatar' ? $group->avatar_path : $group->cover_path;
+        $path = $group->cover_path;
         abort_if($path === null || pathinfo($path, PATHINFO_FILENAME) !== $name, 404);
 
         return $this->file($path, true);

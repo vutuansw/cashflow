@@ -8,9 +8,11 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Models\PaymentClaim;
 use App\Services\Campaigns\CampaignProgress;
+use App\Services\Groups\GroupViewer;
 use App\Services\Groups\MemberIndex;
 use App\Services\Payments\BankApps;
 use App\Services\Payments\PaymentClaimService;
+use App\Support\TransferContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 class CampaignPageController extends Controller
 {
-    public function show(Group $group, string $slug, CampaignProgress $progress)
+    public function show(Request $request, Group $group, string $slug, CampaignProgress $progress)
     {
         $campaign = Campaign::query()->where('slug', $slug)->firstOrFail();
         $data = $progress->of($campaign);
@@ -32,8 +34,10 @@ class CampaignPageController extends Controller
         $pending = $pendingRows->filter()->flip()->all();
         $pendingCount = $pendingRows->count();
         $members = MemberIndex::of($group);
+        $content = $open ? TransferContent::forViewer(GroupViewer::of($request, $group), $campaign) : null;
 
-        return [
+        // Nội dung CK khác nhau theo người xem: không để proxy/trình duyệt dùng chung.
+        return response()->json([
             'id' => $campaign->id,
             'name' => $campaign->name,
             'slug' => $campaign->slug,
@@ -43,11 +47,13 @@ class CampaignPageController extends Controller
             'target_amount' => $campaign->target_amount,
             'ends_on' => $campaign->ends_on?->toDateString(),
             'transfer_code' => $open ? $campaign->transfer_code : null,
+            // null = không biết người xem: QR không có nội dung, app ngân hàng tự điền tên chủ tài khoản.
+            'transfer_content' => $content,
             'bank' => $open && $hasBank ? [
                 'code' => $group->bank_code,
                 'account_no' => $group->bank_account_no,
                 'account_name' => $group->bank_account_name,
-                'qr_url' => self::qrUrl($group, $campaign),
+                'qr_url' => self::qrUrl($group, $campaign, $content),
             ] : null,
             'collected' => $data['collected'],
             'expected_total' => $data['expected_total'],
@@ -60,7 +66,7 @@ class CampaignPageController extends Controller
                 'member_id' => $members->contact($p['contact_id'])['member_id'] ?? null,
             ], $data['people']),
             'pending_claims' => $pendingCount,
-        ];
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     /**
@@ -108,32 +114,33 @@ class CampaignPageController extends Controller
 
     /**
      * App ngân hàng mở được bằng deeplink VietQR, kèm link đã điền sẵn tài
-     * khoản nhóm, số tiền, mã chiến dịch (plan/05 mục 5b). Máy tính trả rỗng.
+     * khoản nhóm, số tiền, nội dung theo người xem (plan/05 mục 1, 5b). Máy tính trả rỗng.
      */
     public function bankApps(Request $request, Group $group, string $slug, BankApps $apps)
     {
         $campaign = Campaign::query()->where('slug', $slug)->where('status', 'open')->firstOrFail();
         abort_if($group->bank_code === null || $group->bank_account_no === null, 404);
 
+        $content = TransferContent::forViewer(GroupViewer::of($request, $group), $campaign);
         $os = $request->query('os');
         $os = in_array($os, ['ios', 'android'], true) ? $os : BankApps::os($request->userAgent());
 
-        return [
+        return response()->json([
             'os' => $os,
             'apps' => $os === null ? [] : array_map(fn ($a) => $a + [
-                'url' => BankApps::deeplink($a['id'], $group->bank_account_no, $group->bank_code, $campaign->amount_per_member, $campaign->transfer_code),
+                'url' => BankApps::deeplink($a['id'], $group->bank_account_no, $group->bank_code, $campaign->amount_per_member, $content),
             ], $apps->list($os)),
-        ];
+        ])->header('Cache-Control', 'private, no-store');
     }
 
-    /** QR VietQR của SePay, không cần khóa. Nội dung là mã chiến dịch, người đóng tự thêm tên phía sau. */
-    public static function qrUrl(Group $group, Campaign $campaign): string
+    /** QR VietQR của SePay, không cần khóa. Không có nội dung thì app ngân hàng tự điền tên người chuyển. */
+    public static function qrUrl(Group $group, Campaign $campaign, ?string $content): string
     {
         return 'https://qr.sepay.vn/img?'.http_build_query(array_filter([
             'acc' => $group->bank_account_no,
             'bank' => $group->bank_code,
             'amount' => $campaign->amount_per_member,
-            'des' => $campaign->transfer_code,
+            'des' => $content,
             'template' => 'compact',
         ]));
     }

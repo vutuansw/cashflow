@@ -66,11 +66,11 @@ class ImageStore
         return $path;
     }
 
-    /** Ảnh đại diện (vuông) hoặc ảnh bìa (tỉ lệ 3:1) của nhóm. */
-    public function storeGroupImage(Group $group, UploadedFile $file, string $kind): string
+    /** Ảnh bìa nhóm, tỉ lệ 3:1. Nhóm không có ảnh đại diện (plan/08 mục 10d). */
+    public function storeGroupCover(Group $group, UploadedFile $file): string
     {
-        $path = $this->basePath($group, 'brand', $kind).'.webp';
-        $this->put($path, $this->cropForKind($this->read($file), $kind));
+        $path = $this->basePath($group, 'brand', 'cover').'.webp';
+        $this->put($path, $this->cropForKind($this->read($file), 'cover'));
 
         return $path;
     }

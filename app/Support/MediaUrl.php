@@ -23,12 +23,15 @@ class MediaUrl
         return "/media/{$group->code}/b/{$scan->id}";
     }
 
-    /** Ảnh đại diện/bìa: tên file ngẫu nhiên nằm trên URL nên đổi ảnh là đổi URL. */
-    public static function brand(Group $group, string $kind): ?string
+    /**
+     * Ảnh bìa nhóm (nhóm không có ảnh đại diện, plan/08 mục 10d): tên file ngẫu nhiên nằm trên URL nên đổi ảnh là
+     * đổi URL. Giữ đường dẫn /brand/cover để link cũ vẫn chạy.
+     */
+    public static function groupCover(Group $group): ?string
     {
-        $path = $kind === 'avatar' ? $group->avatar_path : $group->cover_path;
+        $path = $group->cover_path;
 
-        return $path === null ? null : "/media/{$group->code}/brand/{$kind}/".pathinfo($path, PATHINFO_FILENAME);
+        return $path === null ? null : "/media/{$group->code}/brand/cover/".pathinfo($path, PATHINFO_FILENAME);
     }
 
     /**

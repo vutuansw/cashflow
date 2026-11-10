@@ -76,7 +76,7 @@ class SepayQueueController extends Controller
         return ['transaction_id' => $transaction->id] + $this->count();
     }
 
-    /** Duyệt cả loạt các giao dịch tiền vào đã nhận ra đủ chiến dịch và người đóng. */
+    /** Duyệt cả loạt các giao dịch tiền vào đã nhận ra đủ chiến dịch (không tính chiến dịch đoán) và người đóng. */
     public function approveMany(Request $request, Group $group)
     {
         $ids = $request->validate(['ids' => ['required', 'array', 'max:200'], 'ids.*' => ['integer']])['ids'];
@@ -84,6 +84,11 @@ class SepayQueueController extends Controller
         $failed = [];
 
         foreach (SepayTransaction::query()->whereIn('id', $ids)->where('status', 'pending')->get() as $sepay) {
+            if ($sepay->campaign_guessed) {
+                $failed[] = ['id' => $sepay->id, 'message' => 'Chiến dịch chỉ là đoán, hãy duyệt riêng giao dịch này.'];
+
+                continue;
+            }
             try {
                 $this->approveOne($group, $request, $sepay, null, null);
                 $done++;
@@ -163,6 +168,8 @@ class SepayQueueController extends Controller
             'reference_code' => $t->reference_code,
             'account_mismatch' => $t->account_mismatch,
             'campaign' => $t->matchedCampaign ? ['id' => $t->matchedCampaign->id, 'name' => $t->matchedCampaign->name] : null,
+            // Đoán vì nội dung không có mã: hiện nhãn "Đoán", không đưa vào Duyệt cả loạt.
+            'campaign_guessed' => $t->campaign_guessed,
             'contact' => $t->suggestedContact ? ['id' => $t->suggestedContact->id, 'name' => $t->suggestedContact->full_name] : null,
             'status' => $t->status,
             'ignore_reason' => $t->ignore_reason,

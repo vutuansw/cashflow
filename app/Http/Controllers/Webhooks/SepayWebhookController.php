@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendSepayDigest;
+use App\Models\Campaign;
 use App\Models\Group;
 use App\Models\SepayTransaction;
 use App\Services\GroupServiceStatus;
@@ -66,6 +67,18 @@ class SepayWebhookController extends Controller
         $amount = (int) round((float) $data['transferAmount']);
         $draft = $matcher->draft($data['transferType'], $amount, $at->format('Y-m-d H:i'), $content, $data['description'] ?? null);
 
+        // Tiền vào không có mã chiến dịch (khách quét QR không nội dung, plan/05 mục 1):
+        // nhóm chỉ có một chiến dịch đang mở thì đoán là chiến dịch đó, QTV vẫn duyệt.
+        $campaignId = $data['transferType'] === 'in' ? $draft['campaign_id'] : null;
+        $guessed = false;
+        if ($data['transferType'] === 'in' && $campaignId === null) {
+            $open = Campaign::query()->where('status', 'open')->limit(2)->pluck('id');
+            if ($open->count() === 1) {
+                $campaignId = $open->first();
+                $guessed = true;
+            }
+        }
+
         $account = preg_replace('/\D/', '', (string) ($data['accountNumber'] ?? ''));
         $ours = preg_replace('/\D/', '', (string) $model->bank_account_no);
 
@@ -82,7 +95,8 @@ class SepayWebhookController extends Controller
                 'content' => $content,
                 'reference_code' => isset($data['referenceCode']) ? mb_substr((string) $data['referenceCode'], 0, 100) : null,
                 'raw' => $data,
-                'matched_campaign_id' => $data['transferType'] === 'in' ? $draft['campaign_id'] : null,
+                'matched_campaign_id' => $campaignId,
+                'campaign_guessed' => $guessed,
                 'suggested_contact_id' => $draft['contact_id'],
                 'status' => 'pending',
             ]);

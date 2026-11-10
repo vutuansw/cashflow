@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { ClipboardPaste, KeyRound, Phone, Plus, Search, UserPlus, UserRound } from 'lucide-vue-next';
+import { ClipboardPaste, KeyRound, Phone, Plus, UserPlus, UserRound } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
+import FilterBar from '../../components/FilterBar.vue';
 import FormField from '../../components/FormField.vue';
+import SegmentedControl from '../../components/SegmentedControl.vue';
 import Sheet from '../../components/Sheet.vue';
 import TempPasswordCard from '../../components/TempPasswordCard.vue';
 import { adminApi } from '../../lib/api.js';
@@ -102,17 +104,12 @@ function birthday(value) {
             <button class="icon-btn" aria-label="Thêm người" @click="openEdit()"><Plus class="size-5" /></button>
         </template>
 
-        <div class="flex gap-2">
-            <label class="relative flex-1">
-                <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input v-model="search" type="search" placeholder="Tìm theo tên" class="field pl-9" />
-            </label>
-            <select v-model="status" class="field w-auto">
-                <option value="active">Đang tham gia</option>
-                <option value="left">Đã rời nhóm</option>
-                <option value="all">Tất cả</option>
-            </select>
-        </div>
+        <!-- Bộ lọc dùng chung kiểu các màn danh sách khác: ô tìm, dưới là ô chọn trạng thái liền khối -->
+        <FilterBar v-model:q="search" placeholder="Tìm theo tên">
+            <template #below>
+                <SegmentedControl v-model="status" label="Trạng thái" :options="[{ v: 'active', l: 'Đang tham gia' }, { v: 'left', l: 'Đã rời' }, { v: 'all', l: 'Tất cả' }]" />
+            </template>
+        </FilterBar>
 
         <p class="mt-3 text-sm text-muted-foreground">{{ loading ? 'Đang tải...' : `${contacts.length} người` }}</p>
 

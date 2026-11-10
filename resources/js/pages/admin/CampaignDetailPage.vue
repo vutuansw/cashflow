@@ -5,6 +5,7 @@ import { Banknote, CheckCircle2, CircleDashed, CircleDot, Copy, ExternalLink, Pe
 import AdminShell from '../../layouts/AdminShell.vue';
 import FormField from '../../components/FormField.vue';
 import MoneyInput from '../../components/MoneyInput.vue';
+import SegmentedControl from '../../components/SegmentedControl.vue';
 import Sheet from '../../components/Sheet.vue';
 import { adminApi } from '../../lib/api.js';
 import { copyText } from '../../lib/clipboard.js';
@@ -34,12 +35,12 @@ const groups = computed(() => {
         exempt: people.filter((p) => p.status === 'exempt'),
     };
 });
-const tabs = [
+const tabs = computed(() => [
     { v: 'unpaid', l: 'Chưa đóng' },
     { v: 'partial', l: 'Đóng thiếu' },
     { v: 'paid', l: 'Đã đủ' },
     { v: 'exempt', l: 'Miễn' },
-];
+].map((t) => ({ ...t, count: groups.value[t.v].length })));
 const publicUrl = computed(() => `${location.origin}/${code.value}/chien-dich/${data.value?.slug}`);
 
 function copyReminder() {
@@ -81,9 +82,7 @@ async function saveCash() {
                 <button v-if="groups.unpaid.length + groups.partial.length" type="button" class="btn-primary mt-2 w-full !min-h-10 text-sm" @click="copyReminder"><Copy class="size-4" /> Chép danh sách chưa đóng để nhắc</button>
             </section>
 
-            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm">
-                <button v-for="t in tabs" :key="t.v" type="button" class="chip !min-h-9 shrink-0 !px-3.5 !text-sm" :class="filter === t.v ? '!bg-primary !text-primary-foreground' : ''" @click="filter = t.v">{{ t.l }} ({{ groups[t.v].length }})</button>
-            </div>
+            <SegmentedControl v-model="filter" :options="tabs" label="Lọc theo tình trạng đóng" />
 
             <ul class="card divide-y divide-border">
                 <li v-for="(p, i) in groups[filter]" :key="p.contact_id ?? `n${i}`" class="flex items-center gap-3 px-3 py-2">

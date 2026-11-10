@@ -19,7 +19,10 @@ class TransactionController extends Controller
 {
     public function __construct(private readonly TransactionWriter $writer) {}
 
-    /** Danh sách có lọc; kèm tổng thu, tổng chi của bộ lọc. */
+    /**
+     * Danh sách có lọc; kèm tổng thu, tổng chi của bộ lọc. Tổng không tính bộ lọc thu/chi: màn danh sách bấm ô Thu
+     * hoặc Chi để lọc, hai ô vẫn phải giữ số của kỳ chứ không về 0.
+     */
     public function index(Request $request)
     {
         $filters = $request->validate([
@@ -37,7 +40,6 @@ class TransactionController extends Controller
             ->when($request->boolean('trashed'), fn ($q) => $q->onlyTrashed()->where('deleted_at', '>=', now()->subDays(config('cashflow.restore_days'))))
             ->when($filters['from'] ?? null, fn ($q, $v) => $q->where('occurred_at', '>=', $v))
             ->when($filters['to'] ?? null, fn ($q, $v) => $q->where('occurred_at', '<', now()->parse($v)->addDay()->startOfDay()))
-            ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('category_id', $v))
             ->when($filters['campaign_id'] ?? null, fn ($q, $v) => $q->where('campaign_id', $v))
             ->when($filters['source'] ?? null, fn ($q, $v) => $q->where('source', $v))
@@ -47,6 +49,7 @@ class TransactionController extends Controller
                 ->orWhereIn('contact_id', Contact::where('search_name', 'like', '%'.addcslashes(VietnameseText::fold($v), '%_\\').'%')->select('id'))));
 
         $totals = (clone $query)->selectRaw('type, SUM(amount) as total, COUNT(*) as n')->groupBy('type')->toBase()->get()->keyBy('type');
+        $query->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v));
 
         $page = $query
             ->with(['category', 'contact:id,group_id,full_name', 'campaign:id,name'])
@@ -60,7 +63,7 @@ class TransactionController extends Controller
             'totals' => [
                 'income' => (int) ($totals['income']->total ?? 0),
                 'expense' => (int) ($totals['expense']->total ?? 0),
-                'count' => (int) $totals->sum('n'),
+                'count' => (int) (isset($filters['type']) ? ($totals[$filters['type']]->n ?? 0) : $totals->sum('n')),
             ],
         ];
     }
