@@ -64,6 +64,12 @@ Cùng VPS với chatbot, theo khuôn `www/chatbot/deploy`:
 
 `deploy/README.md` hướng dẫn dựng server lần đầu, giống chatbot.
 
+**Đã dựng ngày 10/11/2026** trên VPS `farmgo.vn` (chung FarmGo, chatbot):
+- Composer riêng `/opt/composer/composer.phar`, vì bản chung 2.1 quá cũ cho Laravel 13.
+- Nginx `/etc/nginx/sites-available/wepo.hipotech.vn`: giới hạn tải lên 20MB chỉ cho site này. SSL lấy bằng certbot webroot `/var/www/html`, tự gia hạn.
+- Mật khẩu MySQL và `PHONE_HASH_KEY` lưu thêm ở `/root/wepo-secrets` (chỉ root đọc). Chép `.env` server ra chỗ an toàn ngoài server.
+- Webhook SePay của từng nhóm: `https://wepo.hipotech.vn/api/webhooks/sepay/{ma-nhom}`.
+
 ### 4a. Tài khoản quản trị `/system` đầu tiên
 
 Chủ dự án chốt ngày 10/11/2026: email **weposupport@gmail.com**. Mật khẩu tạm do chủ dự án đưa trong chat, **không ghi vào git**; chủ dự án tự đổi sau lần đăng nhập đầu. Tạo trên server sau khi migrate:
