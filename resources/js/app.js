@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import { legacyRedirect } from './lib/legacyUrls.js';
 import { loadSystemMe } from './lib/systemApi.js';
-import './lib/install.js';
+import { lastGroup } from './lib/install.js';
 import { canManage, homePath, loadMe, session } from './lib/session.js';
 
 // Bảng route của SPA, xem plan/plan.md mục 4 và plan/06 mục 3.
@@ -89,6 +89,16 @@ router.beforeEach(async (to) => {
 
     await loadMe();
     const me = session.me;
+
+    // Mở từ icon màn hình chính (manifest start_url /groups?pwa=1): vào thẳng nhóm.
+    // Có tài khoản: nhóm của mình (nhiều nhóm thì nhóm vừa xem, không có thì trang chọn nhóm).
+    // Khách: nhóm công khai vừa xem, chưa xem nhóm nào thì trang chủ.
+    if (to.path === '/groups' && to.query.pwa) {
+        const last = lastGroup();
+        if (!me) return last ? `/${last}` : '/';
+        if (me.groups.length > 1 && last && me.groups.some((g) => g.code === last)) return `/${last}`;
+        return homePath(me) === '/groups' ? '/groups' : homePath(me);
+    }
 
     if (to.meta.guest && me) return homePath(me);
     if (to.meta.auth && !me) return { path: '/login', query: { next: to.fullPath } };

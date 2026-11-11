@@ -14,6 +14,8 @@ import { monthLabel } from '../lib/time.js';
 import { logout, session } from '../lib/session.js';
 import SiteFooter from '../components/SiteFooter.vue';
 import GroupRules from '../components/GroupRules.vue';
+import InstallHint from '../components/InstallHint.vue';
+import { rememberGroup } from '../lib/install.js';
 
 // Trang nhóm /{ma-nhom}, bố cục như nhóm Facebook (plan/08 mục 10d): ảnh bìa, tên, hàng avatar thành viên, nút,
 // tab; máy tính chia hai cột (dòng thời gian trái; chiến dịch đang mở phải). Nội dung xem plan/03 mục 4.
@@ -55,6 +57,7 @@ async function loadHeader() {
         return;
     }
     if (group.value.can_view) {
+        rememberGroup(code.value);
         api(`/g/${code.value}/summary`).then((s) => (summary.value = s)).catch(() => {});
         resetFeed();
     }
@@ -188,6 +191,8 @@ onBeforeUnmount(() => observer?.disconnect());
             <!-- Điện thoại: chiến dịch đang mở rồi dòng thời gian. Máy tính: dòng thời gian trái, chiến dịch phải.
                  Số dư và biểu đồ nằm ở tab Thống kê. -->
             <div v-else class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4" :class="{ 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]': hasAside }">
+                <!-- Điện thoại: gợi ý thêm WePo ra màn hình chính để lần sau chạm icon là vào nhóm. -->
+                <InstallHint class="!mb-0 lg:hidden" />
                 <aside v-if="hasAside" class="space-y-3 lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
 
 

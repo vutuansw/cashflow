@@ -30,6 +30,25 @@ export function dismiss() {
     }
 }
 
+// Nhóm vừa xem gần nhất: mở WePo từ icon màn hình chính thì vào lại nhóm này (khách chưa có tài khoản cũng vậy).
+const LAST_GROUP = 'wepo:last-group';
+
+export function rememberGroup(code) {
+    try {
+        localStorage.setItem(LAST_GROUP, code);
+    } catch {
+        // Trình duyệt chặn lưu trữ: bỏ qua.
+    }
+}
+
+export function lastGroup() {
+    try {
+        return localStorage.getItem(LAST_GROUP);
+    } catch {
+        return null;
+    }
+}
+
 window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     install.prompt = event;
