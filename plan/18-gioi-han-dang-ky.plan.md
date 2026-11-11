@@ -1,6 +1,6 @@
 # Giới hạn đăng ký: không chặn người nhập sai
 
-Ngày: 11/11/2026. Trạng thái: **đã làm, chưa deploy**.
+Ngày: 11/11/2026. Trạng thái: **đã làm, đã deploy** (commit `7d03928`).
 
 ## Lỗi
 
@@ -17,6 +17,7 @@ Ngày: 11/11/2026. Trạng thái: **đã làm, chưa deploy**.
 - **Thông báo 429 tiếng Việt** cho mọi API: "Bạn thử quá nhiều lần. Đợi N phút rồi thử lại nhé." (dưới 1 phút thì ghi giây), xử lý trong `bootstrap/app.php`.
 - Test trong `RegisterTest`: nhập sai 5 lần vẫn đăng ký được; 10 tài khoản/giờ; 30 lần gửi thì bị chặn kèm câu tiếng Việt.
 
-## Lưu ý khi deploy
+## Sau khi deploy
 
-- Bộ đếm cũ của IP đang bị chặn hết hạn sau 1 tiếng kể từ lần bị chặn (khoảng 11:18 ngày 11/11/2026). Muốn mở ngay thì xóa cache rate limiter trên server.
+- Giới hạn mới đếm theo khóa khác (`created:`/`tries:` + IP) nên bộ đếm cũ không còn dùng: khách đang bị chặn đăng ký lại được ngay, không cần xóa cache.
+- Đã thử trên production: gọi `/api/group-code` quá 60 lần/phút thì nhận 429 "Bạn thử quá nhiều lần. Đợi 34 giây rồi thử lại nhé."
