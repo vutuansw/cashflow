@@ -74,3 +74,8 @@ Ghi lại: VietQR không còn chuyển thông tin cho app nào (kiểm 11/11/202
 
 - Ảnh QR tải sẵn ngay khi mở trang trên điện thoại: Safari chỉ cho mở bảng Chia sẻ ngay sau lúc bấm, chờ tải ảnh xong mới chia sẻ thì bị chặn.
 - Ảnh lưu trong cache dạng base64 theo URL ảnh SePay (mỗi nội dung một ảnh), giới hạn 30 lượt/phút mỗi IP.
+
+## Deploy
+
+- 11/11/2026, commit `f7064fd`: lên wepo.hipotech.vn sau khoảng 30 giây. `GET /api/g/nhomdemo/campaigns/thu-quy-2026/qr.png` trả ảnh PNG 200.
+- Còn thử trên điện thoại thật: Lưu ảnh QR lưu được vào thư viện, MB Bank quét ảnh đó điền đủ số tiền và nội dung.
