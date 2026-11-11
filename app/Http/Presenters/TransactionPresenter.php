@@ -48,7 +48,7 @@ class TransactionPresenter
             'occurred_at' => $t->occurred_at->toIso8601String(),
             'person' => $t->personName(),
             // Người đóng/người nhận đã có tài khoản trong nhóm thì tên bấm được, mở trang thành viên (plan/08 mục 6).
-            'person_member_id' => MemberIndex::of($group)->contact($t->contact_id)['member_id'] ?? null,
+            'person_member_handle' => MemberIndex::of($group)->contact($t->contact_id)['member_handle'] ?? null,
             'category' => self::category($t->category),
             'campaign' => $t->campaign ? ['id' => $t->campaign->id, 'name' => $t->campaign->name, 'slug' => $t->campaign->slug] : null,
             'photos' => $t->photos->map(fn (TransactionPhoto $p) => self::photo($group, $p))->values(),
@@ -75,6 +75,7 @@ class TransactionPresenter
             'campaign' => $t->campaign?->name,
             'source' => $t->source,
             'show_on_timeline' => $t->show_on_timeline,
+            'exclude_from_top' => $t->exclude_from_top,
             'photos_count' => (int) ($t->photos_count ?? 0),
             'bills_count' => (int) ($t->bill_scans_count ?? 0),
             'deleted_at' => $t->deleted_at?->toIso8601String(),
@@ -143,6 +144,7 @@ class TransactionPresenter
             'type' => 'Thu/chi', 'category_id' => 'Loại', 'campaign_id' => 'Chiến dịch', 'contact_id' => 'Người trong danh bạ',
             'amount' => 'Số tiền', 'occurred_at' => 'Ngày giờ', 'title' => 'Tiêu đề', 'description' => 'Mô tả',
             'payer_name' => 'Tên người', 'show_on_timeline' => 'Hiện trên timeline',
+            'exclude_from_top' => 'Không tính vào Top đóng góp',
         ];
         $categories ??= Category::query()->pluck('name', 'id')->all();
 
@@ -151,7 +153,7 @@ class TransactionPresenter
                 'type' => $value === 'income' ? 'Thu' : ($value === 'expense' ? 'Chi' : $value),
                 'category_id' => $categories[$value] ?? $value,
                 'amount' => $value === null ? null : number_format((int) $value, 0, ',', '.').' đ',
-                'show_on_timeline' => $value ? 'Có' : 'Không',
+                'show_on_timeline', 'exclude_from_top' => $value ? 'Có' : 'Không',
                 default => $value,
             };
         };

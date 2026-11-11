@@ -56,7 +56,7 @@ class MemberProfileTest extends TestCase
         $this->makeTx($group, ['contact_id' => $m->contact_id, 'title' => 'Phiếu ẩn', 'show_on_timeline' => false]);
         $this->makeTx($group, ['contact_id' => $this->memberRow($group, $other)->contact_id, 'title' => 'Người khác']);
 
-        $base = "/api/g/{$group->code}/members/{$m->id}";
+        $base = "/api/g/{$group->code}/members/{$m->handle}";
         $this->getJson($base)->assertOk()
             ->assertJsonPath('member.name', 'Lan')
             ->assertJsonPath('member.bio', 'Thành viên chi đoàn')
@@ -75,12 +75,35 @@ class MemberProfileTest extends TestCase
         $this->actingAs($lan)->getJson($base)->assertJsonPath('member.is_me', true);
     }
 
+    /** Link trang thành viên dùng mã ngẫu nhiên, không dùng id tự tăng (plan/25). */
+    public function test_link_thanh_vien_dung_ma_ngau_nhien_khong_dung_id(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        $lan = $this->memberOf($group);
+        $m = $this->memberRow($group, $lan);
+
+        // Dòng mới nào cũng tự có mã 10 ký tự a-z0-9, mỗi người một mã khác nhau.
+        $this->assertMatchesRegularExpression('/^[a-z0-9]{10}$/', $m->handle);
+        $handles = GroupMember::pluck('handle');
+        $this->assertSame($handles->count(), $handles->unique()->count());
+
+        // Id số không còn mở được trang, kể cả trang chính mình.
+        $this->getJson("/api/g/{$group->code}/members/{$m->id}")->assertNotFound();
+        $this->getJson("/api/g/{$group->code}/members/{$m->id}/timeline")->assertNotFound();
+        $this->getJson("/api/g/{$group->code}/members/zzzzzzzzzz")->assertNotFound();
+
+        // Trang thành viên không trả id ra ngoài.
+        $this->getJson("/api/g/{$group->code}/members/{$m->handle}")->assertOk()
+            ->assertJsonPath('member.handle', $m->handle)
+            ->assertJsonMissingPath('member.id');
+    }
+
     public function test_quyen_xem_trang_thanh_vien(): void
     {
         $group = $this->makeGroup(['visibility' => 'private']);
         $lan = $this->memberOf($group);
         $m = $this->memberRow($group, $lan);
-        $url = "/api/g/{$group->code}/members/{$m->id}";
+        $url = "/api/g/{$group->code}/members/{$m->handle}";
 
         $this->getJson($url)->assertForbidden();
         $this->actingAs($this->ownerOf($this->makeGroup()))->getJson($url)->assertForbidden();
@@ -88,7 +111,7 @@ class MemberProfileTest extends TestCase
 
         // Mã thành viên của nhóm khác không mở được qua nhóm này.
         $foreign = $this->makeGroup();
-        $this->getJson("/api/g/{$group->code}/members/{$this->memberRow($foreign, $this->ownerOf($foreign))->id}")->assertNotFound();
+        $this->getJson("/api/g/{$group->code}/members/{$this->memberRow($foreign, $this->ownerOf($foreign))->handle}")->assertNotFound();
 
         // Đã rời nhóm: thành viên thường không thấy, QTV vẫn thấy.
         $m->update(['status' => 'removed']);
@@ -107,33 +130,33 @@ class MemberProfileTest extends TestCase
         $this->actingAs($lan)->postJson("/api/g/{$group->code}/posts/{$post->id}/comments", ['body' => 'Cảm ơn cả nhóm'])
             ->assertCreated()
             ->assertJsonPath('user.name', 'Lan')
-            ->assertJsonPath('user.member_id', $m->id);
+            ->assertJsonPath('user.member_handle', $m->handle);
 
         $feed = collect($this->getJson("/api/g/{$group->code}/timeline")->json('data'))->keyBy('title');
-        $this->assertSame($m->id, $feed['Thăm ốm']['person_member_id']);
-        $this->assertSame($m->id, $feed['Thăm ốm']['comments'][0]['user']['member_id']);
-        $this->assertNull($feed['Ủng hộ']['person_member_id']);
+        $this->assertSame($m->handle, $feed['Thăm ốm']['person_member_handle']);
+        $this->assertSame($m->handle, $feed['Thăm ốm']['comments'][0]['user']['member_handle']);
+        $this->assertNull($feed['Ủng hộ']['person_member_handle']);
     }
 
     /** Lối vào "trang của tôi" từ timeline và /ca-nhan. Xem plan/08 mục 10b. */
-    public function test_nguoi_xem_biet_member_id_cua_minh(): void
+    public function test_nguoi_xem_biet_member_handle_cua_minh(): void
     {
         $group = $this->makeGroup(['visibility' => 'public']);
         $lan = $this->memberOf($group);
         $m = $this->memberRow($group, $lan);
 
-        $this->getJson("/api/g/{$group->code}")->assertOk()->assertJsonPath('viewer.member_id', null);
+        $this->getJson("/api/g/{$group->code}")->assertOk()->assertJsonPath('viewer.member_handle', null);
 
-        $this->actingAs($lan)->getJson("/api/g/{$group->code}")->assertOk()->assertJsonPath('viewer.member_id', $m->id);
+        $this->actingAs($lan)->getJson("/api/g/{$group->code}")->assertOk()->assertJsonPath('viewer.member_handle', $m->handle);
         $this->getJson('/api/me')->assertOk()
             ->assertJsonPath('data.groups.0.code', $group->code)
-            ->assertJsonPath('data.groups.0.member_id', $m->id);
+            ->assertJsonPath('data.groups.0.member_handle', $m->handle);
 
-        // Người của nhóm khác xem nhóm public: không có member_id.
+        // Người của nhóm khác xem nhóm public: không có member_handle.
         $other = $this->ownerOf($this->makeGroup());
         $this->actingAs($other)->getJson("/api/g/{$group->code}")->assertOk()
             ->assertJsonPath('viewer.logged_in', true)
-            ->assertJsonPath('viewer.member_id', null);
+            ->assertJsonPath('viewer.member_handle', null);
     }
 
     public function test_danh_sach_thanh_vien_chi_ten_anh_va_vai_tro(): void
@@ -150,9 +173,10 @@ class MemberProfileTest extends TestCase
         $this->assertCount($this->getJson("/api/g/{$group->code}")->json('members_count'), $rows);
         $this->assertFalse($rows->has('Đã rời'));
         $this->assertSame('Quản trị viên', $rows['Hiển']['role_label']);
-        $this->assertSame($this->memberRow($group, $lan)->id, $rows['Lan']['member_id']);
+        $this->assertSame($this->memberRow($group, $lan)->handle, $rows['Lan']['member_handle']);
+        $this->assertArrayNotHasKey('member_id', $rows['Lan']);
         $this->assertNull($rows['Lan']['role_label']);
-        $this->assertNull($rows['Nam']['member_id']);
+        $this->assertNull($rows['Nam']['member_handle']);
         $this->assertArrayNotHasKey('phone', $rows['Nam']);
 
         // Nhóm riêng tư: khách không xem được.

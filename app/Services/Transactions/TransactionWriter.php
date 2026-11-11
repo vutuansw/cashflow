@@ -31,7 +31,7 @@ class TransactionWriter
     /** Các trường được ghi vào lịch sử khi đổi. */
     private const TRACKED = [
         'type', 'category_id', 'campaign_id', 'contact_id', 'amount', 'occurred_at', 'title',
-        'description', 'payer_name', 'show_on_timeline',
+        'description', 'payer_name', 'show_on_timeline', 'exclude_from_top',
     ];
 
     public function __construct(
@@ -208,6 +208,26 @@ class TransactionWriter
         return $transaction;
     }
 
+    /** Ẩn / bỏ ẩn một phiếu thu khỏi box "Top đóng góp" (plan/22), ghi lịch sử như sửa phiếu. */
+    public function setExcludeFromTop(Transaction $transaction, User $user, bool $exclude): Transaction
+    {
+        if ($transaction->exclude_from_top === $exclude) {
+            return $transaction;
+        }
+
+        DB::connection('groups')->transaction(function () use ($transaction, $user, $exclude) {
+            $transaction->forceFill(['exclude_from_top' => $exclude, 'updated_by' => $user->id])->save();
+            $this->log($transaction, $user, 'updated', [
+                'before' => ['exclude_from_top' => ! $exclude],
+                'after' => ['exclude_from_top' => $exclude],
+            ]);
+        });
+
+        $this->stats->forget($transaction->group_id);
+
+        return $transaction;
+    }
+
     public function delete(Transaction $transaction, User $user): void
     {
         DB::connection('groups')->transaction(function () use ($transaction, $user) {
@@ -266,6 +286,10 @@ class TransactionWriter
 
         if (($data['type'] ?? null) !== 'income') {
             $attributes['campaign_id'] = null;
+        }
+        // "Không tính vào Top đóng góp" chỉ có nghĩa với phiếu thu gắn chiến dịch (plan/22).
+        if (array_key_exists('campaign_id', $attributes) && $attributes['campaign_id'] === null) {
+            $attributes['exclude_from_top'] = false;
         }
 
         $contact = empty($data['contact_id']) ? null : Contact::find($data['contact_id']);

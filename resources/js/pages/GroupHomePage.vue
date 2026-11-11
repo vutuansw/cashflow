@@ -1,19 +1,22 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronDown, Clock, Lock, LogOut, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, Clock, Lock, LogOut, MessageSquareText, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
 import DropdownMenu from '../components/DropdownMenu.vue';
 import GroupHeader from '../components/GroupHeader.vue';
 import PostCard from '../components/PostCard.vue';
+import PostComposer from '../components/PostComposer.vue';
+import StatusCard from '../components/StatusCard.vue';
 import UserAvatar from '../components/UserAvatar.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
 import { monthLabel } from '../lib/time.js';
-import { logout, session } from '../lib/session.js';
+import { logout, myPagePath, session } from '../lib/session.js';
 import SiteFooter from '../components/SiteFooter.vue';
 import GroupRules from '../components/GroupRules.vue';
+import TopContributors from '../components/TopContributors.vue';
 import InstallHint from '../components/InstallHint.vue';
 import { rememberGroup } from '../lib/install.js';
 
@@ -27,6 +30,10 @@ const group = ref(null);
 const notFound = ref(false);
 const summary = ref(null);
 const posts = ref([]);
+// Bài chờ duyệt của chính mình, trên đầu dòng thời gian, ngoài phân trang (plan/21 mục 6).
+const pendingMine = ref([]);
+// QTV: số bài thành viên đang chờ duyệt, hiện dòng nhắc trên đầu dòng thời gian.
+const pendingReview = ref(0);
 const page = ref(0);
 const hasMore = ref(true);
 const loading = ref(false);
@@ -42,7 +49,7 @@ const feed = computed(() => {
         const label = monthLabel(post.occurred_at);
         if (label !== last) items.push({ divider: label, key: `m-${label}` });
         last = label;
-        items.push({ post, key: post.kind === 'campaign_day' ? post.key : `t-${post.id}` });
+        items.push({ post, key: post.kind === 'campaign_day' ? post.key : `${post.kind === 'status' ? 's' : 't'}-${post.id}` });
     }
     return items;
 });
@@ -65,6 +72,7 @@ async function loadHeader() {
 
 function resetFeed() {
     posts.value = [];
+    pendingMine.value = [];
     page.value = 0;
     hasMore.value = true;
     loadMore();
@@ -76,6 +84,8 @@ async function loadMore() {
     try {
         const r = await api(`/g/${code.value}/timeline?page=${page.value + 1}`);
         posts.value.push(...r.data);
+        if (r.pending_mine) pendingMine.value = r.pending_mine;
+        if (r.pending_review !== undefined) pendingReview.value = r.pending_review;
         page.value = r.page;
         hasMore.value = r.has_more;
     } catch {
@@ -85,19 +95,31 @@ async function loadMore() {
     }
 }
 
+// Đăng xong: chèn thẻ lên đầu ngay, không tải lại (plan/21 mục 7).
+function posted(card) {
+    if (card.status === 'pending') pendingMine.value.unshift(card);
+    else posts.value.unshift(card);
+}
+function removed(post) {
+    posts.value = posts.value.filter((p) => !(p.kind === 'status' && p.id === post.id));
+    pendingMine.value = pendingMine.value.filter((p) => p.id !== post.id);
+}
+
 const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
 // Đăng xuất ngay ở trang nhóm (plan/16), về trang đăng nhập như ở trang chọn nhóm.
 async function signOut() {
     await logout();
     router.replace('/login');
 }
-// Trang của tôi trong nhóm (plan/08 mục 10b); không thuộc nhóm thì chỉ có /profile.
-const myPage = computed(() => (viewer.value.member_id ? `/${code.value}/members/${viewer.value.member_id}` : null));
+// Trang của tôi trong nhóm (plan/08 mục 10b); không thuộc nhóm này thì trang của mình ở nhóm khác (plan/24).
+const myPage = computed(() => (viewer.value.member_handle ? `/${code.value}/members/${viewer.value.member_handle}` : myPagePath()));
 // Tab "Chiến dịch" mở chiến dịch đang mở mới nhất.
 const openCampaign = computed(() => summary.value?.campaigns?.[0] ?? null);
 // Cột phải (máy tính): chiến dịch đang mở và/hoặc nội quy (plan/15). QTV luôn thấy box nội quy để mời viết.
 const showRules = computed(() => !!summary.value && (!!summary.value.rules || !!viewer.value?.can_manage));
 const hasAside = computed(() => !!openCampaign.value || showRules.value);
+// QTV ẩn / bỏ ẩn phiếu khỏi Top đóng góp (plan/22): tải lại tóm tắt để box xếp lại.
+const reloadSummary = () => api(`/g/${code.value}/summary`).then((s) => (summary.value = s)).catch(() => {});
 
 async function share() {
     const url = window.location.href;
@@ -149,9 +171,8 @@ onBeforeUnmount(() => observer?.disconnect());
                                 <ChevronDown class="size-4" />
                             </button>
                         </template>
-                        <!-- Một lối duy nhất: thành viên ra trang của mình trong nhóm (sửa bằng nút bút ở đó);
-                             người không thuộc nhóm thì ra /profile. -->
-                        <RouterLink :to="myPage ?? '/profile'" class="menu-item" role="menuitem"><UserRound class="size-5 text-muted-foreground" /> Trang của tôi</RouterLink>
+                        <!-- Một lối duy nhất: trang của mình trong nhóm, sửa ảnh và thông tin ngay ở đó (plan/24). -->
+                        <RouterLink :to="myPage" class="menu-item" role="menuitem"><UserRound class="size-5 text-muted-foreground" /> Trang của tôi</RouterLink>
                         <RouterLink to="/groups" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm khác</RouterLink>
                         <div class="my-1.5 border-t border-border" role="separator"></div>
                         <button type="button" class="menu-item" role="menuitem" @click="signOut"><LogOut class="size-5 text-muted-foreground" /> Đăng xuất</button>
@@ -210,20 +231,31 @@ onBeforeUnmount(() => observer?.disconnect());
                         <RouterLink :to="`/${code}/campaigns/${c.slug}`" class="btn-primary mt-3 w-full"><Wallet class="size-4" /> Đóng quỹ ngay</RouterLink>
                     </section>
                     <GroupRules v-if="showRules" :rules="summary.rules" :code="code" :can-manage="viewer.can_manage" />
+                    <TopContributors v-if="summary?.top_contributors" :top="summary.top_contributors" :code="code" :can-manage="viewer.can_manage" @changed="reloadSummary" />
                     <!-- Máy tính: chân trang dưới cột chiến dịch (dòng thời gian cuộn vô tận nên không đặt ở đáy trang). -->
                     <SiteFooter class="hidden !pt-2 lg:block" />
                 </aside>
 
                 <div class="space-y-3 lg:col-start-1 lg:row-start-1">
 
+                    <!-- Ô viết bài và bài chờ duyệt của mình; QTV có dòng nhắc bài thành viên chờ duyệt (plan/21) -->
+                    <RouterLink v-if="viewer.can_manage && pendingReview" :to="`/${code}/admin/posts`" class="card flex min-h-12 items-center gap-3 border-amber-400/60 px-4 py-2.5 text-sm">
+                        <MessageSquareText class="size-5 shrink-0 text-amber-600" />
+                        <span class="flex-1 font-medium">{{ pendingReview }} bài đang chờ duyệt</span>
+                        <ChevronRight class="size-5 text-muted-foreground" />
+                    </RouterLink>
+                    <PostComposer v-if="viewer.can_post" :code="code" :viewer="viewer" @posted="posted" />
+                    <StatusCard v-for="p in pendingMine" :key="`pending-${p.id}`" :post="p" :code="code" :viewer="viewer" @removed="removed" />
+
                     <!-- Timeline -->
                     <template v-for="item in feed" :key="item.key">
                         <p v-if="item.divider" class="px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ item.divider }}</p>
                         <CampaignDayCard v-else-if="item.post.kind === 'campaign_day'" :post="item.post" :code="code" />
+                        <StatusCard v-else-if="item.post.kind === 'status'" :post="item.post" :code="code" :viewer="viewer" @login="login" @removed="removed" />
                         <PostCard v-else :post="item.post" :code="code" :viewer="viewer" @login="login" />
                     </template>
 
-                    <p v-if="!loading && !posts.length" class="card p-6 text-center text-sm text-muted-foreground">Chưa có khoản thu chi nào.</p>
+                    <p v-if="!loading && !posts.length" class="card p-6 text-center text-sm text-muted-foreground">Chưa có bài đăng hay khoản thu chi nào.</p>
                     <div ref="sentinel" class="py-4 text-center text-sm text-muted-foreground">
                         <template v-if="loading">Đang tải…</template>
                         <button v-else-if="hasMore" type="button" class="btn-outline" @click="loadMore">Xem thêm</button>

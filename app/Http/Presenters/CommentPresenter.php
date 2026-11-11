@@ -35,10 +35,10 @@ class CommentPresenter
         return [
             'id' => $c->id,
             'body' => $c->body,
-            // member_id null: tài khoản đã rời nhóm hoặc đã xóa, tên không bấm được (plan/08 mục 6).
+            // member_handle null: tài khoản đã rời nhóm hoặc đã xóa, tên không bấm được (plan/08 mục 6).
             'user' => [
                 'name' => $c->user?->name ?? 'Tài khoản đã xóa',
-                'member_id' => $member['member_id'] ?? null,
+                'member_handle' => $member['member_handle'] ?? null,
                 'avatar_url' => $member['avatar_url'] ?? null,
             ],
             'created_at' => $c->created_at->toIso8601String(),

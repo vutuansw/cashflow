@@ -45,3 +45,14 @@ export function toLocalInput(value = new Date()) {
     const pad = (n) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+/** Giờ đăng bài thành viên (plan/21): "Vừa xong", "5 phút trước", "2 giờ trước", quá một ngày thì như relativeDay. */
+export function relativeTime(value) {
+    const date = parse(value);
+    if (!date) return '';
+    const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (minutes < 1) return 'Vừa xong';
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} giờ trước`;
+    return relativeDay(date);
+}

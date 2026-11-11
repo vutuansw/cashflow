@@ -7,6 +7,7 @@ use App\Http\Presenters\CommentPresenter;
 use App\Models\Comment;
 use App\Models\Group;
 use App\Models\Reaction;
+use App\Models\StatusPost;
 use App\Models\Transaction;
 use App\Services\Groups\GroupViewer;
 use Illuminate\Http\Request;
@@ -16,24 +17,28 @@ use Illuminate\Validation\ValidationException;
 /**
  * Tim và bình luận, chỉ tài khoản thuộc nhóm. QTV ẩn/xóa được mọi bình luận,
  * người viết sửa/xóa được bình luận của mình. Xem plan/03 mục 5.
+ *
+ * Dùng chung cho phiếu (/posts/{id}, cột transaction_id) và bài đăng thành
+ * viên (/statuses/{id}, cột status_post_id); route truyền `target` để chọn.
+ * Xem plan/21 mục 3, 5.
  */
 class InteractionController extends Controller
 {
-    public function heart(Request $request, Group $group, int $transaction)
+    public function heart(Request $request, Group $group, int $post, string $target = 'transaction')
     {
-        $post = $this->visiblePost($request, $group, $transaction);
+        $column = $this->visiblePost($request, $group, $post, $target);
         $userId = $request->user()->id;
 
-        $existing = Reaction::where('transaction_id', $post->id)->where('user_id', $userId)->first();
+        $existing = Reaction::where($column, $post)->where('user_id', $userId)->first();
         if ($existing) {
             $existing->delete();
         } else {
-            Reaction::firstOrCreate(['transaction_id' => $post->id, 'user_id' => $userId]);
+            Reaction::firstOrCreate([$column => $post, 'user_id' => $userId]);
         }
 
         return [
             'hearted' => $existing === null,
-            'hearts_count' => Reaction::where('transaction_id', $post->id)->count(),
+            'hearts_count' => Reaction::where($column, $post)->count(),
         ];
     }
 
@@ -41,13 +46,13 @@ class InteractionController extends Controller
      * Ai xem được timeline thì xem được bình luận. Dưới phiếu đã có sẵn vài bình luận mới nhất;
      * "Xem thêm" gọi kèm `before` (id bình luận cũ nhất đang hiện) để lấy tiếp các bình luận cũ hơn.
      */
-    public function comments(Request $request, Group $group, int $transaction)
+    public function comments(Request $request, Group $group, int $post, string $target = 'transaction')
     {
-        $post = $this->visiblePost($request, $group, $transaction, mustInteract: false);
+        $column = $this->visiblePost($request, $group, $post, $target, mustInteract: false);
         $viewer = GroupViewer::of($request, $group);
         $before = $request->validate(['before' => ['nullable', 'integer', 'min:1']])['before'] ?? null;
 
-        $items = CommentPresenter::visibleTo(Comment::where('transaction_id', $post->id), $viewer)
+        $items = CommentPresenter::visibleTo(Comment::where($column, $post), $viewer)
             ->with('user:id,name')
             ->when($before, fn ($q) => $q->where('id', '<', $before))
             ->orderByDesc('id')
@@ -60,9 +65,9 @@ class InteractionController extends Controller
         ];
     }
 
-    public function storeComment(Request $request, Group $group, int $transaction)
+    public function storeComment(Request $request, Group $group, int $post, string $target = 'transaction')
     {
-        $post = $this->visiblePost($request, $group, $transaction);
+        $column = $this->visiblePost($request, $group, $post, $target);
         $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
 
         $key = 'comment:'.$request->user()->id;
@@ -72,7 +77,7 @@ class InteractionController extends Controller
         RateLimiter::hit($key, 60);
 
         $comment = Comment::create([
-            'transaction_id' => $post->id,
+            $column => $post,
             'user_id' => $request->user()->id,
             'body' => trim($data['body']),
         ]);
@@ -114,21 +119,39 @@ class InteractionController extends Controller
         return CommentPresenter::present($item->load('user:id,name'), GroupViewer::of($request, $group));
     }
 
-    private function visiblePost(Request $request, Group $group, int $id, bool $mustInteract = true): Transaction
+    /**
+     * Kiểm bài tồn tại trong nhóm và người xem được thấy; trả tên cột khóa ở bảng reactions/comments.
+     * Bài đăng chờ duyệt, bị từ chối hoặc bị ẩn thì không thả tim, bình luận được.
+     */
+    private function visiblePost(Request $request, Group $group, int $id, string $target, bool $mustInteract = true): string
     {
         $viewer = GroupViewer::of($request, $group);
         if ($mustInteract && ! $viewer->canInteract()) {
             abort(403, 'Chỉ tài khoản của nhóm mới thả tim, bình luận được.');
         }
 
-        return Transaction::query()
+        if ($target === 'status') {
+            StatusPost::visibleTo(StatusPost::query(), $viewer)
+                ->when($mustInteract, fn ($q) => $q->where('status', 'published')->whereNull('hidden_at'))
+                ->findOrFail($id);
+
+            return 'status_post_id';
+        }
+
+        Transaction::query()
             ->when(! $viewer->canManage(), fn ($q) => $q->where('show_on_timeline', true))
             ->findOrFail($id);
+
+        return 'transaction_id';
     }
 
-    /** Bình luận thuộc phiếu của nhóm hiện tại (phiếu có global scope nhóm). */
+    /** Bình luận thuộc phiếu hoặc bài đăng của nhóm hiện tại (cả hai có global scope nhóm). */
     private function comment(Group $group, int $id): Comment
     {
-        return Comment::whereKey($id)->whereIn('transaction_id', Transaction::query()->select('id'))->firstOrFail();
+        return Comment::whereKey($id)
+            ->where(fn ($q) => $q
+                ->whereIn('transaction_id', Transaction::query()->select('id'))
+                ->orWhereIn('status_post_id', StatusPost::query()->select('id')))
+            ->firstOrFail();
     }
 }

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ArrowLeftRight, BookUser, CheckCircle2, ChevronRight, Circle, Inbox, Landmark, Newspaper } from 'lucide-vue-next';
+import { ArrowLeftRight, BookUser, CheckCircle2, ChevronRight, Circle, Inbox, Landmark, MessageSquareText, Newspaper } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CategoryDonut from '../../components/CategoryDonut.vue';
 import CategoryIcon from '../../components/CategoryIcon.vue';
@@ -99,6 +99,13 @@ function compareText(now, before) {
             <RouterLink v-if="data.pending_sepay" :to="`/${code}/admin/sepay-queue`" class="card flex items-center gap-3 border-amber-400/60 p-4 lg:col-span-2">
                 <Inbox class="size-6 text-amber-600" />
                 <span class="flex-1"><span class="block font-semibold">{{ data.pending_sepay }} giao dịch chờ duyệt</span><span class="text-sm text-muted-foreground">Tiền chuyển khoản vào tài khoản nhóm</span></span>
+                <ChevronRight class="size-5 text-muted-foreground" />
+            </RouterLink>
+
+            <!-- Bài đăng thành viên chờ duyệt (plan/21) -->
+            <RouterLink v-if="data.pending_posts" :to="`/${code}/admin/posts`" class="card flex items-center gap-3 border-amber-400/60 p-4 lg:col-span-2">
+                <MessageSquareText class="size-6 text-amber-600" />
+                <span class="flex-1"><span class="block font-semibold">{{ data.pending_posts }} bài đăng chờ duyệt</span><span class="text-sm text-muted-foreground">Thành viên đăng lên dòng thời gian nhóm</span></span>
                 <ChevronRight class="size-5 text-muted-foreground" />
             </RouterLink>
 

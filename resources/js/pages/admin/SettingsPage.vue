@@ -52,6 +52,11 @@ onMounted(async () => {
         el?.scrollIntoView({ block: 'center' });
         el?.focus({ preventScroll: true });
     }
+    // Bấm "Đổi" ở trang Duyệt bài đăng: cuộn tới mục chế độ đăng bài (plan/21).
+    if (route.hash === '#post-mode') {
+        await nextTick();
+        document.getElementById('post-mode')?.scrollIntoView({ block: 'center' });
+    }
 });
 
 async function save() {
@@ -87,6 +92,13 @@ async function removeCover() {
     const res = await adminApi(code.value, '/settings/images/cover', { method: 'DELETE' });
     form.cover_url = res.cover_url;
 }
+
+// Thành viên đăng bài (plan/21 mục 2). Trưởng nhóm / QTV luôn đăng được và bài hiện ngay. Lưu cùng nút "Lưu cài đặt".
+const postModes = [
+    { v: 'open', l: 'Đăng luôn', text: 'Thành viên đăng là bài hiện ngay trên dòng thời gian.' },
+    { v: 'review', l: 'Chờ quản trị viên duyệt', text: 'Bài của thành viên vào mục Duyệt bài đăng, duyệt xong mới hiện.' },
+    { v: 'off', l: 'Tắt', text: 'Chỉ Ban quản trị đăng được. Bài đã đăng vẫn giữ nguyên.' },
+];
 
 const sepayBusy = ref(false);
 async function toggleSepay(enabled) {
@@ -220,6 +232,21 @@ async function destroy() {
                     <input class="field font-mono text-sm" :value="form.join_link.url" readonly aria-label="Link đăng ký vào nhóm" />
                     <button type="button" class="btn-outline shrink-0" @click="copyText(form.join_link.url, 'Đã chép link đăng ký.')">Chép</button>
                 </div>
+            </section>
+
+            <!-- Thành viên đăng bài, xem plan/21 mục 2 -->
+            <section id="post-mode" class="card space-y-3 p-4">
+                <div>
+                    <h2 class="font-semibold">Thành viên đăng bài</h2>
+                    <p class="text-sm text-muted-foreground">Thành viên viết bài, đăng ảnh lên dòng thời gian nhóm mà không cần tạo phiếu thu chi.</p>
+                </div>
+                <div class="space-y-2" role="radiogroup" aria-label="Thành viên đăng bài">
+                    <label v-for="m in postModes" :key="m.v" class="flex cursor-pointer items-start gap-3 rounded-xl border p-3" :class="form.post_mode === m.v ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted'">
+                        <input v-model="form.post_mode" type="radio" name="post_mode" :value="m.v" class="mt-0.5 size-5 shrink-0 accent-[var(--primary)]" />
+                        <span><span class="block font-medium">{{ m.l }}</span><span class="text-sm text-muted-foreground">{{ m.text }}</span></span>
+                    </label>
+                </div>
+                <p v-if="state.errors.post_mode" class="text-sm text-expense">{{ state.errors.post_mode }}</p>
             </section>
 
             <!-- SePay: tự nhận biến động số dư, xem plan/05 mục 2 -->

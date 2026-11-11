@@ -18,7 +18,8 @@ async function signOut() {
         <div class="flex items-center justify-between">
             <BrandMark />
             <div class="flex">
-                <RouterLink to="/profile" class="icon-btn" aria-label="Cá nhân"><UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-8 text-sm" /></RouterLink>
+                <!-- Trang chọn nhóm chưa gắn nhóm nào nên avatar chỉ là hình; trang của mình mở từ trong nhóm (plan/24). -->
+                <span class="icon-btn"><UserAvatar :url="session.me?.avatar_url" :name="session.me?.name" class="!size-8 text-sm" /></span>
                 <button class="icon-btn" aria-label="Đăng xuất" @click="signOut"><LogOut class="size-5" /></button>
             </div>
         </div>

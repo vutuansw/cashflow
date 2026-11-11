@@ -44,7 +44,7 @@ const moreDesktop = computed(() => Math.max(0, total.value - people.value.length
                     <!-- Hàng avatar thành viên -->
                     <div v-if="people.length" class="flex min-w-0 items-center">
                         <div class="flex -space-x-2">
-                            <component :is="p.member_id ? 'RouterLink' : 'span'" v-for="(p, i) in people" :key="i" :to="p.member_id ? `/${code}/members/${p.member_id}` : undefined" class="relative rounded-full ring-2 ring-card hover:z-10" :class="{ 'hidden sm:block': i >= MOBILE }" :title="p.name" :aria-label="p.name">
+                            <component :is="p.member_handle ? 'RouterLink' : 'span'" v-for="(p, i) in people" :key="i" :to="p.member_handle ? `/${code}/members/${p.member_handle}` : undefined" class="relative rounded-full ring-2 ring-card hover:z-10" :class="{ 'hidden sm:block': i >= MOBILE }" :title="p.name" :aria-label="p.name">
                                 <UserAvatar :url="p.avatar_url" :name="p.name" class="!size-8 text-xs sm:!size-9" />
                             </component>
                             <!-- Số người còn lại: vòng tròn cùng cỡ, nằm cuối dãy như Facebook -->

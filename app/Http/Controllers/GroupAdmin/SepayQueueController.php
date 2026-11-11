@@ -53,7 +53,10 @@ class SepayQueueController extends Controller
         // Người xin vào nhóm qua link (plan/13): chấm đỏ riêng ở mục Danh bạ, không cộng vào "Chờ duyệt".
         $joins = GroupJoinRequest::query()->where('group_id', $group->id)->where('status', 'pending')->count();
 
-        return ['pending' => $sepay + $claims, 'sepay' => $sepay, 'claims' => $claims, 'joins' => $joins];
+        // Bài đăng thành viên chờ duyệt (plan/21): chấm đỏ riêng ở mục "Duyệt bài đăng".
+        $posts = StatusPostReviewController::pendingCount();
+
+        return ['pending' => $sepay + $claims, 'sepay' => $sepay, 'claims' => $claims, 'joins' => $joins, 'posts' => $posts];
     }
 
     /** Bản nháp để mở form phiếu điền sẵn (như AI đọc bill). */

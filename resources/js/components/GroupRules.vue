@@ -1,5 +1,5 @@
 <script setup>
-// Box "Nội quy" trên trang nhóm, xem plan/15. Dài quá 6 dòng thì thu gọn, có nút Xem thêm.
+// Box "Nội quy" trên trang nhóm, xem plan/15. Dài quá 3 dòng thì thu gọn, có nút Xem thêm.
 // Chưa có nội quy: chỉ trưởng nhóm/QTV thấy box mời viết.
 import { BookOpen, Pencil } from 'lucide-vue-next';
 import { nextTick, onMounted, ref, watch } from 'vue';
@@ -32,7 +32,7 @@ watch(() => props.rules, measure);
             </RouterLink>
         </div>
         <template v-if="rules">
-            <p ref="text" class="mt-2 whitespace-pre-line break-words text-sm leading-relaxed" :class="{ 'line-clamp-6': !expanded }">{{ rules }}</p>
+            <p ref="text" class="mt-2 whitespace-pre-line break-words text-sm leading-relaxed" :class="{ 'line-clamp-3': !expanded }">{{ rules }}</p>
             <button v-if="overflowing || expanded" type="button" class="mt-1 text-sm font-semibold text-primary hover:underline" @click="expanded = !expanded">
                 {{ expanded ? 'Thu gọn' : 'Xem thêm' }}
             </button>

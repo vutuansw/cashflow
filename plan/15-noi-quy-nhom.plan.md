@@ -13,7 +13,7 @@ Ngày: 11/11/2026. Trạng thái: **đã duyệt, đã làm** (11/11/2026).
 - Trang nhóm hiện **box "Nội quy"** (biểu tượng cuốn sổ):
   - **Máy tính:** cột phải, dưới thẻ chiến dịch, trên chân trang. Nhóm không có chiến dịch đang mở vẫn có cột phải nếu có nội quy.
   - **Điện thoại:** dưới thẻ chiến dịch, trên dòng thời gian.
-  - Nội quy dài hơn khoảng 6 dòng thì thu gọn, có nút **"Xem thêm"**.
+  - Nội quy dài hơn 3 dòng thì thu gọn (đổi từ 6 dòng ngày 11/11/2026), có nút **"Xem thêm"**.
 - **Ai xem được:** giống dòng thời gian. Nhóm công khai ai có link cũng xem; nhóm riêng tư chỉ thành viên.
 - **Chưa có nội quy:** khách và thành viên không thấy box. Trưởng nhóm / quản trị viên thấy box mờ "Chưa có nội quy" kèm nút **"Viết nội quy"** mở Cài đặt nhóm.
 

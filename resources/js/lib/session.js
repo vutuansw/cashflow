@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
 import { api } from './api.js';
+import { lastGroup } from './install.js';
 
 // Tài khoản đang đăng nhập và danh sách nhóm của họ. null = chưa đăng nhập.
 export const session = reactive({ loaded: false, me: null });
@@ -35,6 +36,17 @@ export function canManage(code) {
 }
 
 /** Sau đăng nhập: vào thẳng timeline nhóm nếu chỉ có một nhóm (mọi vai trò, plan/16), nhiều nhóm thì chọn nhóm. */
+/**
+ * Trang của tôi (plan/24): trang thành viên của mình ở nhóm vừa vào gần nhất, không có thì nhóm đầu danh sách.
+ * Chưa thuộc nhóm nào thì không có trang cá nhân, về trang chọn nhóm.
+ */
+export function myPagePath(me = session.me) {
+    if (!me) return '/login';
+    const last = lastGroup();
+    const group = me.groups.find((g) => g.code === last) ?? me.groups[0];
+    return group ? `/${group.code}/members/${group.member_handle}` : '/groups';
+}
+
 export function homePath(me = session.me) {
     if (!me) return '/login';
     if (me.groups.length === 1) return `/${me.groups[0].code}`;

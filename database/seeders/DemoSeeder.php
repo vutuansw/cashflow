@@ -148,13 +148,19 @@ class DemoSeeder extends Seeder
             CampaignMember::create(['campaign_id' => $campaign->id, 'contact_id' => $contact->id, 'expected_amount' => 500_000]);
         }
 
+        // Vài người đóng vượt mức để box Top đóng góp có dữ liệu; một người đóng bù năm trước, đã ẩn khỏi top (plan/22).
+        $extra = [0 => 1_000_000, 2 => 800_000, 7 => 700_000];
         foreach ($contacts->take(16) as $i => $contact) {
             $this->writer->create($group, $owner, [
                 'type' => 'income',
                 'category_id' => $fund->id,
                 'campaign_id' => $campaign->id,
                 'contact_id' => $contact->id,
-                'amount' => $i === 5 ? 300_000 : 500_000,
+                'amount' => $extra[$i] ?? match ($i) {
+                    5 => 300_000, 9 => 1_000_000, default => 500_000
+                },
+                'title' => $i === 9 ? 'Đóng quỹ năm, bù năm trước' : null,
+                'exclude_from_top' => $i === 9,
                 'occurred_at' => now()->subDays(intdiv($i, 4) * 3 + 1)->setTime(8 + $i % 4, 15)->toDateTimeString(),
             ]);
         }

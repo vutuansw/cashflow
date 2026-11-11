@@ -11,6 +11,8 @@ import { toast } from '../lib/notice.js';
 // Bình luận ngay dưới phiếu: sẵn 5 bình luận mới nhất (đi kèm thẻ timeline), "Xem thêm" tải tiếp bình luận cũ hơn.
 // Ai xem được timeline thì đọc được; chỉ tài khoản của nhóm mới viết. Xem plan/03 mục 5.
 const props = defineProps({ post: Object, code: String, viewer: Object });
+// Phiếu: /posts/{id}; bài đăng thành viên: /statuses/{id} (plan/21).
+const base = () => `/g/${props.code}/${props.post.kind === 'status' ? 'statuses' : 'posts'}/${props.post.id}`;
 const body = ref('');
 const editing = ref(null);
 const composing = ref(false);
@@ -35,7 +37,7 @@ async function loadMore() {
     const oldest = props.post.comments[0];
     loadingMore.value = true;
     try {
-        const r = await api(`/g/${props.code}/posts/${props.post.id}/comments${oldest ? `?before=${oldest.id}` : ''}`);
+        const r = await api(`${base()}/comments${oldest ? `?before=${oldest.id}` : ''}`);
         props.post.comments.unshift(...r.data);
         props.post.comments_more = r.has_more;
     } catch {
@@ -53,7 +55,7 @@ async function send() {
             const updated = await api(`/g/${props.code}/comments/${editing.value.id}`, { method: 'PUT', body: { body: body.value } });
             Object.assign(editing.value, updated);
         } else {
-            props.post.comments.push(await api(`/g/${props.code}/posts/${props.post.id}/comments`, { method: 'POST', body: { body: body.value } }));
+            props.post.comments.push(await api(`${base()}/comments`, { method: 'POST', body: { body: body.value } }));
             props.post.comments_count += 1;
         }
         closeComposer();
@@ -86,20 +88,20 @@ defineExpose({ compose });
 </script>
 
 <template>
-    <div v-if="post.comments?.length || post.comments_more || composing" class="mt-1 space-y-2.5 border-t border-border pt-3">
+    <div v-if="post.comments?.length || post.comments_more || composing" class="mt-1 space-y-2.5 pt-1">
         <button v-if="post.comments_more" type="button" class="min-h-8 text-sm font-medium text-muted-foreground hover:text-foreground" :disabled="loadingMore" @click="loadMore">
             {{ loadingMore ? 'Đang tải…' : 'Xem thêm bình luận' }}
         </button>
 
         <ul v-if="post.comments?.length" class="space-y-2.5">
             <li v-for="c in post.comments" :key="c.id" class="flex gap-2">
-                <RouterLink v-if="c.user.member_id" :to="`/${code}/members/${c.user.member_id}`" class="shrink-0" :aria-label="`Trang của ${c.user.name}`">
+                <RouterLink v-if="c.user.member_handle" :to="`/${code}/members/${c.user.member_handle}`" class="shrink-0" :aria-label="`Trang của ${c.user.name}`">
                     <UserAvatar :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />
                 </RouterLink>
                 <UserAvatar v-else :url="c.user.avatar_url" :name="c.user.name" class="text-xs" />
                 <div class="min-w-0 flex-1">
                     <div class="inline-block max-w-full rounded-2xl bg-muted px-3 py-1.5" :class="{ 'opacity-60': c.hidden }">
-                        <MemberName :name="c.user.name" :member-id="c.user.member_id" :code="code" class="block text-sm font-semibold" />
+                        <MemberName :name="c.user.name" :member-handle="c.user.member_handle" :code="code" class="block text-sm font-semibold" />
                         <p class="whitespace-pre-line break-words text-sm">{{ c.body }}</p>
                     </div>
                     <p class="flex flex-wrap items-center gap-x-3 px-2 text-xs text-muted-foreground">

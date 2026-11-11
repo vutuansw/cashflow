@@ -36,14 +36,15 @@ class ImageStore
     }
 
     /**
-     * Ảnh sự kiện: bản lớn 1600px và thumbnail 480px.
+     * Ảnh sự kiện của phiếu (thư mục photos) hoặc ảnh bài đăng thành viên (thư mục posts, plan/21):
+     * bản lớn 1600px và thumbnail 480px.
      *
      * @return array{path: string, thumb_path: string, width: int, height: int}
      */
-    public function storeEventPhoto(Group $group, UploadedFile $file): array
+    public function storeEventPhoto(Group $group, UploadedFile $file, string $folder = 'photos'): array
     {
         $image = $this->read($file);
-        $base = $this->basePath($group, 'photos');
+        $base = $this->basePath($group, $folder);
 
         $large = $image->scaleDown(config('cashflow.images.large'), config('cashflow.images.large'));
         $this->put("{$base}.webp", $large);

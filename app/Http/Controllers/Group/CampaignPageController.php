@@ -63,7 +63,7 @@ class CampaignPageController extends Controller
             // contact_id để chọn tên khi gửi bill; chỉ là số thứ tự, không lộ thông tin liên hệ.
             'people' => array_map(fn ($p) => array_intersect_key($p, array_flip(['contact_id', 'name', 'expected', 'paid', 'last_paid_at', 'status', 'in_list'])) + [
                 'pending_claim' => $p['contact_id'] !== null && isset($pending[$p['contact_id']]),
-                'member_id' => $members->contact($p['contact_id'])['member_id'] ?? null,
+                'member_handle' => $members->contact($p['contact_id'])['member_handle'] ?? null,
             ], $data['people']),
             'pending_claims' => $pendingCount,
             // Thành viên đang xem: form gửi bill chọn sẵn tên họ (plan/20).

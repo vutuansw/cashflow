@@ -65,6 +65,20 @@ class GroupViewer
         return $this->canInteract() && $this->member->role->canManage();
     }
 
+    /**
+     * Đăng bài (plan/21 mục 2): thành viên khi nhóm không tắt đăng bài; trưởng nhóm / QTV luôn đăng được.
+     */
+    public function canPost(): bool
+    {
+        return $this->canInteract() && ($this->canManage() || $this->group->post_mode !== 'off');
+    }
+
+    /** Bài của người này phải chờ QTV duyệt mới hiện. */
+    public function postNeedsReview(): bool
+    {
+        return ! $this->canManage() && $this->group->post_mode === 'review';
+    }
+
     public function role(): ?GroupRole
     {
         return $this->member?->role;
@@ -75,12 +89,14 @@ class GroupViewer
         return [
             'logged_in' => $this->user !== null,
             'is_member' => $this->isMember(),
-            // Để dựng link "trang của tôi" /{ma-nhom}/members/{member_id}. Xem plan/08 mục 10b.
-            'member_id' => $this->member?->id,
+            // Để dựng link "trang của tôi" /{ma-nhom}/members/{member_handle}. Xem plan/08 mục 10b, plan/25.
+            'member_handle' => $this->member?->handle,
             'role' => $this->role()?->value,
             'role_label' => $this->role()?->label(),
             'can_interact' => $this->canInteract(),
             'can_manage' => $this->canManage(),
+            'can_post' => $this->canPost(),
+            'post_needs_review' => $this->canPost() && $this->postNeedsReview(),
             // Đã xin vào nhóm qua link, đang chờ QTV duyệt (plan/13).
             'join_pending' => $this->user !== null && ! $this->isMember()
                 && GroupJoinRequest::query()->where('group_id', $this->group->id)->where('user_id', $this->user->id)->where('status', 'pending')->exists(),

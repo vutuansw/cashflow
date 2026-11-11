@@ -28,7 +28,9 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [18-gioi-han-dang-ky](18-gioi-han-dang-ky.plan.md) | Giới hạn đăng ký chỉ đếm lần tạo được tài khoản, báo 429 bằng tiếng Việt |
 | [19-app-ngan-hang-khong-tu-dien](19-app-ngan-hang-khong-tu-dien.plan.md) | Bỏ mở app ngân hàng (deeplink VietQR không mở được form chuyển tiền) và nút Lưu ảnh QR: chỉ còn quét QR và nút Chép |
 | [20-gui-bill-de-hon](20-gui-bill-de-hon.plan.md) | Gửi bill: chọn sẵn tên người đang đăng nhập, ô chọn ảnh bill nổi bật, nút gửi bill rõ ràng |
+| [22-top-dong-gop](22-top-dong-gop.plan.md) | Box Top đóng góp dưới Nội quy: người đóng vượt mức chiến dịch đang mở (tùy tâm: trên trung bình), QTV ẩn từng phiếu thu khỏi top |
 | [23-gui-bill-bo-o-so-tien](23-gui-bill-bo-o-so-tien.plan.md) | Form gửi bill: bỏ ô số tiền (AI đọc từ ảnh), nút Gửi đi mờ tới khi có ảnh, quên chụp bill thì gõ số tiền |
+| [24-gop-trang-ca-nhan](24-gop-trang-ca-nhan.plan.md) | Gộp trang cá nhân: chỉ còn trang thành viên, chủ trang sửa ảnh, thông tin, lời giới thiệu ngay tại đó; bỏ trang /profile |
 
 ---
 

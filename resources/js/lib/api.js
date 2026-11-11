@@ -38,3 +38,32 @@ export async function api(path, { method = 'GET', body, headers = {} } = {}) {
 export function adminApi(code, path, options) {
     return api(`/g/${encodeURIComponent(code)}/admin${path}`, options);
 }
+
+/**
+ * Gửi FormData có ảnh kèm tiến độ tải lên (fetch không báo được tiến độ). onProgress nhận số 0..1.
+ * Lỗi trả về giống api(): ApiError có status và errors theo trường. Xem plan/21 mục 7.
+ */
+export function apiUpload(path, form, { method = 'POST', onProgress } = {}) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, `/api${path}`);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('X-XSRF-TOKEN', xsrfToken());
+        if (onProgress) xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+        xhr.onload = () => {
+            let data = null;
+            try {
+                data = xhr.status === 204 ? null : JSON.parse(xhr.responseText);
+            } catch {
+                data = null;
+            }
+            if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+            else reject(new ApiError(xhr.status, data));
+        };
+        // Mất mạng: không phải ApiError, useForm báo "Không kết nối được máy chủ".
+        xhr.onerror = () => reject(new TypeError('Network error'));
+        xhr.send(form);
+    });
+}

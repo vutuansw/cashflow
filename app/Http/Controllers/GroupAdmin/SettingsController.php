@@ -36,6 +36,8 @@ class SettingsController extends Controller
             'bank_account_name' => ['nullable', 'string', 'max:120'],
             'notify_emails' => ['nullable', 'array', 'max:5'],
             'notify_emails.*' => ['email', 'max:190'],
+            // Chế độ thành viên đăng bài, xem plan/21 mục 2. Không gửi thì giữ nguyên.
+            'post_mode' => ['sometimes', 'in:open,review,off'],
         ]);
 
         $data['bank_account_name'] = isset($data['bank_account_name']) ? mb_strtoupper($data['bank_account_name']) : null;
@@ -157,6 +159,7 @@ class SettingsController extends Controller
             'bank_account_no' => $group->bank_account_no,
             'bank_account_name' => $group->bank_account_name,
             'notify_emails' => $group->notify_emails ?? [],
+            'post_mode' => $group->post_mode,
             'notify_settings' => ['sepay' => ($group->notify_settings['sepay'] ?? true) !== false],
             'sepay' => [
                 'enabled' => $group->sepay_api_key !== null,

@@ -11,6 +11,7 @@ Route::get('/media/u/{user}/{kind}/{name}', [MediaController::class, 'profile'])
 // Ảnh của nhóm: kiểm quyền rồi mới trả file, xem plan/03 mục 3.
 Route::prefix('/media/{group}')->middleware('group')->group(function () {
     Route::get('/p/{photo}/{size}', [MediaController::class, 'photo'])->whereNumber('photo')->whereIn('size', ['sm', 'lg']);
+    Route::get('/s/{photo}/{size}', [MediaController::class, 'statusPhoto'])->whereNumber('photo')->whereIn('size', ['sm', 'lg']);
     Route::get('/b/{scan}', [MediaController::class, 'bill'])->whereNumber('scan');
     Route::get('/brand/cover/{name}', [MediaController::class, 'groupCover'])->where('name', '[a-z0-9-]+');
 });

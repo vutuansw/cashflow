@@ -8,6 +8,7 @@ use App\Http\Controllers\Group\CampaignPageController;
 use App\Http\Controllers\Group\InteractionController;
 use App\Http\Controllers\Group\JoinController;
 use App\Http\Controllers\Group\MemberProfileController;
+use App\Http\Controllers\Group\StatusPostController;
 use App\Http\Controllers\Group\TimelineController;
 use App\Http\Controllers\GroupAdmin\BillScanController;
 use App\Http\Controllers\GroupAdmin\CampaignController;
@@ -20,8 +21,11 @@ use App\Http\Controllers\GroupAdmin\PaymentClaimController;
 use App\Http\Controllers\GroupAdmin\ReportController;
 use App\Http\Controllers\GroupAdmin\SepayQueueController;
 use App\Http\Controllers\GroupAdmin\SettingsController;
+use App\Http\Controllers\GroupAdmin\StatusPostReviewController;
+use App\Http\Controllers\GroupAdmin\TopContributorController;
 use App\Http\Controllers\GroupAdmin\TransactionController;
 use App\Http\Controllers\GroupController;
+use App\Models\GroupMember;
 use Illuminate\Support\Facades\Route;
 
 // Thông tin chung cho SPA: tên sản phẩm, mô tả. Không cần đăng nhập.
@@ -70,17 +74,28 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/summary', [TimelineController::class, 'summary']);
         Route::get('/timeline', [TimelineController::class, 'feed']);
         Route::get('/posts/{transaction}', [TimelineController::class, 'post'])->whereNumber('transaction');
-        Route::get('/posts/{transaction}/comments', [InteractionController::class, 'comments'])->whereNumber('transaction');
+        Route::get('/posts/{post}/comments', [InteractionController::class, 'comments'])->whereNumber('post');
+        // Bài đăng thành viên, xem plan/21.
+        Route::get('/statuses/{status}', [StatusPostController::class, 'show'])->whereNumber('status');
+        Route::get('/statuses/{post}/comments', [InteractionController::class, 'comments'])->whereNumber('post')->defaults('target', 'status');
         Route::get('/members', [MemberProfileController::class, 'index']);
-        Route::get('/members/{member}', [MemberProfileController::class, 'show'])->whereNumber('member');
-        Route::get('/members/{member}/timeline', [MemberProfileController::class, 'timeline'])->whereNumber('member');
+        Route::get('/members/{member}', [MemberProfileController::class, 'show'])->where('member', GroupMember::HANDLE_PATTERN);
+        Route::get('/members/{member}/timeline', [MemberProfileController::class, 'timeline'])->where('member', GroupMember::HANDLE_PATTERN);
         Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
         Route::post('/campaigns/{slug}/claims', [CampaignPageController::class, 'claim'])->where('slug', '[a-z0-9-]+');
     });
 
     Route::middleware(['auth', 'password.fresh', 'group.role:member'])->group(function () {
-        Route::post('/posts/{transaction}/heart', [InteractionController::class, 'heart'])->whereNumber('transaction');
-        Route::post('/posts/{transaction}/comments', [InteractionController::class, 'storeComment'])->whereNumber('transaction');
+        Route::post('/posts/{post}/heart', [InteractionController::class, 'heart'])->whereNumber('post');
+        Route::post('/posts/{post}/comments', [InteractionController::class, 'storeComment'])->whereNumber('post');
+
+        // Bài đăng thành viên, xem plan/21 mục 5. Đăng được hay không còn tùy chế độ đăng bài của nhóm.
+        Route::post('/statuses', [StatusPostController::class, 'store']);
+        Route::post('/statuses/{status}', [StatusPostController::class, 'update'])->whereNumber('status');
+        Route::delete('/statuses/{status}', [StatusPostController::class, 'destroy'])->whereNumber('status');
+        Route::post('/statuses/{status}/hide', [StatusPostController::class, 'hide'])->whereNumber('status');
+        Route::post('/statuses/{post}/heart', [InteractionController::class, 'heart'])->whereNumber('post')->defaults('target', 'status');
+        Route::post('/statuses/{post}/comments', [InteractionController::class, 'storeComment'])->whereNumber('post')->defaults('target', 'status');
         Route::put('/comments/{comment}', [InteractionController::class, 'updateComment'])->whereNumber('comment');
         Route::delete('/comments/{comment}', [InteractionController::class, 'destroyComment'])->whereNumber('comment');
         Route::post('/comments/{comment}/hide', [InteractionController::class, 'hideComment'])->whereNumber('comment');
@@ -112,6 +127,11 @@ Route::prefix('/g/{group}/admin')
 
         Route::get('/sepay', [SepayQueueController::class, 'index']);
         Route::get('/sepay/count', [SepayQueueController::class, 'count']);
+
+        // Duyệt bài đăng thành viên, xem plan/21 mục 7.
+        Route::get('/statuses', [StatusPostReviewController::class, 'index']);
+        Route::post('/statuses/{status}/approve', [StatusPostReviewController::class, 'approve'])->whereNumber('status');
+        Route::post('/statuses/{status}/reject', [StatusPostReviewController::class, 'reject'])->whereNumber('status');
         Route::post('/sepay/approve', [SepayQueueController::class, 'approveMany']);
         Route::get('/sepay/{sepay}', [SepayQueueController::class, 'show'])->whereNumber('sepay');
         Route::post('/sepay/{sepay}/approve', [SepayQueueController::class, 'approve'])->whereNumber('sepay');
@@ -134,6 +154,10 @@ Route::prefix('/g/{group}/admin')
         Route::post('/transactions/{transaction}', [TransactionController::class, 'update']);
         Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
         Route::post('/transactions/{transaction}/restore', [TransactionController::class, 'restore'])->withTrashed();
+
+        // Ẩn phiếu thu khỏi box Top đóng góp, xem plan/22.
+        Route::get('/campaigns/{campaign}/top-transactions', [TopContributorController::class, 'transactions'])->whereNumber('campaign');
+        Route::put('/transactions/{transaction}/top', [TopContributorController::class, 'update'])->whereNumber('transaction');
 
         Route::get('/categories', [CategoryController::class, 'index']);
         Route::post('/categories', [CategoryController::class, 'store']);

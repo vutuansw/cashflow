@@ -67,14 +67,14 @@ const sections = computed(() => [
             <section v-for="s in sections" :key="s.key">
                 <h2 class="mb-2 px-1 text-sm font-semibold text-muted-foreground">{{ s.title }} · {{ s.items.length }}</h2>
                 <ul class="card divide-y divide-border">
-                    <li v-for="(p, i) in s.items" :key="p.member_id ?? `${s.key}-${i}`">
-                        <component :is="p.member_id ? 'RouterLink' : 'div'" :to="p.member_id ? `/${code}/members/${p.member_id}` : undefined" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': p.member_id }">
+                    <li v-for="(p, i) in s.items" :key="p.member_handle ?? `${s.key}-${i}`">
+                        <component :is="p.member_handle ? 'RouterLink' : 'div'" :to="p.member_handle ? `/${code}/members/${p.member_handle}` : undefined" class="flex items-center gap-3 p-3" :class="{ 'hover:bg-muted/60': p.member_handle }">
                             <UserAvatar :url="p.avatar_url" :name="p.name" class="!size-11 shrink-0" />
                             <div class="min-w-0 flex-1">
                                 <p class="truncate font-medium">{{ p.name }}</p>
                                 <p v-if="p.role_label" class="flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck class="size-3.5" /> {{ p.role_label }}</p>
                             </div>
-                            <ChevronRight v-if="p.member_id" class="size-5 shrink-0 text-muted-foreground" />
+                            <ChevronRight v-if="p.member_handle" class="size-5 shrink-0 text-muted-foreground" />
                         </component>
                     </li>
                 </ul>

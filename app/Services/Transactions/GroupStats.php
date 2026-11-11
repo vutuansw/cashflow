@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Group;
 use App\Models\Transaction;
 use App\Services\Campaigns\CampaignProgress;
+use App\Services\Campaigns\CampaignTopContributors;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -107,6 +108,20 @@ class GroupStats
                     'members_paid' => $p['members_paid'],
                 ];
             })->all();
+        });
+    }
+
+    /**
+     * Box "Top đóng góp" của chiến dịch đang mở mới nhất (plan/22). Null khi không có chiến dịch mở
+     * hoặc không ai đủ điều kiện. Có cả transaction_ids, hidden_count: nơi gọi bỏ đi với người không phải QTV.
+     */
+    public function topContributors(Group $group): ?array
+    {
+        return $this->remember($group, 'top', function () use ($group) {
+            $campaign = Campaign::acrossGroups()->where('group_id', $group->id)->where('status', 'open')->orderByDesc('id')->first();
+            $top = $campaign ? app(CampaignTopContributors::class)->of($campaign) : null;
+
+            return $top !== null && $top['people'] !== [] ? $top : null;
         });
     }
 

@@ -60,6 +60,7 @@ class TransactionRequest extends FormRequest
             'payer_name' => ['nullable', 'string', 'max:120'],
             'campaign_id' => ['nullable', 'integer'],
             'show_on_timeline' => ['sometimes', 'boolean'],
+            'exclude_from_top' => ['sometimes', 'boolean'],
             'photos' => ['nullable', 'array', "max:{$limit}"],
             'photos.*' => ['file', "mimes:{$mimes}", "max:{$maxKb}"],
             'remove_photo_ids' => ['nullable', 'array'],

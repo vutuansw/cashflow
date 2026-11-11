@@ -8,6 +8,7 @@ use App\Http\Presenters\TransactionPresenter;
 use App\Models\Group;
 use App\Models\Transaction;
 use App\Services\Groups\GroupViewer;
+use App\Services\Groups\MemberIndex;
 use App\Services\Transactions\GroupStats;
 use App\Services\Transactions\TimelineFeed;
 use Illuminate\Http\Request;
@@ -26,7 +27,34 @@ class TimelineController extends Controller
         $data = $request->validate(['year' => ['nullable', 'integer', 'min:2000', 'max:2100']]);
 
         // Nội quy nằm ở đây (sau middleware group.view) để nhóm riêng tư không lộ nội quy cho khách. Xem plan/15.
-        return $stats->summary($group, $data['year'] ?? null) + ['campaigns' => $stats->openCampaigns($group), 'rules' => $group->rules];
+        return $stats->summary($group, $data['year'] ?? null) + [
+            'campaigns' => $stats->openCampaigns($group),
+            'rules' => $group->rules,
+            'top_contributors' => $this->topContributors($group, $stats->topContributors($group), GroupViewer::of($request, $group)->canManage()),
+        ];
+    }
+
+    /**
+     * Box Top đóng góp (plan/22). Ảnh đại diện và trang thành viên gắn lúc trả về (không cache) để đổi ảnh là thấy ngay.
+     * Khách và thành viên thường không cần biết id phiếu, cũng không biết có phiếu bị ẩn khỏi top.
+     */
+    private function topContributors(Group $group, ?array $top, bool $canManage): ?array
+    {
+        if ($top === null) {
+            return null;
+        }
+        $index = MemberIndex::of($group);
+        $top['people'] = array_map(function ($p) use ($index, $canManage) {
+            $member = $index->contact($p['contact_id']);
+            $p += ['member_handle' => $member['member_handle'] ?? null, 'avatar_url' => $member['avatar_url'] ?? null];
+
+            return $canManage ? $p : array_diff_key($p, ['transaction_ids' => true]);
+        }, $top['people']);
+        if (! $canManage) {
+            unset($top['hidden_count']);
+        }
+
+        return $top;
     }
 
     public function feed(Request $request, Group $group, TimelineFeed $feed)

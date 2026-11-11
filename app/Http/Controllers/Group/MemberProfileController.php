@@ -3,23 +3,24 @@
 namespace App\Http\Controllers\Group;
 
 use App\Http\Controllers\Controller;
-use App\Http\Presenters\TransactionPresenter;
 use App\Models\Campaign;
 use App\Models\CampaignMember;
 use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\StatusPost;
 use App\Models\Transaction;
 use App\Services\Campaigns\CampaignProgress;
 use App\Services\Groups\GroupViewer;
+use App\Services\Transactions\TimelineFeed;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 
 /**
- * Trang thành viên /{ma-nhom}/members/{memberId}: ảnh, tên, vai trò, thẻ
+ * Trang thành viên /{ma-nhom}/members/{handle}: ảnh, tên, vai trò, thẻ
  * tóm tắt đóng quỹ và timeline các phiếu người đó đóng hoặc nhận trong nhóm.
  * Ai xem được timeline nhóm thì xem được; không bao giờ có SĐT, ngày sinh,
- * địa chỉ. Xem plan/08 mục 1, 2, 5.
+ * địa chỉ. Xem plan/08 mục 1, 2, 5. Timeline có thêm bài đăng của người đó (plan/21).
  */
 class MemberProfileController extends Controller
 {
@@ -28,7 +29,7 @@ class MemberProfileController extends Controller
     /**
      * Danh sách thành viên /{ma-nhom}/members (bấm "19 thành viên" ở đầu trang nhóm): mọi người đang tham gia
      * trong danh bạ, cùng số đếm với đầu trang. Chỉ tên, ảnh và vai trò quản trị như hàng avatar; không SĐT, ngày
-     * sinh, địa chỉ. Người có tài khoản có member_id để mở trang thành viên. Xem plan/08 mục 10e.
+     * sinh, địa chỉ. Người có tài khoản có member_handle để mở trang thành viên. Xem plan/08 mục 10e, plan/25.
      */
     public function index(Group $group)
     {
@@ -37,7 +38,7 @@ class MemberProfileController extends Controller
             ->where('status', 'active')
             ->whereNotNull('contact_id')
             ->with('user:id,avatar_path')
-            ->get(['id', 'user_id', 'contact_id', 'role'])
+            ->get(['id', 'handle', 'user_id', 'contact_id', 'role'])
             ->keyBy('contact_id');
 
         $people = Contact::acrossGroups()
@@ -50,7 +51,7 @@ class MemberProfileController extends Controller
 
                 return [
                     'name' => $c->full_name,
-                    'member_id' => $m?->id,
+                    'member_handle' => $m?->handle,
                     'avatar_url' => $m?->user ? MediaUrl::profile($m->user, 'avatar') : null,
                     'role' => $m?->role->value,
                     'role_label' => $m?->role->canManage() ? $m->role->label() : null,
@@ -60,7 +61,7 @@ class MemberProfileController extends Controller
         return ['data' => $people->values()];
     }
 
-    public function show(Request $request, Group $group, int $member, CampaignProgress $progress)
+    public function show(Request $request, Group $group, string $member, CampaignProgress $progress)
     {
         $viewer = GroupViewer::of($request, $group);
         $m = $this->member($viewer, $member);
@@ -68,7 +69,7 @@ class MemberProfileController extends Controller
 
         return [
             'member' => [
-                'id' => $m->id,
+                'handle' => $m->handle,
                 'name' => $user->name,
                 'bio' => $user->bio,
                 'avatar_url' => MediaUrl::profile($user, 'avatar'),
@@ -83,38 +84,55 @@ class MemberProfileController extends Controller
         ];
     }
 
-    public function timeline(Request $request, Group $group, int $member)
+    public function timeline(Request $request, Group $group, string $member)
     {
         $viewer = GroupViewer::of($request, $group);
         $m = $this->member($viewer, $member);
         $page = max(1, (int) $request->query('page', 1));
 
-        if ($m->contact_id === null) {
-            return ['data' => [], 'has_more' => false, 'page' => $page];
+        $isMe = $viewer->user?->id === $m->user_id;
+
+        // Bài đăng của người đó trong nhóm này (plan/21 mục 6). Chính chủ thấy cả bài chờ duyệt, bị từ chối,
+        // bị ẩn (kèm nhãn); QTV thấy thêm bài đã ẩn; người khác chỉ thấy bài đang hiện.
+        $statuses = StatusPost::query()
+            ->where('user_id', $m->user_id)
+            ->when(! $isMe, fn ($q) => $q->where('status', 'published')
+                ->when(! $viewer->canManage(), fn ($w) => $w->whereNull('hidden_at')))
+            ->selectRaw("CONCAT('s', id) as ref, COALESCE(published_at, created_at) as at, id")
+            ->toBase();
+
+        // Không gộp theo chiến dịch/ngày như timeline nhóm: mỗi phiếu một thẻ. Tài khoản chưa gắn danh bạ thì
+        // không có phiếu nhưng vẫn có bài đăng.
+        if ($m->contact_id !== null) {
+            $statuses->unionAll(Transaction::query()
+                ->where('contact_id', $m->contact_id)
+                ->where('show_on_timeline', true)
+                ->selectRaw("CONCAT('t', id) as ref, occurred_at as at, id")
+                ->toBase());
         }
 
-        // Không gộp theo chiến dịch/ngày như timeline nhóm: mỗi phiếu một thẻ.
-        $items = TransactionPresenter::withCardRelations(Transaction::query(), $viewer)
-            ->where('contact_id', $m->contact_id)
-            ->where('show_on_timeline', true)
-            ->orderByDesc('occurred_at')->orderByDesc('id')
+        $rows = $statuses
+            ->orderByDesc('at')->orderByDesc('id')
             ->offset(($page - 1) * self::PER_PAGE)
             ->limit(self::PER_PAGE + 1)
             ->get();
 
+        $refs = $rows->take(self::PER_PAGE)->pluck('ref')->all();
+        $cards = TimelineFeed::cards($group, $viewer, $refs);
+
         return [
-            'data' => $items->take(self::PER_PAGE)->map(fn (Transaction $t) => ['kind' => 'transaction'] + TransactionPresenter::card($t, $group, $viewer))->values(),
-            'has_more' => $items->count() > self::PER_PAGE,
+            'data' => collect($refs)->map(fn (string $ref) => $cards[$ref] ?? null)->filter()->values(),
+            'has_more' => $rows->count() > self::PER_PAGE,
             'page' => $page,
         ];
     }
 
-    /** Thành viên đã rời nhóm chỉ QTV còn xem được trang. */
-    private function member(GroupViewer $viewer, int $id): GroupMember
+    /** Tìm theo mã ngẫu nhiên, không theo id (plan/25). Thành viên đã rời nhóm chỉ QTV còn xem được trang. */
+    private function member(GroupViewer $viewer, string $handle): GroupMember
     {
         $m = GroupMember::query()
             ->where('group_id', $viewer->group->id)
-            ->whereKey($id)
+            ->where('handle', $handle)
             ->with('user')
             ->firstOrFail();
 

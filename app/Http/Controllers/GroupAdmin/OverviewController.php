@@ -29,6 +29,7 @@ class OverviewController extends Controller
             'campaigns' => $stats->openCampaigns($group),
             'compare' => ['this_year' => $sameTime($summary), 'last_year' => $sameTime($previous), 'until_month' => $month],
             'pending_sepay' => SepayTransaction::query()->where('status', 'pending')->count(),
+            'pending_posts' => StatusPostReviewController::pendingCount(),
             'counts' => [
                 'contacts' => Contact::query()->where('status', 'active')->count(),
                 'transactions' => Transaction::query()->count(),

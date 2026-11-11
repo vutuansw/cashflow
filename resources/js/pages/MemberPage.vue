@@ -1,23 +1,28 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { House, Link2, Lock, MoreHorizontal, Pencil } from 'lucide-vue-next';
+import { Camera, House, KeyRound, Link2, Lock, LogOut, MoreHorizontal, Plus, Settings, UserPen, Users } from 'lucide-vue-next';
 import BackButton from '../components/BackButton.vue';
+import DropdownMenu from '../components/DropdownMenu.vue';
 import MemberFeed from '../components/MemberFeed.vue';
 import MemberIntro from '../components/MemberIntro.vue';
 import PhotoViewer from '../components/PhotoViewer.vue';
+import ProfileEditSheets from '../components/ProfileEditSheets.vue';
 import ProfileHeader from '../components/ProfileHeader.vue';
 import Sheet from '../components/Sheet.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
+import { useProfileEditor } from '../lib/profileEditor.js';
+import { logout, session } from '../lib/session.js';
 import SiteFooter from '../components/SiteFooter.vue';
 
-// Trang thành viên /{ma-nhom}/members/{id}, bố cục như trang cá nhân Facebook: phần đầu (ảnh bìa, avatar,
+// Trang thành viên /{ma-nhom}/members/{mã ngẫu nhiên} (plan/25), bố cục như trang cá nhân Facebook: phần đầu (ảnh bìa, avatar,
 // tên), cột trái "Giới thiệu", cột phải "Hoạt động" (phiếu người đó đóng hoặc nhận). Xem plan/08 mục 1, 2, 5.
+// Trang của chính mình thì sửa luôn tại đây: ảnh bìa, ảnh đại diện, thông tin, lời giới thiệu (plan/24).
 const route = useRoute();
 const router = useRouter();
 const code = computed(() => route.params.group);
-const id = computed(() => Number(route.params.id));
+const handle = computed(() => route.params.handle);
 
 const group = ref(null);
 const profile = ref(null);
@@ -25,13 +30,20 @@ const error = ref(null);
 const viewing = ref(null);
 const menu = ref(false);
 
-const member = computed(() => profile.value?.member);
+// Chủ trang: tên, ảnh, lời giới thiệu lấy từ tài khoản đang đăng nhập để sửa xong là thấy ngay.
+const member = computed(() => {
+    const m = profile.value?.member;
+    if (!m?.is_me || !session.me) return m;
+    const { name, avatar_url, cover_url, bio } = session.me;
+    return { ...m, name, avatar_url, cover_url, bio };
+});
+const isMe = computed(() => !!member.value?.is_me);
 
 async function load() {
     error.value = null;
     profile.value = null;
     try {
-        const [g, p] = await Promise.all([api(`/g/${code.value}`), api(`/g/${code.value}/members/${id.value}`)]);
+        const [g, p] = await Promise.all([api(`/g/${code.value}`), api(`/g/${code.value}/members/${handle.value}`)]);
         group.value = g;
         profile.value = p;
         document.title = `${p.member.name} · ${g.name}`;
@@ -42,6 +54,15 @@ async function load() {
 
 const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
 const open = (url) => url && (viewing.value = [{ lg: url }]);
+const editor = useProfileEditor(open);
+
+// Bấm ảnh: chủ trang thì đổi ảnh (chưa có thì chọn luôn), người khác thì phóng to.
+const tapImage = (kind) => (isMe.value ? editor.tapImage(kind) : open(member.value?.[`${kind}_url`]));
+
+async function signOut() {
+    await logout();
+    router.replace('/login');
+}
 
 function copyLink() {
     menu.value = false;
@@ -49,7 +70,7 @@ function copyLink() {
 }
 
 onMounted(load);
-watch([code, id], load);
+watch([code, handle], load);
 </script>
 
 <template>
@@ -75,19 +96,46 @@ watch([code, id], load);
         </div>
 
         <template v-else-if="member">
-            <ProfileHeader :member="member" :role="member.role_label" :context="group?.name" :context-to="`/${code}`" @cover="open(member.cover_url)" @avatar="open(member.avatar_url)">
+            <ProfileHeader :member="member" :role="member.role_label" :context="group?.name" :context-to="`/${code}`" :interactive="isMe" @cover="tapImage('cover')" @avatar="tapImage('avatar')">
+                <template v-if="isMe" #cover>
+                    <button type="button" class="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full bg-black/45 text-white backdrop-blur hover:bg-black/60" :aria-label="member.cover_url ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'" :title="member.cover_url ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'" :disabled="!!editor.uploading.value" @click.stop="editor.tapImage('cover')">
+                        <span v-if="editor.uploading.value === 'cover'" class="text-xs">…</span>
+                        <Camera v-else class="size-4" />
+                    </button>
+                </template>
+                <template v-if="isMe" #avatar>
+                    <button type="button" class="absolute bottom-1 right-1 grid size-8 place-items-center rounded-full bg-muted text-foreground shadow ring-2 ring-card hover:bg-border" :aria-label="member.avatar_url ? 'Đổi ảnh đại diện' : 'Thêm ảnh đại diện'" :disabled="!!editor.uploading.value" @click.stop="editor.tapImage('avatar')">
+                        <span v-if="editor.uploading.value === 'avatar'" class="text-xs">…</span>
+                        <Camera v-else class="size-4" />
+                    </button>
+                </template>
                 <template #badge><span v-if="member.removed" class="chip !bg-amber-100 !text-amber-800">Đã rời nhóm</span></template>
-                <RouterLink v-if="member.is_me" to="/profile" class="btn-pill" aria-label="Chỉnh sửa trang cá nhân" title="Chỉnh sửa trang cá nhân"><Pencil class="size-[18px]" /></RouterLink>
+                <!-- Cài đặt tài khoản: thay đổi thông tin, chọn nhóm, đổi mật khẩu, đăng xuất -->
+                <DropdownMenu v-if="isMe" label="Cài đặt tài khoản">
+                    <template #trigger="{ open: shown, toggle }">
+                        <button type="button" class="btn-pill" :class="{ 'bg-primary/10': shown }" aria-label="Cài đặt" title="Cài đặt" aria-haspopup="menu" :aria-expanded="shown" @click="toggle"><Settings class="size-4" /></button>
+                    </template>
+                    <button type="button" class="menu-item" role="menuitem" @click="editor.edit"><UserPen class="size-5 text-muted-foreground" /> Thay đổi thông tin</button>
+                    <RouterLink to="/groups" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm</RouterLink>
+                    <RouterLink to="/change-password" class="menu-item" role="menuitem"><KeyRound class="size-5 text-muted-foreground" /> Đổi mật khẩu</RouterLink>
+                    <div class="my-1.5 border-t border-border"></div>
+                    <button type="button" class="menu-item text-expense" role="menuitem" @click="signOut"><LogOut class="size-5" /> Đăng xuất</button>
+                </DropdownMenu>
             </ProfileHeader>
+            <ProfileEditSheets v-if="isMe" :editor="editor" />
 
             <!-- Điện thoại: Giới thiệu rồi Hoạt động. Máy tính: Giới thiệu cột trái (dính khi cuộn), Hoạt động cột phải. -->
             <div class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
                 <!-- Máy tính: chân trang dưới thẻ Giới thiệu (cột trái dính khi cuộn), vì dòng hoạt động cuộn vô tận. -->
                 <div class="lg:sticky lg:top-18">
-                    <MemberIntro :member="member" :stats="profile.stats" :group-name="group?.name" :code="code" />
+                    <MemberIntro :member="member" :stats="profile.stats" :group-name="group?.name" :code="code">
+                        <template v-if="isMe" #bio-empty>
+                            <button type="button" class="btn-soft mt-3 w-full" @click="editor.edit"><Plus class="size-4" /> Thêm lời giới thiệu</button>
+                        </template>
+                    </MemberIntro>
                     <SiteFooter class="hidden !pt-3 lg:block" />
                 </div>
-                <MemberFeed :code="code" :member-id="member.id" :viewer="group?.viewer" @login="login" />
+                <MemberFeed :code="code" :member-handle="member.handle" :viewer="group?.viewer" :composer="member.is_me && !!group?.viewer?.can_post" @login="login" />
             </div>
         </template>
 
@@ -95,7 +143,6 @@ watch([code, id], load);
         <Sheet :open="menu" :title="member?.name" @close="menu = false">
             <div class="grid gap-3">
                 <button type="button" class="btn-outline" @click="copyLink"><Link2 class="size-4" /> Chép link trang này</button>
-                <RouterLink v-if="member?.is_me" to="/profile" class="btn-outline"><Pencil class="size-4" /> Chỉnh sửa trang cá nhân</RouterLink>
                 <RouterLink :to="`/${code}`" class="btn-outline"><House class="size-4" /> Về trang nhóm</RouterLink>
             </div>
         </Sheet>

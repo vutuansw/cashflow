@@ -3,7 +3,7 @@ import { ShieldCheck, Users } from 'lucide-vue-next';
 import CoverArt from './CoverArt.vue';
 import UserAvatar from './UserAvatar.vue';
 
-// Phần đầu trang cá nhân, dùng chung cho trang thành viên và /profile (plan/08 mục 2, 10c). Ảnh bìa 3:1 mờ dần
+// Phần đầu trang cá nhân, trang thành viên (plan/08 mục 2, 10c; plan/24). Ảnh bìa 3:1 mờ dần
 // xuống nền trắng; avatar tròn viền trắng và tên nằm đè lên phần mờ đó, dòng dưới tên là vai trò | nhóm và các
 // nút hành động (viên thuốc viền xanh). Chưa có ảnh bìa thì vẽ nền xanh có sóng và cành lá.
 // Số đã đóng không nhắc lại ở đây, nằm trong thẻ Giới thiệu.
@@ -18,18 +18,22 @@ defineProps({
     interactive: Boolean,
 });
 const emit = defineEmits(['cover', 'avatar']);
+// Ảnh bìa mờ dần ở 60% dưới để tên đè lên vẫn đọc rõ: dùng mask cho chính ảnh trong suốt dần (nền trắng của
+// section lộ ra), KHÔNG phủ thêm lớp trắng lên trên. Khung 3:1 thường cao lẻ pixel (vd 146.66px), ở một số tỉ lệ
+// màn hình (iPhone 16 Pro Max, DevTools thu nhỏ khung) hàng pixel cuối của ảnh lọt ra dưới lớp phủ thành vạch xám.
+// Với mask thì từ 91% trở xuống ảnh đã trong suốt hẳn, mép dưới không còn gì để lộ.
+const fade = 'linear-gradient(to bottom, #000 40%, rgb(0 0 0 / 0.3) 67%, transparent 91%)';
+const maskStyle = { maskImage: fade, WebkitMaskImage: fade };
 </script>
 
 <template>
     <section class="border-b border-border bg-card">
         <div class="mx-auto max-w-5xl sm:px-4">
             <div class="relative overflow-hidden sm:rounded-b-2xl">
-                <!-- Ảnh bìa được cắt đúng 3:1 khi tải lên nên khung cũng 3:1, không bị cắt thêm -->
-                <button type="button" class="relative block aspect-[3/1] w-full overflow-hidden bg-cover bg-center" :class="member.cover_url || interactive ? 'cursor-pointer' : 'cursor-default'" :style="member.cover_url ? { backgroundImage: `url(${member.cover_url})` } : {}" :aria-label="member.cover_url ? 'Ảnh bìa' : 'Chưa có ảnh bìa'" @click="emit('cover')">
+                <!-- Ảnh bìa được cắt đúng 3:1 khi tải lên nên khung cũng 3:1, không bị cắt thêm. Mờ dần bằng mask, xem maskStyle. -->
+                <button type="button" class="relative block aspect-[3/1] w-full overflow-hidden bg-cover bg-center bg-no-repeat" :class="member.cover_url || interactive ? 'cursor-pointer' : 'cursor-default'" :style="[maskStyle, member.cover_url ? { backgroundImage: `url(${member.cover_url})` } : {}]" :aria-label="member.cover_url ? 'Ảnh bìa' : 'Chưa có ảnh bìa'" @click="emit('cover')">
                     <CoverArt v-if="!member.cover_url" />
                 </button>
-                <!-- Mờ dần xuống nền trắng để tên đè lên vẫn đọc rõ, kể cả khi ảnh bìa là ảnh chụp -->
-                <span class="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-b from-transparent via-card/70 to-card" aria-hidden="true"></span>
                 <slot name="cover" />
             </div>
 

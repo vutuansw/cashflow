@@ -15,7 +15,7 @@ class MigrationsTest extends TestCase
         foreach ([
             'users', 'groups', 'group_members', 'contacts', 'categories', 'campaigns', 'campaign_members',
             'transactions', 'transaction_photos', 'transaction_histories', 'bill_scans', 'sepay_transactions',
-            'reactions', 'comments', 'sessions', 'jobs', 'cache',
+            'reactions', 'comments', 'status_posts', 'status_post_photos', 'sessions', 'jobs', 'cache',
         ] as $table) {
             $this->assertTrue(Schema::connection('groups')->hasTable($table), "Thiếu bảng {$table} ở cashflow_groups");
         }

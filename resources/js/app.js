@@ -4,7 +4,7 @@ import App from './App.vue';
 import { legacyRedirect } from './lib/legacyUrls.js';
 import { loadSystemMe } from './lib/systemApi.js';
 import { lastGroup } from './lib/install.js';
-import { canManage, homePath, loadMe, session } from './lib/session.js';
+import { canManage, homePath, loadMe, myPagePath, session } from './lib/session.js';
 
 // Bảng route của SPA, xem plan/plan.md mục 4 và plan/06 mục 3.
 // meta.auth: phải đăng nhập · meta.guest: chỉ khi chưa đăng nhập · meta.admin: trưởng nhóm/QTV của nhóm.
@@ -23,7 +23,8 @@ const router = createRouter({
         // Tạo nhóm: khách mở được, trang tự báo cần tạo tài khoản trước (plan/11).
         { path: '/groups/new', component: () => import('./pages/GroupNewPage.vue') },
         { path: '/groups', component: () => import('./pages/GroupPickerPage.vue'), meta: { auth: true } },
-        { path: '/profile', component: () => import('./pages/ProfilePage.vue'), meta: { auth: true } },
+        // Không còn trang cá nhân riêng (plan/24): /profile chỉ giữ cho link cũ, chuyển sang trang của mình trong nhóm.
+        { path: '/profile', component: () => import('./pages/NotFoundPage.vue'), meta: { auth: true }, beforeEnter: () => myPagePath() },
 
         { path: '/:group/admin', component: () => import('./pages/admin/OverviewPage.vue'), meta: admin },
         { path: '/:group/admin/contacts', component: () => import('./pages/admin/ContactsPage.vue'), meta: admin },
@@ -35,6 +36,7 @@ const router = createRouter({
         { path: '/:group/admin/transactions', component: () => import('./pages/admin/TransactionsPage.vue'), meta: admin },
         { path: '/:group/admin/transactions/new', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
         { path: '/:group/admin/transactions/:id(\\d+)', component: () => import('./pages/admin/TransactionFormPage.vue'), meta: admin },
+        { path: '/:group/admin/posts', component: () => import('./pages/admin/StatusReviewPage.vue'), meta: admin },
         { path: '/:group/admin/sepay-queue', component: () => import('./pages/admin/SepayQueuePage.vue'), meta: admin },
         { path: '/:group/admin/campaigns', component: () => import('./pages/admin/CampaignsPage.vue'), meta: admin },
         { path: '/:group/admin/campaigns/new', component: () => import('./pages/admin/CampaignFormPage.vue'), meta: admin },
@@ -56,7 +58,9 @@ const router = createRouter({
         { path: '/:group/stats', component: () => import('./pages/GroupStatsPage.vue') },
         { path: '/:group/campaigns/:slug', component: () => import('./pages/CampaignPage.vue') },
         { path: '/:group/members', component: () => import('./pages/GroupMembersPage.vue') },
-        { path: '/:group/members/:id(\\d+)', component: () => import('./pages/MemberPage.vue') },
+        { path: '/:group/members/:handle([a-z0-9]{10})', component: () => import('./pages/MemberPage.vue') },
+        // Link cũ dạng id số (trước plan/25): về danh sách thành viên, không tra ra người để khỏi dò được bằng số.
+        { path: '/:group/members/:id(\\d+)', redirect: (to) => `/${to.params.group}/members` },
         { path: '/:group', component: () => import('./pages/GroupHomePage.vue') },
         { path: '/:pathMatch(.*)*', component: () => import('./pages/NotFoundPage.vue') },
     ],

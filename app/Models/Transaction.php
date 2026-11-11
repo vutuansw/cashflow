@@ -19,11 +19,11 @@ class Transaction extends Model
 
     protected $fillable = [
         'type', 'category_id', 'campaign_id', 'contact_id', 'amount', 'occurred_at', 'title',
-        'description', 'payer_name', 'source', 'sepay_transaction_id', 'show_on_timeline',
+        'description', 'payer_name', 'source', 'sepay_transaction_id', 'show_on_timeline', 'exclude_from_top',
         'created_by', 'updated_by', 'deleted_by',
     ];
 
-    protected $attributes = ['source' => 'manual', 'show_on_timeline' => true];
+    protected $attributes = ['source' => 'manual', 'show_on_timeline' => true, 'exclude_from_top' => false];
 
     protected function casts(): array
     {
@@ -32,6 +32,7 @@ class Transaction extends Model
             'amount' => 'integer',
             'occurred_at' => 'datetime',
             'show_on_timeline' => 'boolean',
+            'exclude_from_top' => 'boolean',
         ];
     }
 

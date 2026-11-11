@@ -42,6 +42,7 @@ const form = reactive({
     title: '',
     description: '',
     show_on_timeline: true,
+    exclude_from_top: false,
 });
 const titleTouched = ref(false);
 
@@ -192,6 +193,7 @@ onMounted(async () => {
             title: d.title,
             description: d.description ?? '',
             show_on_timeline: d.show_on_timeline,
+            exclude_from_top: d.exclude_from_top ?? false,
         });
         // Loại đã ẩn vẫn phải chọn được cho phiếu cũ.
         if (d.category && !options.value.categories.some((c) => c.id === d.category_id)) {
@@ -271,6 +273,7 @@ function payload() {
     data.append('payer_name', form.contact_id ? '' : form.payer_name.trim());
     data.append('campaign_id', isIncome.value && form.campaign_id ? form.campaign_id : '');
     data.append('show_on_timeline', form.show_on_timeline ? '1' : '0');
+    data.append('exclude_from_top', isIncome.value && form.campaign_id && form.exclude_from_top ? '1' : '0');
     photos.value.filter((p) => p.file).forEach((p) => data.append('photos[]', p.file));
     removedPhotoIds.value.forEach((x) => data.append('remove_photo_ids[]', x));
     // Giữ đúng thứ tự trên màn hình: ảnh cũ "p:id", ảnh mới "n:thứ tự".
@@ -460,6 +463,12 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
             <label class="flex min-h-11 items-center gap-3">
                 <input v-model="form.show_on_timeline" type="checkbox" class="size-5 accent-[var(--primary)]" />
                 <span><span class="block font-medium">Hiện trên timeline</span><span class="text-sm text-muted-foreground">Tắt nếu là khoản nội bộ; vẫn tính vào số dư.</span></span>
+            </label>
+
+            <!-- Top đóng góp trên trang nhóm (plan/22): chỉ có nghĩa với phiếu thu gắn chiến dịch. -->
+            <label v-if="isIncome && form.campaign_id" class="flex min-h-11 items-center gap-3">
+                <input v-model="form.exclude_from_top" type="checkbox" class="size-5 shrink-0 accent-[var(--primary)]" />
+                <span><span class="block font-medium">Không tính vào Top đóng góp</span><span class="text-sm text-muted-foreground">Dùng khi đóng bù năm trước, đóng hộ… Vẫn tính là đã đóng.</span></span>
             </label>
 
             <!-- Lịch sử sửa -->

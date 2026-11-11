@@ -19,7 +19,7 @@ const names = computed(() => {
         <div class="flex items-start gap-3">
             <CategoryIcon :name="post.category?.icon" :color="post.category?.color" />
             <div class="min-w-0 flex-1">
-                <h3 class="font-semibold leading-snug">
+                <h3 class="text-[15px] font-semibold leading-snug">
                     <RouterLink v-if="post.campaign" :to="`/${code}/campaigns/${post.campaign.slug}`" class="hover:underline">{{ post.campaign.name }}</RouterLink>
                     <template v-else>{{ post.category?.name }}</template>
                 </h3>
@@ -32,7 +32,7 @@ const names = computed(() => {
         </button>
         <ul v-if="open" class="mt-1 divide-y divide-border rounded-xl bg-muted/60 text-sm">
             <li v-for="p in post.payers" :key="p.id" class="flex items-center justify-between gap-3 px-3 py-2">
-                <MemberName :name="p.name" :member-id="p.member_id" :code="code" class="truncate" />
+                <MemberName :name="p.name" :member-handle="p.member_handle" :code="code" class="truncate" />
                 <span class="shrink-0 tabular-nums text-muted-foreground">{{ p.time }} · {{ formatMoney(p.amount) }}</span>
             </li>
         </ul>

@@ -38,7 +38,7 @@ class GroupPresenter
      * Hàng avatar thành viên như nhóm Facebook: người có ảnh đại diện trước, rồi người có tài khoản, rồi người
      * chỉ có trong danh bạ. Chỉ tên và ảnh (ai xem được timeline vốn đã thấy tên ở bảng đã đóng/chưa đóng).
      *
-     * @return list<array{name: string, member_id: ?int, avatar_url: ?string}>
+     * @return list<array{name: string, member_handle: ?string, avatar_url: ?string}>
      */
     private static function membersPreview(Group $group): array
     {
@@ -49,8 +49,8 @@ class GroupPresenter
             ->where('status', 'active')
             ->orderBy('sort_order')->orderBy('full_name')
             ->get(['id', 'full_name'])
-            ->map(fn (Contact $c) => ['name' => $c->full_name] + ($index->contact($c->id) ?? ['member_id' => null, 'avatar_url' => null]))
-            ->sortBy(fn ($p) => $p['avatar_url'] !== null ? 0 : ($p['member_id'] !== null ? 1 : 2))
+            ->map(fn (Contact $c) => ['name' => $c->full_name] + ($index->contact($c->id) ?? ['member_handle' => null, 'avatar_url' => null]))
+            ->sortBy(fn ($p) => $p['avatar_url'] !== null ? 0 : ($p['member_handle'] !== null ? 1 : 2))
             ->take(self::MEMBERS_PREVIEW)
             ->values()
             ->all();

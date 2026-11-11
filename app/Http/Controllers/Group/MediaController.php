@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Group;
 use App\Http\Controllers\Controller;
 use App\Models\BillScan;
 use App\Models\Group;
+use App\Models\StatusPost;
+use App\Models\StatusPostPhoto;
 use App\Models\Transaction;
 use App\Models\TransactionPhoto;
 use App\Models\User;
@@ -17,6 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Phục vụ ảnh từ đĩa riêng tư sau khi kiểm quyền, xem plan/03 mục 3:
  * - ảnh sự kiện: ai xem được timeline nhóm thì xem được (phiếu ẩn khỏi timeline hoặc đã xóa: chỉ QTV);
+ * - ảnh bài đăng thành viên: như ảnh sự kiện, bài chờ duyệt/bị ẩn chỉ người đăng và QTV (plan/21);
  * - ảnh bill chứng từ: chỉ QTV;
  * - ảnh bìa nhóm: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện);
  * - ảnh đại diện, ảnh bìa trang cá nhân: công khai qua tên file ngẫu nhiên (plan/08 mục 4).
@@ -36,6 +39,25 @@ class MediaController extends Controller
             ->firstOrFail();
 
         return $this->file($size === 'sm' ? $item->thumb_path : $item->path, $group->isPublic());
+    }
+
+    /**
+     * Ảnh bài đăng thành viên (plan/21 mục 4): như ảnh phiếu, nhưng bài chờ duyệt, bị từ chối hoặc bị ẩn
+     * chỉ người đăng và QTV xem được, và khi đó không cho proxy giữ.
+     */
+    public function statusPhoto(Request $request, Group $group, int $photo, string $size)
+    {
+        $viewer = GroupViewer::of($request, $group);
+        abort_unless($viewer->canView(), 404);
+
+        $item = StatusPostPhoto::query()
+            ->whereKey($photo)
+            ->whereIn('status_post_id', StatusPost::visibleTo(StatusPost::query(), $viewer)->select('id'))
+            ->with('statusPost')
+            ->firstOrFail();
+        $post = $item->statusPost;
+
+        return $this->file($size === 'sm' ? $item->thumb_path : $item->path, $group->isPublic() && $post->isPublished() && $post->hidden_at === null);
     }
 
     public function bill(Request $request, Group $group, int $scan)

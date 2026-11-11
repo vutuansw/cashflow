@@ -97,13 +97,14 @@ class ProfileTest extends TestCase
         $this->get('/media/u/999999/avatar/abc')->assertNotFound();
     }
 
-    public function test_me_tra_member_id_tung_nhom_de_mo_trang_cua_minh(): void
+    public function test_me_tra_member_handle_tung_nhom_de_mo_trang_cua_minh(): void
     {
         $user = User::factory()->create();
         $group = $this->makeGroup([], $user);
-        $memberId = GroupMember::where('group_id', $group->id)->where('user_id', $user->id)->value('id');
+        $handle = GroupMember::where('group_id', $group->id)->where('user_id', $user->id)->value('handle');
 
-        $this->actingAs($user)->getJson('/api/me')->assertJsonPath('data.groups.0.member_id', $memberId);
-        $this->getJson("/api/g/{$group->code}/members/{$memberId}")->assertOk()->assertJsonPath('member.is_me', true);
+        $this->actingAs($user)->getJson('/api/me')->assertJsonPath('data.groups.0.member_handle', $handle);
+        $this->assertArrayNotHasKey('member_id', $this->getJson('/api/me')->json('data.groups.0'));
+        $this->getJson("/api/g/{$group->code}/members/{$handle}")->assertOk()->assertJsonPath('member.is_me', true);
     }
 }

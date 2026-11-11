@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\BillScan;
 use App\Models\Group;
+use App\Models\StatusPostPhoto;
 use App\Models\TransactionPhoto;
 use App\Models\User;
 
@@ -16,6 +17,12 @@ class MediaUrl
     public static function photo(Group $group, TransactionPhoto $photo, string $size = 'lg'): string
     {
         return "/media/{$group->code}/p/{$photo->id}/{$size}";
+    }
+
+    /** Ảnh bài đăng thành viên, xem plan/21 mục 4. */
+    public static function statusPhoto(Group $group, StatusPostPhoto $photo, string $size = 'lg'): string
+    {
+        return "/media/{$group->code}/s/{$photo->id}/{$size}";
     }
 
     public static function bill(Group $group, BillScan $scan): string

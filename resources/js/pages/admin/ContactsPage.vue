@@ -266,7 +266,7 @@ function birthday(value) {
         </ul>
 
         <Sheet :open="editing !== null" :title="editing?.id ? 'Sửa thông tin' : 'Thêm người'" @close="editing = null">
-            <RouterLink v-if="editing?.account" :to="`/${$route.params.group}/members/${editing.account.member_id}`" class="btn-outline mb-4 w-full"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
+            <RouterLink v-if="editing?.account" :to="`/${$route.params.group}/members/${editing.account.member_handle}`" class="btn-outline mb-4 w-full"><UserRound class="size-4" /> Xem trang cá nhân</RouterLink>
             <form class="space-y-4" @submit.prevent="save">
                 <FormField v-model="form.full_name" label="Họ tên" :error="state.errors.full_name" required />
                 <FormField v-model="form.phone" label="Số điện thoại" type="tel" inputmode="tel" :error="state.errors.phone" />

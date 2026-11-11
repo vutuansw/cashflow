@@ -104,6 +104,9 @@ return [
         // Số nhóm một tài khoản được tự tạo; /system ghi đè bằng platform_settings.
         'groups_per_user' => 5,
         'photos_per_transaction' => 10,
+        // Bài đăng thành viên (plan/21): số ảnh mỗi bài, số bài mỗi giờ mỗi người.
+        'photos_per_status' => 10,
+        'statuses_per_hour' => 10,
         'photo_upload_max_kb' => 10 * 1024,
     ],
 

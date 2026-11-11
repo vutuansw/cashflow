@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { EyeOff, Image, Plus, ReceiptText, RotateCcw, Trash2 } from 'lucide-vue-next';
+import { EyeOff, Image, Plus, ReceiptText, RotateCcw, Trash2, Trophy } from 'lucide-vue-next';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CategoryIcon from '../../components/CategoryIcon.vue';
 import FilterBar from '../../components/FilterBar.vue';
@@ -176,6 +176,7 @@ const sourceLabel = { manual: 'Nhập tay', ai_bill: 'AI đọc bill', sepay: 'S
                             <span v-if="row.photos_count" class="inline-flex items-center gap-0.5"><Image class="size-3" />{{ row.photos_count }}</span>
                             <span v-if="row.bills_count" class="inline-flex items-center gap-0.5"><ReceiptText class="size-3" />bill</span>
                             <span v-if="!row.show_on_timeline" class="inline-flex items-center gap-0.5"><EyeOff class="size-3" />ẩn</span>
+                            <span v-if="row.exclude_from_top" class="inline-flex items-center gap-0.5"><Trophy class="size-3" />không tính top</span>
                         </p>
                     </div>
                     <!-- Phiếu đã xóa: số tiền và nút khôi phục xếp dọc để tên phiếu còn chỗ trên điện thoại -->

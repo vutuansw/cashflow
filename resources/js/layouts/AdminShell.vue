@@ -13,7 +13,7 @@ import { readBill } from '../lib/billScan.js';
 import { toast } from '../lib/notice.js';
 import { pending, refreshPending } from '../lib/pending.js';
 import { adminMenu, adminTabs } from '../lib/nav.js';
-import { logout, session } from '../lib/session.js';
+import { logout, myPagePath, session } from '../lib/session.js';
 import UserAvatar from '../components/UserAvatar.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 
@@ -26,7 +26,7 @@ const code = computed(() => route.params.group);
 const group = computed(() => session.me?.groups.find((g) => g.code === code.value));
 const menu = computed(() => adminMenu(code.value));
 const tabs = computed(() => adminTabs(code.value));
-const myPage = computed(() => (group.value?.member_id ? `/${code.value}/members/${group.value.member_id}` : '/profile'));
+const myPage = computed(() => (group.value?.member_handle ? `/${code.value}/members/${group.value.member_handle}` : myPagePath()));
 
 async function signOut() {
     await logout();
@@ -58,10 +58,13 @@ async function onBill(event) {
 onMounted(() => refreshPending(code.value));
 watch(code, (c) => refreshPending(c));
 const cap = (n) => (n > 99 ? '99+' : n);
-// Chấm đỏ: "Chờ duyệt" đếm giao dịch; "Danh bạ" (và tab "Thêm" trên điện thoại, nơi chứa Danh bạ) đếm người xin vào nhóm.
+// Chấm đỏ: "Chờ duyệt" đếm giao dịch; "Danh bạ" đếm người xin vào nhóm; "Duyệt bài đăng" đếm bài chờ duyệt (plan/21);
+// tab "Thêm" trên điện thoại (nơi chứa Danh bạ và Duyệt bài đăng) cộng cả hai.
 function badge(item) {
     if (item.to.endsWith('/sepay-queue')) return pending.count ? cap(pending.count) : null;
-    if (item.to.endsWith('/contacts') || item.to.endsWith('/admin/more')) return pending.joins ? cap(pending.joins) : null;
+    if (item.to.endsWith('/contacts')) return pending.joins ? cap(pending.joins) : null;
+    if (item.to.endsWith('/admin/posts')) return pending.posts ? cap(pending.posts) : null;
+    if (item.to.endsWith('/admin/more')) return pending.joins + pending.posts ? cap(pending.joins + pending.posts) : null;
     return null;
 }
 

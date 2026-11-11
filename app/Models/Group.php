@@ -21,12 +21,12 @@ class Group extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'code', 'name', 'description', 'rules', 'cover_path', 'visibility', 'join_link_enabled', 'owner_id',
+        'code', 'name', 'description', 'rules', 'cover_path', 'visibility', 'join_link_enabled', 'post_mode', 'owner_id',
         'opening_balance', 'opening_balance_date', 'bank_code', 'bank_account_no', 'bank_account_name',
         'notify_emails', 'notify_settings',
     ];
 
-    protected $attributes = ['visibility' => 'public', 'join_link_enabled' => true, 'opening_balance' => 0];
+    protected $attributes = ['visibility' => 'public', 'join_link_enabled' => true, 'post_mode' => 'open', 'opening_balance' => 0];
 
     protected $hidden = ['bank_account_no', 'sepay_api_key'];
 

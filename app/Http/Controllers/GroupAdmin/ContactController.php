@@ -217,7 +217,7 @@ class ContactController extends Controller
             'note' => $c->note,
             'status' => $c->status,
             'account' => $member === null ? null : [
-                'member_id' => $member->id,
+                'member_handle' => $member->handle,
                 'user_id' => $member->user_id,
                 'role' => $member->role->value,
                 'role_label' => $member->role->label(),

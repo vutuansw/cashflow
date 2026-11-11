@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BookUser, Ellipsis, Eye, FileBarChart, Inbox, LayoutDashboard, Megaphone, Plus, Settings, Shapes, ShieldCheck } from 'lucide-vue-next';
+import { ArrowLeftRight, BookUser, Ellipsis, Eye, FileBarChart, Inbox, LayoutDashboard, Megaphone, MessageSquareText, Plus, Settings, Shapes, ShieldCheck } from 'lucide-vue-next';
 
 // Menu khu quản trị nhóm, xem plan/06 mục 2. Dùng chung cho sidebar, tab đáy và trang "Thêm".
 export function adminMenu(code) {
@@ -8,6 +8,7 @@ export function adminMenu(code) {
         { to: `${base}/transactions`, label: 'Phiếu thu chi', short: 'Phiếu', icon: ArrowLeftRight, tab: true },
         { to: `${base}/sepay-queue`, label: 'Chờ duyệt', icon: Inbox, tab: true },
         { to: `${base}/campaigns`, label: 'Chiến dịch', icon: Megaphone },
+        { to: `${base}/posts`, label: 'Duyệt bài đăng', icon: MessageSquareText },
         { to: `${base}/contacts`, label: 'Danh bạ', icon: BookUser },
         { to: `${base}/accounts`, label: 'Tài khoản & vai trò', icon: ShieldCheck },
         { to: `${base}/reports`, label: 'Báo cáo', icon: FileBarChart },

@@ -208,9 +208,9 @@ class TimelineTest extends TestCase
 
         $this->assertSame('Lan', $preview[0]['name']);
         $this->assertStringContainsString('/media/u/', $preview[0]['avatar_url']);
-        $this->assertNotNull($preview[0]['member_id']);
+        $this->assertNotNull($preview[0]['member_handle']);
         $this->assertSame('An chưa có tài khoản', end($preview)['name']);
-        $this->assertNull(end($preview)['member_id']);
+        $this->assertNull(end($preview)['member_handle']);
         $this->assertArrayNotHasKey('phone', $preview[0]);
     }
 }

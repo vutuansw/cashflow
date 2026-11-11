@@ -8,7 +8,7 @@ use App\Support\MediaUrl;
 
 /**
  * Tra nhanh "tên này là thành viên nào" để dựng link trang thành viên
- * /{ma-nhom}/members/{memberId} và ảnh đại diện. Chỉ tài khoản đang thuộc
+ * /{ma-nhom}/members/{handle} (plan/25) và ảnh đại diện. Chỉ tài khoản đang thuộc
  * nhóm; người trong danh bạ chưa có tài khoản thì không có trang. Xem plan/08
  * mục 1 và 6.
  *
@@ -17,10 +17,10 @@ use App\Support\MediaUrl;
  */
 class MemberIndex
 {
-    /** @var array<int, array{member_id: int, avatar_url: ?string}> */
+    /** @var array<int, array{member_handle: string, avatar_url: ?string, role_label: ?string}> */
     private array $byContact = [];
 
-    /** @var array<int, array{member_id: int, avatar_url: ?string}> */
+    /** @var array<int, array{member_handle: string, avatar_url: ?string, role_label: ?string}> */
     private array $byUser = [];
 
     private function __construct(Group $group)
@@ -29,10 +29,15 @@ class MemberIndex
             ->where('group_id', $group->id)
             ->where('status', 'active')
             ->with('user:id,avatar_path')
-            ->get(['id', 'user_id', 'contact_id']);
+            ->get(['id', 'handle', 'user_id', 'contact_id', 'role']);
 
         foreach ($members as $m) {
-            $entry = ['member_id' => $m->id, 'avatar_url' => $m->user ? MediaUrl::profile($m->user, 'avatar') : null];
+            $entry = [
+                'member_handle' => $m->handle,
+                'avatar_url' => $m->user ? MediaUrl::profile($m->user, 'avatar') : null,
+                // Nhãn vai trò chỉ với Ban quản trị, hiện cạnh tên người đăng bài (plan/21 mục 7).
+                'role_label' => $m->role->canManage() ? $m->role->label() : null,
+            ];
             $this->byUser[$m->user_id] = $entry;
             if ($m->contact_id !== null) {
                 $this->byContact[$m->contact_id] = $entry;
@@ -54,13 +59,13 @@ class MemberIndex
         return $index;
     }
 
-    /** @return array{member_id: int, avatar_url: ?string}|null */
+    /** @return array{member_handle: string, avatar_url: ?string, role_label: ?string}|null */
     public function contact(?int $contactId): ?array
     {
         return $contactId === null ? null : ($this->byContact[$contactId] ?? null);
     }
 
-    /** @return array{member_id: int, avatar_url: ?string}|null */
+    /** @return array{member_handle: string, avatar_url: ?string, role_label: ?string}|null */
     public function user(?int $userId): ?array
     {
         return $userId === null ? null : ($this->byUser[$userId] ?? null);

@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import PostCard from './PostCard.vue';
+import PostComposer from './PostComposer.vue';
+import StatusCard from './StatusCard.vue';
 import { api } from '../lib/api.js';
 import { monthLabel } from '../lib/time.js';
 
-// Cột "Hoạt động" trang cá nhân: timeline các phiếu một thành viên đóng hoặc nhận trong nhóm, cuộn vô hạn,
-// chia mốc tháng. Dùng chung cho trang thành viên và /profile. Xem plan/08 mục 5.
-// Slot mặc định: đặt trên đầu cột (vd hàng nút chọn nhóm ở /profile).
-const props = defineProps({ code: String, memberId: Number, viewer: Object });
+// Cột "Hoạt động" trang cá nhân: timeline các phiếu một thành viên đóng hoặc nhận trong nhóm và bài người đó đăng
+// (plan/21), cuộn vô hạn, chia mốc tháng. Xem plan/08 mục 5.
+// composer: hiện ô viết bài (trang của chính mình, nhóm cho đăng).
+const props = defineProps({ code: String, memberHandle: String, viewer: Object, composer: Boolean });
 const emit = defineEmits(['login']);
 
 const posts = ref([]);
@@ -23,7 +25,7 @@ const feed = computed(() => {
         const label = monthLabel(post.occurred_at);
         if (label !== last) items.push({ divider: label, key: `m-${label}` });
         last = label;
-        items.push({ post, key: `t-${post.id}` });
+        items.push({ post, key: `${post.kind === 'status' ? 's' : 't'}-${post.id}` });
     }
     return items;
 });
@@ -41,11 +43,11 @@ function reset() {
 }
 
 async function loadMore() {
-    if (loading.value || !hasMore.value || !props.memberId) return;
+    if (loading.value || !hasMore.value || !props.memberHandle) return;
     const mine = token;
     loading.value = true;
     try {
-        const r = await api(`/g/${props.code}/members/${props.memberId}/timeline?page=${page.value + 1}`);
+        const r = await api(`/g/${props.code}/members/${props.memberHandle}/timeline?page=${page.value + 1}`);
         if (mine !== token) return;
         posts.value.push(...r.data);
         page.value = r.page;
@@ -57,6 +59,10 @@ async function loadMore() {
     }
 }
 
+// Đăng xong: chèn lên đầu ngay (bài chờ duyệt cũng hiện ở trang của chính mình). Xem plan/21 mục 7.
+const posted = (card) => posts.value.unshift(card);
+const removed = (post) => (posts.value = posts.value.filter((p) => !(p.kind === 'status' && p.id === post.id)));
+
 let observer;
 onMounted(() => {
     observer = new IntersectionObserver((entries) => entries[0]?.isIntersecting && loadMore(), { rootMargin: '600px' });
@@ -66,23 +72,23 @@ watch(sentinel, (el, old) => {
     if (old) observer?.unobserve(old);
     if (el) observer?.observe(el);
 });
-watch(() => [props.code, props.memberId], reset);
+watch(() => [props.code, props.memberHandle], reset);
 onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <template>
     <div class="space-y-3">
-        <div class="card flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-            <h2 class="text-lg font-bold">Hoạt động</h2>
-            <slot />
-        </div>
+        <h2 class="sr-only">Hoạt động</h2>
+
+        <PostComposer v-if="composer" :code="code" :viewer="viewer" @posted="posted" />
 
         <template v-for="item in feed" :key="item.key">
             <p v-if="item.divider" class="px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ item.divider }}</p>
+            <StatusCard v-else-if="item.post.kind === 'status'" :post="item.post" :code="code" :viewer="viewer" @login="emit('login')" @removed="removed" />
             <PostCard v-else :post="item.post" :code="code" :viewer="viewer" @login="emit('login')" />
         </template>
 
-        <p v-if="!loading && !posts.length" class="card p-6 text-center text-sm text-muted-foreground">Chưa có khoản đóng góp hay hỗ trợ nào trong nhóm.</p>
+        <p v-if="!loading && !posts.length" class="card p-6 text-center text-sm text-muted-foreground">Chưa có bài đăng, khoản đóng góp hay hỗ trợ nào trong nhóm.</p>
         <div ref="sentinel" class="text-center text-sm text-muted-foreground" :class="{ 'py-4': loading || hasMore || posts.length }">
             <template v-if="loading">Đang tải…</template>
             <button v-else-if="hasMore" type="button" class="btn-outline" @click="loadMore">Xem thêm</button>
