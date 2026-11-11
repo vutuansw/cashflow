@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Category;
 use App\Models\Contact;
 use App\Services\Transactions\TransactionWriter;
+use App\Support\CurrentGroup;
 use App\Support\VietnameseText;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -19,9 +20,20 @@ use Throwable;
  *
  * Nguyên tắc: không chắc thì để trống cho người dùng chọn, không đoán bừa.
  * Mọi truy vấn đi qua global scope nhóm (CurrentGroup phải đã được đặt).
+ *
+ * Bill chuyển vào tài khoản của nhóm (plan/26): luôn là khoản thu, tên đối
+ * tác là chủ tài khoản quỹ nên không dùng để tìm người đóng.
  */
 class BillDraftResolver
 {
+    /** Cụm hay gặp trong nội dung chuyển khoản, bỏ đi trước khi tìm tên người (đã bỏ dấu). */
+    private const NOTE_FILLERS = [
+        'chuyen khoan nhanh qua zalo', 'nhanh qua zalo', 'qua zalo', 'chuyen tien', 'chuyen khoan',
+        'dong quy', 'nop quy', 'gui tien', 'thanh toan', 'ck', 'ct',
+    ];
+
+    public function __construct(private readonly CurrentGroup $current) {}
+
     /**
      * @return array{
      *     is_bill: bool, type: ?string, amount: ?int, occurred_at: ?string, campaign_id: ?int, category_id: ?int,
@@ -67,13 +79,18 @@ class BillDraftResolver
             $draft['ai_fields'][] = 'occurred_at';
         }
 
+        // Chuyển vào STK của nhóm: thu, dù là màn "đã chuyển đi" trên app người đóng.
+        $intoFund = $this->isIntoFund($raw);
+
         // Chiến dịch: nội dung chứa mã chuyển khoản. Có mã chiến dịch thì chắc chắn là khoản thu.
         $campaign = $this->campaign($note);
-        $type = match ($raw['screen_type'] ?? null) {
+        $type = $intoFund ? 'income' : match ($raw['screen_type'] ?? null) {
             'outgoing' => 'expense',
             'incoming' => 'income',
             default => null,
         };
+        // Tiền vào quỹ, không ghi mã mà nhóm chỉ mở đúng một chiến dịch: gần như chắc là đóng cho chiến dịch đó.
+        $campaign ??= $intoFund ? $this->onlyOpenCampaign() : null;
         if ($campaign !== null) {
             $type = 'income';
             $draft['campaign_id'] = $campaign->id;
@@ -95,15 +112,18 @@ class BillDraftResolver
             $draft['ai_fields'][] = 'category_id';
         }
 
-        // Người: tên đối tác trên bill trước, rồi tên tự ghi trong nội dung (bỏ mã chiến dịch).
-        $noteForNames = $campaign ? str_ireplace($campaign->transfer_code, ' ', (string) $note) : $note;
-        $candidates = $this->contacts([$counterparty, $noteForNames]);
-        if ($candidates->count() === 1) {
+        // Người: tiền vào quỹ thì chỉ tìm trong nội dung (tên đối tác là chủ TK quỹ);
+        // không thì tên đối tác trên bill, rồi tên tự ghi trong nội dung.
+        $noteForNames = $this->noteForNames($note);
+        [$candidates, $sure] = $intoFund
+            ? $this->contacts([$noteForNames], givenNameOnly: true)
+            : $this->contacts([$counterparty, $noteForNames]);
+        if ($sure && $candidates->count() === 1) {
             $draft['contact_id'] = $candidates->first()->id;
             $draft['ai_fields'][] = 'contact_id';
-        } elseif ($candidates->count() > 1) {
+        } elseif ($candidates->isNotEmpty()) {
             $draft['contact_candidates'] = $candidates->map(fn (Contact $c) => ['id' => $c->id, 'name' => $c->full_name])->values()->all();
-        } elseif ($counterparty !== null) {
+        } elseif ($counterparty !== null && ! $intoFund) {
             $draft['payer_name'] = $this->properName($counterparty);
             $draft['ai_fields'][] = 'payer_name';
         }
@@ -129,6 +149,58 @@ class BillDraftResolver
         $noContext = empty($raw['transaction_datetime']) && empty($raw['transaction_date']) && empty($raw['note']);
 
         return $noAmount || $noContext;
+    }
+
+    /**
+     * Bill chuyển vào tài khoản ngân hàng của nhóm: số tài khoản đối tác trùng
+     * (chấp nhận số bị che "1032***050"), hoặc tên đối tác trùng tên chủ TK.
+     */
+    private function isIntoFund(array $raw): bool
+    {
+        $group = $this->current->get();
+        if ($group === null) {
+            return false;
+        }
+
+        $account = (string) preg_replace('/\D/', '', (string) $group->bank_account_no);
+        $seen = $this->string($raw['counterparty_account'] ?? null);
+        if ($account !== '' && $seen !== null) {
+            // Mỗi đoạn ký tự che (*, x, •) thành "\d*", chữ số giữ nguyên, ký tự khác bỏ.
+            $pattern = (string) preg_replace(['/[^0-9*xX•]/u', '/[*xX•]+/u'], ['', '\d*'], $seen);
+            if (preg_match('/\d/', $pattern) && preg_match('/^'.$pattern.'$/', $account)) {
+                return true;
+            }
+        }
+
+        $owner = VietnameseText::fold($group->bank_account_name);
+        $name = VietnameseText::fold($raw['counterparty_name'] ?? null);
+
+        return $owner !== '' && $owner === $name;
+    }
+
+    private function onlyOpenCampaign(): ?Campaign
+    {
+        $open = Campaign::query()->where('status', 'open')->limit(2)->get(['id', 'group_id', 'category_id', 'transfer_code', 'status']);
+
+        return $open->count() === 1 ? $open->first() : null;
+    }
+
+    /** Nội dung đã bỏ dấu, bỏ mã chiến dịch, năm và các cụm "chuyen tien"… để chỉ còn tên người. */
+    private function noteForNames(?string $note): ?string
+    {
+        if ($note === null) {
+            return null;
+        }
+
+        $codes = Campaign::query()->pluck('transfer_code')->filter()->map(fn ($c) => VietnameseText::fold($c))->all();
+        $text = ' '.VietnameseText::fold($note).' ';
+        foreach ([...$codes, ...self::NOTE_FILLERS] as $phrase) {
+            $text = str_replace(" {$phrase} ", ' ', $text);
+            $text = str_replace(" {$phrase} ", ' ', $text);
+        }
+        $text = (string) preg_replace('/ (19|20)\d\d /', ' ', $text);
+
+        return trim((string) preg_replace('/\s+/', ' ', $text));
     }
 
     private function campaign(?string $note): ?Campaign
@@ -176,33 +248,51 @@ class BillDraftResolver
     }
 
     /**
-     * Người trong danh bạ có tên xuất hiện trong các đoạn chữ. Khớp đủ họ tên
-     * trước; không có ai thì khớp "đệm + tên" (hai chữ cuối). Trả về các ứng
-     * viên ở mức khớp cao nhất.
+     * Người trong danh bạ có tên xuất hiện trong các đoạn chữ, so theo bậc và
+     * dừng ở bậc đầu tiên có người khớp (plan/26 mục 2):
+     *   1. đủ họ tên  2. đệm + tên  3. họ + tên, đảo chỗ được ("Tu Tran")
+     *   4. chỉ tên gọi, khi $givenNameOnly: không bao giờ chọn sẵn.
+     * Chữ cái lẻ cuối tên để phân biệt ("Nguyễn Văn Thường B") bỏ khi so.
      *
      * @param  list<?string>  $texts
-     * @return Collection<int, Contact>
+     * @return array{0: Collection<int, Contact>, 1: bool} ứng viên, và có được chọn sẵn khi chỉ một người không
      */
-    private function contacts(array $texts): Collection
+    private function contacts(array $texts, bool $givenNameOnly = false): array
     {
         $haystacks = array_values(array_filter(array_map(fn ($t) => ' '.VietnameseText::fold($t).' ', $texts), fn ($t) => trim($t) !== ''));
         if ($haystacks === []) {
-            return collect();
+            return [collect(), false];
         }
 
-        $contacts = Contact::query()->where('status', 'active')->get(['id', 'group_id', 'full_name', 'search_name']);
-        $found = fn (string $needle) => collect($haystacks)->contains(fn ($h) => str_contains($h, " {$needle} "));
+        $found = fn (string $needle) => $needle !== '' && collect($haystacks)->contains(fn ($h) => str_contains($h, " {$needle} "));
+        $contacts = Contact::query()->where('status', 'active')->get(['id', 'group_id', 'full_name', 'search_name'])
+            ->map(function (Contact $c) {
+                $words = array_values(array_filter(explode(' ', $c->search_name), fn ($w) => $w !== ''));
+                if (count($words) >= 3 && strlen(end($words)) === 1) {
+                    array_pop($words);
+                }
 
-        $full = $contacts->filter(fn (Contact $c) => $c->search_name !== '' && $found($c->search_name));
-        if ($full->isNotEmpty()) {
-            return $full->values();
+                return ['contact' => $c, 'words' => $words];
+            })
+            ->filter(fn ($c) => $c['words'] !== []);
+
+        $tiers = [
+            fn ($w) => $found(implode(' ', $w)),
+            fn ($w) => count($w) >= 2 && $found(implode(' ', array_slice($w, -2))),
+            fn ($w) => count($w) >= 2 && $found($w[0]) && $found(end($w)),
+        ];
+        if ($givenNameOnly) {
+            $tiers[] = fn ($w) => $found(end($w));
         }
 
-        return $contacts->filter(function (Contact $c) use ($found) {
-            $words = explode(' ', $c->search_name);
+        foreach ($tiers as $level => $match) {
+            $hits = $contacts->filter(fn ($c) => $match($c['words']));
+            if ($hits->isNotEmpty()) {
+                return [$hits->pluck('contact')->values(), $level < 3];
+            }
+        }
 
-            return count($words) >= 2 && $found(implode(' ', array_slice($words, -2)));
-        })->values();
+        return [collect(), false];
     }
 
     private function amount(mixed $value): ?int

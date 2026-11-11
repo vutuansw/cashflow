@@ -22,6 +22,10 @@
     <meta name="wepo-demo-group" content="{{ $meta['demo_group'] }}">
     @endif
     <meta name="theme-color" content="#15803d">
+    {{-- Mã bản build của chính trang này, so với /api/app để biết đã có bản deploy mới (plan/27). --}}
+    @if ($build = \Illuminate\Support\Facades\Vite::manifestHash())
+    <meta name="wepo-build" content="{{ $build }}">
+    @endif
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="manifest" href="/manifest.webmanifest">

@@ -21,13 +21,15 @@ class SpaController extends Controller
             'description' => config('cashflow.brand.description'),
             'image' => null,
             'noindex' => $request->path() !== '/',
+            // Nút "Xem nhóm mẫu" ở trang chủ (plan/14). In ở MỌI trang chứ không riêng "/":
+            // mở app ở /login hay trang nhóm rồi mới về trang chủ thì SPA vẫn đọc meta của trang đầu.
+            'demo_group' => config('cashflow.landing.demo_group'),
         ];
 
-        // Trang chủ là landing page (plan/14): mô tả dài hơn, ảnh chia sẻ riêng, nút xem nhóm mẫu.
+        // Trang chủ là landing page (plan/14): mô tả dài hơn, ảnh chia sẻ riêng.
         if ($request->path() === '/') {
             $meta['description'] = config('cashflow.landing.description');
             $meta['image'] = url(config('cashflow.landing.image'));
-            $meta['demo_group'] = config('cashflow.landing.demo_group');
         }
 
         $segment = strtolower((string) $request->segment(1));

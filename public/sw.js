@@ -2,7 +2,8 @@
 // Chỉ cache file tĩnh đã build (tên có hash) và biểu tượng. KHÔNG cache API và
 // ảnh nhóm (/api, /media): dữ liệu tiền bạc luôn lấy mới, ảnh nhóm riêng tư
 // không được nằm lại trên máy. Mất mạng thì hiện trang /offline.html.
-const VERSION = 'wepo-v2';
+// v3 (plan/27): xóa sạch cache v2 đang dồn file JS của mọi bản build cũ.
+const VERSION = 'wepo-v3';
 const STATIC = `${VERSION}-static`;
 const PRECACHE = ['/offline.html', '/icons/icon-192.png', '/favicon.svg'];
 
@@ -15,6 +16,17 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
             .then(() => self.clients.claim()),
+    );
+});
+
+// Trang thấy có bản deploy mới và sắp tải lại (resources/js/lib/updateCheck.js): xóa file /build/ cũ.
+// Trang mới trỏ tới file tên mới, sẽ tải về và cache lại; file cũ chỉ còn chiếm chỗ trên máy.
+self.addEventListener('message', (event) => {
+    if (event.data?.type !== 'purge-build') return;
+    event.waitUntil(
+        caches.open(STATIC).then((cache) => cache.keys().then((requests) => Promise.all(
+            requests.filter((r) => new URL(r.url).pathname.startsWith('/build/')).map((r) => cache.delete(r)),
+        ))),
     );
 });
 

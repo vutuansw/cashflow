@@ -27,6 +27,15 @@ const highlights = [
     { title: 'FREE', text: ['Sử dụng', 'miễn phí'] },
 ];
 
+// Khối cuối trang: các kiểu nhóm dùng WePo.
+const groupKinds = [
+    { label: 'Quỹ lớp', emoji: '🎓', color: '#fde68a' },
+    { label: 'Hội bạn thân', emoji: '🤝', color: '#fbcfe8' },
+    { label: 'Đội bóng', emoji: '⚽', color: '#bbf7d0' },
+    { label: 'Câu lạc bộ', emoji: '🎯', color: '#bfdbfe' },
+    { label: 'Quỹ công ty', emoji: '🏢', color: '#ddd6fe' },
+];
+
 const banks = [
     { name: 'VCB', color: '#0b6b3a' },
     { name: 'MB', color: '#1c3f94' },
@@ -271,8 +280,19 @@ const banks = [
                     <div class="landing-dots absolute inset-0 opacity-40" aria-hidden="true"></div>
                     <svg class="absolute -left-6 -top-6 size-28 sm:size-32" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="38" fill="#facc15" /><text x="50" y="64" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-weight="800" font-size="38" fill="#a16207">đ</text></svg>
                     <img src="/brand/wepo-mark.svg" alt="" class="relative mx-auto size-16" />
-                    <h2 class="landing-display relative mx-auto mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">Lập quỹ cho nhóm của bạn ngay hôm nay</h2>
-                    <p class="relative mx-auto mt-4 max-w-xl text-lg text-white/80">Lớp cũ, hội bạn thân, đội bóng, câu lạc bộ… nhóm nào có quỹ chung là dùng được.</p>
+                    <h2 class="landing-display relative mx-auto mt-5 max-w-2xl text-balance text-3xl font-bold leading-tight sm:text-5xl">Lập quỹ cho nhóm của bạn ngay hôm nay</h2>
+                    <!-- Các kiểu nhóm dùng WePo: chip kính mờ, mỗi chip một emoji, lệch nhẹ như dán sticker. -->
+                    <ul class="relative mx-auto mt-6 flex max-w-4xl flex-wrap justify-center gap-2.5 sm:gap-3" aria-label="Nhóm nào cũng dùng được">
+                        <li
+                            v-for="(kind, i) in groupKinds"
+                            :key="kind.label"
+                            class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 py-1.5 pl-1.5 pr-4 text-[15px] font-semibold shadow-[0_8px_20px_-10px_rgb(0_0_0_/_0.5)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/20 sm:text-base"
+                            :class="i % 2 ? 'landing-float-slow rotate-[1.5deg]' : 'landing-float -rotate-[1.5deg]'"
+                        >
+                            <span class="grid size-8 place-items-center rounded-full text-lg" :style="{ background: kind.color }" aria-hidden="true">{{ kind.emoji }}</span>
+                            {{ kind.label }}
+                        </li>
+                    </ul>
                     <div class="relative mt-8 flex flex-wrap justify-center gap-3">
                         <RouterLink v-if="session.me" :to="homePath()" class="btn min-h-12 bg-white px-6 text-[#0a5541] hover:bg-white/90">Vào nhóm</RouterLink>
                         <template v-else>

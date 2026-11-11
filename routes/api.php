@@ -27,12 +27,17 @@ use App\Http\Controllers\GroupAdmin\TransactionController;
 use App\Http\Controllers\GroupController;
 use App\Models\GroupMember;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Vite;
 
 // Thông tin chung cho SPA: tên sản phẩm, mô tả. Không cần đăng nhập.
-Route::get('/app', fn () => [
+// build: mã bản build mới nhất trên server (md5 của public/build/manifest.json, null khi chạy dev).
+// Trang so với meta wepo-build của chính nó để biết đã có bản deploy mới, xem plan/27.
+// no-store: trình duyệt không được giữ lại, luôn hỏi server.
+Route::get('/app', fn () => response()->json([
     'name' => config('cashflow.brand.name'),
     'description' => config('cashflow.brand.description'),
-]);
+    'build' => Vite::manifestHash(),
+])->header('Cache-Control', 'no-store'));
 
 // Tài khoản, xem plan/02 mục 1-2.
 // throttle:x,y không tên thì mọi route dùng CHUNG một bộ đếm cho mỗi người dùng (Laravel đếm theo user id),

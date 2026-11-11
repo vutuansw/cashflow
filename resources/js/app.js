@@ -5,6 +5,7 @@ import { legacyRedirect } from './lib/legacyUrls.js';
 import { loadSystemMe } from './lib/systemApi.js';
 import { lastGroup } from './lib/install.js';
 import { canManage, homePath, loadMe, myPagePath, session } from './lib/session.js';
+import { checkOnNavigate, hasUpdate, reloadTo, startUpdateCheck } from './lib/updateCheck.js';
 
 // Bảng route của SPA, xem plan/plan.md mục 4 và plan/06 mục 3.
 // meta.auth: phải đăng nhập · meta.guest: chỉ khi chưa đăng nhập · meta.admin: trưởng nhóm/QTV của nhóm.
@@ -79,7 +80,12 @@ const router = createRouter({
     },
 });
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+    // Đã có bản deploy mới (plan/27): sang trang khác thì tải lại hẳn trang đích để lấy bản mới.
+    // Không áp cho lần mở đầu và đổi bộ lọc cùng trang (to.path === from.path).
+    if (hasUpdate() && from.matched.length && to.path !== from.path && reloadTo(to.fullPath)) return false;
+    checkOnNavigate();
+
     // URL tiếng Việt cũ → URL mới (plan/12). Đặt đầu tiên vì /dang-nhap sẽ khớp nhầm route /:group.
     const moved = legacyRedirect(to);
     if (moved) return moved;
@@ -115,15 +121,11 @@ router.beforeEach(async (to) => {
 // tải file cũ, bị 404 và đứng im. Khi đó tải lại hẳn trang đích để lấy bản mới; chặn lặp nếu vừa tải lại < 10 giây.
 const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Unable to preload CSS/i;
 router.onError((error, to) => {
-    if (!CHUNK_ERROR.test(error?.message ?? '')) return;
-    let last = 0;
-    try { last = Number(sessionStorage.getItem('wepo-chunk-reload')) || 0; } catch {}
-    if (Date.now() - last < 10_000) return;
-    try { sessionStorage.setItem('wepo-chunk-reload', String(Date.now())); } catch {}
-    window.location.assign(to.fullPath);
+    if (CHUNK_ERROR.test(error?.message ?? '')) reloadTo(to.fullPath);
 });
 
 createApp(App).use(router).mount('#app');
+startUpdateCheck();
 
 // PWA: đăng ký service worker (chỉ cache file tĩnh, xem public/sw.js và plan/06 mục 4).
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
