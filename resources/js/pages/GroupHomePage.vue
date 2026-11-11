@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronDown, Clock, Lock, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
+import { ChevronDown, Clock, Lock, LogOut, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
 import DropdownMenu from '../components/DropdownMenu.vue';
 import GroupHeader from '../components/GroupHeader.vue';
@@ -11,8 +11,9 @@ import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
 import { formatMoney } from '../lib/money.js';
 import { monthLabel } from '../lib/time.js';
-import { session } from '../lib/session.js';
+import { logout, session } from '../lib/session.js';
 import SiteFooter from '../components/SiteFooter.vue';
+import GroupRules from '../components/GroupRules.vue';
 
 // Trang nhóm /{ma-nhom}, bố cục như nhóm Facebook (plan/08 mục 10d): ảnh bìa, tên, hàng avatar thành viên, nút,
 // tab; máy tính chia hai cột (dòng thời gian trái; chiến dịch đang mở phải). Nội dung xem plan/03 mục 4.
@@ -82,10 +83,18 @@ async function loadMore() {
 }
 
 const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
+// Đăng xuất ngay ở trang nhóm (plan/16), về trang đăng nhập như ở trang chọn nhóm.
+async function signOut() {
+    await logout();
+    router.replace('/login');
+}
 // Trang của tôi trong nhóm (plan/08 mục 10b); không thuộc nhóm thì chỉ có /profile.
 const myPage = computed(() => (viewer.value.member_id ? `/${code.value}/members/${viewer.value.member_id}` : null));
 // Tab "Chiến dịch" mở chiến dịch đang mở mới nhất.
 const openCampaign = computed(() => summary.value?.campaigns?.[0] ?? null);
+// Cột phải (máy tính): chiến dịch đang mở và/hoặc nội quy (plan/15). QTV luôn thấy box nội quy để mời viết.
+const showRules = computed(() => !!summary.value && (!!summary.value.rules || !!viewer.value?.can_manage));
+const hasAside = computed(() => !!openCampaign.value || showRules.value);
 
 async function share() {
     const url = window.location.href;
@@ -141,6 +150,8 @@ onBeforeUnmount(() => observer?.disconnect());
                              người không thuộc nhóm thì ra /profile. -->
                         <RouterLink :to="myPage ?? '/profile'" class="menu-item" role="menuitem"><UserRound class="size-5 text-muted-foreground" /> Trang của tôi</RouterLink>
                         <RouterLink to="/groups" class="menu-item" role="menuitem"><Users class="size-5 text-muted-foreground" /> Chọn nhóm khác</RouterLink>
+                        <div class="my-1.5 border-t border-border" role="separator"></div>
+                        <button type="button" class="menu-item" role="menuitem" @click="signOut"><LogOut class="size-5 text-muted-foreground" /> Đăng xuất</button>
                     </DropdownMenu>
                 </template>
 
@@ -176,8 +187,8 @@ onBeforeUnmount(() => observer?.disconnect());
 
             <!-- Điện thoại: chiến dịch đang mở rồi dòng thời gian. Máy tính: dòng thời gian trái, chiến dịch phải.
                  Số dư và biểu đồ nằm ở tab Thống kê. -->
-            <div v-else class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4" :class="{ 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]': openCampaign }">
-                <aside v-if="openCampaign" class="space-y-3 lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
+            <div v-else class="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-4 px-4" :class="{ 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]': hasAside }">
+                <aside v-if="hasAside" class="space-y-3 lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
 
 
                     <!-- Chiến dịch đang mở, mỗi thẻ có nút "Đóng quỹ ngay" (phần đầu trang không lặp lại nút này) -->
@@ -193,6 +204,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         </p>
                         <RouterLink :to="`/${code}/campaigns/${c.slug}`" class="btn-primary mt-3 w-full"><Wallet class="size-4" /> Đóng quỹ ngay</RouterLink>
                     </section>
+                    <GroupRules v-if="showRules" :rules="summary.rules" :code="code" :can-manage="viewer.can_manage" />
                     <!-- Máy tính: chân trang dưới cột chiến dịch (dòng thời gian cuộn vô tận nên không đặt ở đáy trang). -->
                     <SiteFooter class="hidden !pt-2 lg:block" />
                 </aside>
@@ -212,7 +224,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         <button v-else-if="hasMore" type="button" class="btn-outline" @click="loadMore">Xem thêm</button>
                         <template v-else-if="posts.length">Đã hết.</template>
                     </div>
-                    <SiteFooter v-if="!openCampaign" class="hidden !pt-0 lg:block" />
+                    <SiteFooter v-if="!hasAside" class="hidden !pt-0 lg:block" />
                 </div>
             </div>
         </template>

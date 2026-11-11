@@ -27,6 +27,7 @@ class SettingsController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'rules' => ['nullable', 'string', 'max:3000'],
             'visibility' => ['required', 'in:public,private'],
             'opening_balance' => ['required', 'integer', 'min:0', 'max:1000000000000'],
             'opening_balance_date' => ['nullable', 'date'],
@@ -147,6 +148,7 @@ class SettingsController extends Controller
             'code' => $group->code,
             'name' => $group->name,
             'description' => $group->description,
+            'rules' => $group->rules,
             'cover_url' => MediaUrl::groupCover($group),
             'visibility' => $group->visibility,
             'opening_balance' => $group->opening_balance,

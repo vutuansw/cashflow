@@ -21,7 +21,7 @@ class Group extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'code', 'name', 'description', 'cover_path', 'visibility', 'join_link_enabled', 'owner_id',
+        'code', 'name', 'description', 'rules', 'cover_path', 'visibility', 'join_link_enabled', 'owner_id',
         'opening_balance', 'opening_balance_date', 'bank_code', 'bank_account_no', 'bank_account_name',
         'notify_emails', 'notify_settings',
     ];

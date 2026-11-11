@@ -42,6 +42,16 @@ class DemoSeeder extends Seeder
 {
     private const PASSWORD = 'demo1234';
 
+    /** Nội quy mẫu của nhomdemo, hiện ở box "Nội quy" trang nhóm (plan/15). */
+    public const DEMO_RULES = <<<'TXT'
+        1. Mỗi thành viên đóng quỹ 500.000 đ/năm, hạn trước 31/3.
+        2. Chuyển khoản bằng mã QR ở trang chiến dịch, giữ nguyên nội dung app gợi ý để được ghi nhận tự động.
+        3. Hiếu, hỉ, ốm đau, sinh con của thành viên: nhóm hỗ trợ 500.000 đ/lần.
+        4. Liên hoan, gặp mặt chi từ quỹ; phần vượt chia đều cho người tham gia.
+        5. Khoản chi trên 1.000.000 đ cần trưởng nhóm đồng ý trước.
+        6. Mọi khoản thu chi đều đăng lên dòng thời gian kèm ảnh để cả nhóm cùng theo dõi.
+        TXT;
+
     private const NAMES = [
         'Nguyễn Thị Lan', 'Trần Văn Minh', 'Lê Hoàng Nam', 'Phạm Thu Hà', 'Hoàng Đức Anh', 'Vũ Thị Mai',
         'Đặng Quốc Bảo', 'Bùi Ngọc Ánh', 'Đỗ Minh Tuấn', 'Ngô Thanh Hương', 'Dương Văn Hùng', 'Lý Thị Hoa',
@@ -68,6 +78,7 @@ class DemoSeeder extends Seeder
             'visibility' => 'public',
             'opening_balance' => 3_200_000,
             'description' => 'Nhóm mẫu công khai: ai có link đều xem được thu chi.',
+            'rules' => self::DEMO_RULES,
         ], [], seedOffset: 0);
 
         $this->group($owner, [
@@ -100,6 +111,9 @@ class DemoSeeder extends Seeder
 
         mt_srand(2026 + $seedOffset);
         $group = $this->creator->create($owner, $data);
+        if (isset($data['rules'])) {
+            $group->update(['rules' => $data['rules']]);
+        }
         app(CurrentGroup::class)->set($group);
 
         // Danh bạ: 24 người, một số đã có tài khoản.

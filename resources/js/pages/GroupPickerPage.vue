@@ -7,10 +7,6 @@ import { logout, session } from '../lib/session.js';
 
 const router = useRouter();
 
-function link(group) {
-    return ['owner', 'admin'].includes(group.role) ? `/${group.code}/admin` : `/${group.code}`;
-}
-
 async function signOut() {
     await logout();
     router.replace('/login');
@@ -32,7 +28,7 @@ async function signOut() {
 
         <ul class="mt-6 space-y-3">
             <li v-for="group in session.me?.groups" :key="group.code">
-                <RouterLink :to="link(group)" class="card flex items-center gap-3 p-4 hover:bg-muted">
+                <RouterLink :to="`/${group.code}`" class="card flex items-center gap-3 p-4 hover:bg-muted">
                     <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-lg font-semibold text-primary">{{ group.name.charAt(0) }}</span>
                     <span class="min-w-0 flex-1">
                         <span class="block truncate font-semibold">{{ group.name }}</span>

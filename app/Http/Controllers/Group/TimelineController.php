@@ -25,7 +25,8 @@ class TimelineController extends Controller
     {
         $data = $request->validate(['year' => ['nullable', 'integer', 'min:2000', 'max:2100']]);
 
-        return $stats->summary($group, $data['year'] ?? null) + ['campaigns' => $stats->openCampaigns($group)];
+        // Nội quy nằm ở đây (sau middleware group.view) để nhóm riêng tư không lộ nội quy cho khách. Xem plan/15.
+        return $stats->summary($group, $data['year'] ?? null) + ['campaigns' => $stats->openCampaigns($group), 'rules' => $group->rules];
     }
 
     public function feed(Request $request, Group $group, TimelineFeed $feed)

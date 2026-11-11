@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminShell from '../../layouts/AdminShell.vue';
 import CoverArt from '../../components/CoverArt.vue';
@@ -45,6 +45,13 @@ function fill(data) {
 onMounted(async () => {
     fill(await adminApi(code.value, '/settings'));
     loaded.value = true;
+    // Bấm "Viết nội quy" / "Sửa" ở trang nhóm: cuộn tới ô nội quy (plan/15).
+    if (route.hash === '#rules') {
+        await nextTick();
+        const el = document.getElementById('rules');
+        el?.scrollIntoView({ block: 'center' });
+        el?.focus({ preventScroll: true });
+    }
 });
 
 async function save() {
@@ -168,6 +175,10 @@ async function destroy() {
                 <FormField v-model="form.name" label="Tên nhóm" :error="state.errors.name" required />
                 <FormField label="Mô tả" :error="state.errors.description">
                     <textarea v-model="form.description" rows="3" class="field"></textarea>
+                </FormField>
+                <!-- Hiện ở box "Nội quy" trên trang nhóm, xem plan/15. -->
+                <FormField label="Nội quy nhóm" :error="state.errors.rules" hint="Hiện ở trang nhóm, cột bên phải. Để trống thì không hiện.">
+                    <textarea id="rules" v-model="form.rules" rows="6" maxlength="3000" class="field" placeholder="Ví dụ: Mỗi người đóng 500.000 đ/năm trước 31/3. Hiếu hỉ nhóm hỗ trợ 500.000 đ. Chi trên 1 triệu cần trưởng nhóm đồng ý."></textarea>
                 </FormField>
                 <FormField label="Ai xem được dòng thời gian?" :error="state.errors.visibility">
                     <select v-model="form.visibility" class="field">

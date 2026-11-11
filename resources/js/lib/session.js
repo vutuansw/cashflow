@@ -34,12 +34,9 @@ export function canManage(code) {
     return ['owner', 'admin'].includes(roleIn(code));
 }
 
-/** Sau đăng nhập: về trang được yêu cầu, hoặc vào thẳng nhóm nếu chỉ có một nhóm. */
+/** Sau đăng nhập: vào thẳng timeline nhóm nếu chỉ có một nhóm (mọi vai trò, plan/16), nhiều nhóm thì chọn nhóm. */
 export function homePath(me = session.me) {
     if (!me) return '/login';
-    if (me.groups.length === 1) {
-        const g = me.groups[0];
-        return ['owner', 'admin'].includes(g.role) ? `/${g.code}/admin` : `/${g.code}`;
-    }
+    if (me.groups.length === 1) return `/${me.groups[0].code}`;
     return '/groups';
 }

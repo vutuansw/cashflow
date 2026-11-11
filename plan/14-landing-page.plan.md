@@ -92,3 +92,10 @@ Bỏ hoặc sửa những câu chưa đúng với app:
 - Đã đăng nhập: cả nav, hero và CTA đều chỉ còn "Vào nhóm" (nav dùng nút viền).
 - Chế độ tối dùng token nên tự đổi; thẻ bill, ảnh polaroid, thông báo ngân hàng giữ màu sáng như ảnh thật.
 - Kiểm tra: 390 / 768 / 1440px không cuộn ngang, không lỗi console. Lighthouse mobile (máy dev, `php -S`): Performance 86, Accessibility 100, SEO 100. Toàn bộ test PHP vẫn qua.
+
+## Nhóm demo trên server (11/11/2026)
+
+- Đã tạo `nhomdemo` ("Nhóm bạn thân Demo", công khai) trên server bằng hàm tạo nhóm của `DemoSeeder` (chỉ nhóm này, không chạy cả seeder). Ảnh sự kiện là ảnh emoji như máy dev.
+- Trưởng nhóm là tài khoản demo riêng `0900000001` ("Vũ Tuấn"), mật khẩu ngẫu nhiên lưu ở `/root/wepo-secrets`, không dùng `demo1234`.
+- Tài khoản nhận quỹ minh họa `Vietcombank 0000123456789 · NHOM BAN THAN DEMO`. Mô tả nhóm và chiến dịch ghi rõ "tài khoản không có thật, vui lòng không chuyển tiền".
+- `.env` server đặt `LANDING_DEMO_GROUP=nhomdemo` (bản sao `.env` cũ ở `/root/wepo-env.bak-*`).
