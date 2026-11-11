@@ -1,13 +1,12 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, ChevronDown, CircleDashed, CircleDot, Clock, Copy, ImageDown, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
+import { CheckCircle2, ChevronDown, CircleDashed, CircleDot, Clock, Copy, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
 import BackButton from '../components/BackButton.vue';
 import ClaimSheet from '../components/ClaimSheet.vue';
 import MemberName from '../components/MemberName.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
-import { toast } from '../lib/notice.js';
 import { formatMoney } from '../lib/money.js';
 import { formatDate } from '../lib/time.js';
 import { BANKS } from '../lib/banks.js';
@@ -22,8 +21,6 @@ const group = ref(null);
 const error = ref(null);
 const tab = ref('paid');
 const claiming = ref(false);
-// Trên điện thoại không tự quét được mã QR đang hiện trên chính màn hình: thêm nút Lưu ảnh QR.
-const isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 async function load() {
     data.value = await api(`/g/${code.value}/campaigns/${route.params.slug}`);
@@ -38,44 +35,7 @@ onMounted(async () => {
         error.value = e instanceof ApiError ? e.status : 500;
         return;
     }
-    if (isPhone && data.value.bank) preloadQr();
 });
-
-// Lưu ảnh QR để quét trong app ngân hàng: điện thoại không mở thẳng được form chuyển tiền,
-// quét ảnh là cách duy nhất điền đủ số tiền, nội dung (plan/19). Tải sẵn khi mở trang vì Safari chỉ cho chia sẻ ngay sau lúc bấm nút.
-const qrFile = ref(null);
-async function preloadQr() {
-    try {
-        const r = await fetch(`/api/g/${code.value}/campaigns/${route.params.slug}/qr.png`, { credentials: 'same-origin' });
-        if (!r.ok) return;
-        qrFile.value = new File([await r.blob()], `QR-${data.value.transfer_code}.png`, { type: 'image/png' });
-    } catch {
-        // Không tải được thì nút báo cách giữ ngón tay lên mã QR để lưu.
-    }
-}
-
-async function saveQr() {
-    const file = qrFile.value;
-    if (!file) {
-        toast('Chưa lưu được ảnh, giữ ngón tay lên mã QR để lưu.', 'error');
-        return;
-    }
-    if (navigator.canShare?.({ files: [file] })) {
-        try {
-            await navigator.share({ files: [file] });
-            return;
-        } catch (e) {
-            if (e?.name === 'AbortError') return;
-        }
-    }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast('Đã tải ảnh QR về máy.');
-}
 
 const paid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'paid' || p.status === 'partial'));
 const unpaid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'unpaid'));
@@ -144,13 +104,9 @@ async function share() {
                 </p>
             </section>
 
-            <!-- Chuyển khoản: quét QR hoặc chép (plan/19). Điện thoại lưu ảnh QR rồi quét trong app ngân hàng. -->
+            <!-- Chuyển khoản: quét QR hoặc chép (plan/19). -->
             <section v-if="data.bank" class="card p-4 text-center">
                 <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
-                <template v-if="isPhone">
-                    <button type="button" class="btn-primary mt-3 w-full" @click="saveQr"><ImageDown class="size-5" /> Lưu ảnh QR</button>
-                    <p class="mt-1 text-xs text-muted-foreground">Lưu ảnh rồi mở app ngân hàng → Quét QR → chọn ảnh: app điền đủ số tài khoản, số tiền, nội dung.</p>
-                </template>
                 <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
                 <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
                 <div class="mt-3 space-y-2 text-left text-sm">
@@ -171,11 +127,13 @@ async function share() {
             </section>
             <p v-else-if="data.status === 'open'" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
 
-            <!-- Đã chuyển rồi: gửi bill cho thủ quỹ -->
-            <button v-if="data.status === 'open'" type="button" class="card flex w-full items-center gap-3 p-3 text-left hover:bg-muted" @click="claiming = true">
-                <ReceiptText class="size-6 shrink-0 text-primary" />
-                <span class="min-w-0 flex-1 text-sm"><span class="block font-semibold">Tôi đã chuyển khoản, gửi bill</span><span class="text-muted-foreground">Gửi ảnh bill để thủ quỹ ghi nhận cho bạn</span></span>
-            </button>
+            <!-- Đã chuyển rồi: gửi bill cho thủ quỹ. Nút nền màu chính cho dễ thấy (plan/20). -->
+            <div v-if="data.status === 'open'" class="text-center">
+                <button type="button" class="btn-primary w-full" @click="claiming = true">
+                    <ReceiptText class="size-5" /> Tôi đã chuyển khoản, gửi bill
+                </button>
+                <p class="mt-1 text-xs text-muted-foreground">Gửi ảnh bill để thủ quỹ ghi nhận cho bạn</p>
+            </div>
 
             <!-- Đã đóng / chưa đóng -->
             <div class="grid grid-cols-2 rounded-xl bg-muted p-1 text-center text-sm font-semibold" role="tablist">

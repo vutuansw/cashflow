@@ -10,6 +10,8 @@ import { formatMoney } from '../lib/money.js';
 import { fold } from '../lib/text.js';
 
 // Thành viên đã chuyển khoản tự gửi ảnh bill, vào hàng chờ cho thủ quỹ xác nhận. Xem plan/05 mục 5.
+// Thành viên đăng nhập được chọn sẵn tên, ảnh bill lên đầu form cho dễ thấy (plan/20).
+// Gửi kèm ảnh thì không hỏi số tiền (AI đọc); quên chụp bill thì gõ số tiền thay ảnh (plan/23).
 const props = defineProps({ open: Boolean, code: String, campaign: Object });
 const emit = defineEmits(['close', 'sent']);
 
@@ -23,6 +25,8 @@ const note = ref('');
 const bill = ref(null); // { file, url }
 const trap = ref(''); // ô bẫy máy gửi tự động
 const sent = ref(false);
+const fileInput = ref(null);
+const noBill = ref(false); // quên chụp bill: gửi số tiền thay cho ảnh
 
 // Chưa đóng, đóng thiếu lên đầu; người đã đủ vẫn chọn được (hỏi lại trước khi gửi).
 const rank = { unpaid: 0, partial: 1, paid: 2 };
@@ -43,8 +47,12 @@ watch(
         sent.value = false;
         state.errors = {};
         amount.value = props.campaign?.amount_per_member ?? null;
+        // Đã đăng nhập và gắn danh bạ: chọn sẵn chính họ, vẫn đổi được để đóng hộ người khác.
+        if (!person.value && !manual.value && props.campaign?.me) choose(props.campaign.me);
     },
 );
+
+const isMe = computed(() => !!person.value && person.value.contact_id === props.campaign?.me?.contact_id);
 
 function choose(p) {
     person.value = p;
@@ -65,6 +73,7 @@ function reset() {
     manual.value = false;
     payerName.value = '';
     note.value = '';
+    noBill.value = false;
     removeBill();
 }
 
@@ -77,6 +86,8 @@ async function pick(event) {
     bill.value = { file: small, url: previewUrl(small) };
 }
 
+const ready = computed(() => (noBill.value ? !!amount.value : !!bill.value) && (!!person.value || !!payerName.value.trim()));
+
 async function send() {
     if (person.value?.status === 'paid' && !confirm('Bạn đã được ghi nhận đóng đủ. Vẫn gửi bill?')) return;
     if (person.value?.pending_claim && !confirm('Bạn đã gửi bill trước đó, đang chờ xác nhận. Gửi bill mới sẽ thay bill cũ?')) return;
@@ -84,9 +95,9 @@ async function send() {
     const body = new FormData();
     if (person.value) body.append('contact_id', person.value.contact_id);
     else body.append('payer_name', payerName.value.trim());
-    body.append('amount', amount.value ?? '');
+    if (noBill.value) body.append('amount', amount.value ?? '');
+    else if (bill.value) body.append('bill', bill.value.file);
     body.append('note', note.value.trim());
-    if (bill.value) body.append('bill', bill.value.file);
     body.append('website', trap.value);
 
     const done = await submit(() => api(`/g/${props.code}/campaigns/${props.campaign.slug}/claims`, { method: 'POST', body })).catch(ignore);
@@ -107,23 +118,27 @@ async function send() {
         </div>
 
         <form v-else class="space-y-4" @submit.prevent="send">
-            <!-- Bạn là ai -->
+            <!-- Người đóng -->
             <div>
-                <p class="mb-1.5 text-sm font-medium">Bạn là ai? <span class="text-expense">*</span></p>
                 <div v-if="person" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
-                    <span class="truncate font-medium">{{ person.name }}</span>
-                    <button type="button" class="shrink-0 text-sm font-semibold text-primary" @click="person = null">Đổi</button>
+                    <span class="min-w-0">
+                        <span class="block text-xs text-muted-foreground">Người đóng</span>
+                        <span class="font-semibold">{{ person.name }}</span><span v-if="isMe" class="text-sm text-muted-foreground"> (bạn)</span>
+                    </span>
+                    <button type="button" class="min-h-9 shrink-0 text-right text-sm font-semibold text-primary" @click="person = null">{{ isMe ? 'Đóng hộ người khác' : 'Đổi' }}</button>
                 </div>
                 <div v-else-if="manual" class="space-y-1">
+                    <p class="text-sm font-medium">Họ tên người đóng <span class="text-expense">*</span></p>
                     <input v-model="payerName" class="field" maxlength="120" placeholder="Họ và tên của bạn" required />
                     <button type="button" class="text-sm font-semibold text-primary" @click="manual = false">Chọn trong danh sách</button>
                 </div>
                 <template v-else>
+                    <p class="mb-1.5 text-sm font-medium">Bạn đóng cho ai? <span class="text-expense">*</span></p>
                     <div class="relative">
                         <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <input v-model="search" type="search" class="field !pl-9" placeholder="Tìm tên bạn" />
                     </div>
-                    <ul class="mt-2 max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border">
+                    <ul class="mt-2 max-h-44 divide-y divide-border overflow-y-auto rounded-xl border border-border">
                         <li v-for="p in shown" :key="p.contact_id">
                             <button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 px-3 text-left hover:bg-muted" @click="choose(p)">
                                 <span class="truncate">{{ p.name }}</span>
@@ -139,25 +154,33 @@ async function send() {
                 <p v-if="state.errors.payer_name || state.errors.contact_id" class="mt-1 text-sm text-expense">{{ state.errors.payer_name || state.errors.contact_id }}</p>
             </div>
 
-            <!-- Ảnh bill -->
-            <div>
-                <p class="mb-1.5 text-sm font-medium">Ảnh bill chuyển khoản <span class="text-expense">*</span></p>
-                <div v-if="bill" class="relative h-40 w-28 overflow-hidden rounded-xl bg-muted">
-                    <img :src="bill.url" alt="Ảnh bill" class="size-full object-cover" />
-                    <button type="button" class="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh" @click="removeBill"><X class="size-4" /></button>
-                </div>
-                <label v-else class="flex min-h-20 cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-border p-3 text-sm hover:bg-muted">
-                    <ImagePlus class="size-6 shrink-0 text-primary" />
-                    <span><span class="block font-medium">Chọn ảnh chụp màn hình giao dịch</span><span class="text-muted-foreground">Ảnh từ app ngân hàng, thấy rõ số tiền và nội dung</span></span>
-                    <input type="file" accept="image/*" class="sr-only" @change="pick" />
-                </label>
-                <p v-if="state.errors.bill" class="mt-1 text-sm text-expense">{{ state.errors.bill }}</p>
-            </div>
-
-            <div>
+            <!-- Quên chụp bill: số tiền thay cho ảnh, thủ quỹ đối chiếu với sao kê. -->
+            <div v-if="noBill">
                 <p class="mb-1.5 text-sm font-medium">Số tiền đã chuyển <span class="text-expense">*</span></p>
                 <MoneyInput v-model="amount" required :class="{ 'field-error': state.errors.amount }" />
                 <p v-if="state.errors.amount" class="mt-1 text-sm text-expense">{{ state.errors.amount }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">Không có bill, thủ quỹ sẽ đối chiếu với sao kê. Nên ghi thêm giờ chuyển vào ghi chú.</p>
+                <button type="button" class="mt-1 min-h-9 text-sm font-semibold text-primary" @click="noBill = false">Có ảnh bill rồi</button>
+            </div>
+
+            <!-- Ảnh bill -->
+            <div v-else>
+                <p class="mb-1.5 text-sm font-medium">Ảnh bill chuyển khoản <span class="text-expense">*</span></p>
+                <div v-if="bill" class="flex items-end gap-3">
+                    <div class="relative h-40 w-28 overflow-hidden rounded-xl bg-muted">
+                        <img :src="bill.url" alt="Ảnh bill" class="size-full object-cover" />
+                        <button type="button" class="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/60 text-white" aria-label="Bỏ ảnh" @click="removeBill"><X class="size-4" /></button>
+                    </div>
+                    <button type="button" class="btn-outline" @click="fileInput?.click()"><ImagePlus class="size-4" /> Đổi ảnh</button>
+                </div>
+                <!-- Trông như nút bấm: nhiều người không để ý khung viền nét đứt cũ (plan/20). -->
+                <button v-else type="button" class="flex min-h-24 w-full items-center gap-3 rounded-2xl border-2 border-primary bg-primary/10 p-4 text-left hover:bg-primary/15" @click="fileInput?.click()">
+                    <span class="grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><ImagePlus class="size-6" /></span>
+                    <span><span class="block text-base font-semibold text-primary">Chọn ảnh bill</span><span class="text-sm text-muted-foreground">Ảnh chụp màn hình chuyển khoản thành công trong app ngân hàng</span></span>
+                </button>
+                <input ref="fileInput" type="file" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true" @change="pick" />
+                <p v-if="state.errors.bill || state.errors.amount" class="mt-1 text-sm text-expense">{{ state.errors.bill || state.errors.amount }}</p>
+                <button v-if="!bill" type="button" class="mt-1 min-h-9 text-sm font-semibold text-primary" @click="noBill = true">Quên chụp bill? Nhập số tiền</button>
             </div>
 
             <div>
@@ -168,7 +191,8 @@ async function send() {
             <!-- Ô bẫy: người thật không thấy, máy gửi tự động hay điền vào. -->
             <input v-model="trap" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] h-0 w-0 opacity-0" />
 
-            <button type="submit" class="btn-primary w-full" :disabled="state.busy || !bill || (!person && !payerName.trim())">{{ state.busy ? 'Đang gửi…' : 'Gửi bill' }}</button>
+            <!-- Mờ tới khi có ảnh bill (hoặc số tiền nếu quên chụp bill), plan/23. -->
+            <button type="submit" class="btn-primary w-full" :disabled="state.busy || !ready">{{ state.busy ? 'Đang gửi…' : 'Gửi đi' }}</button>
             <p class="text-center text-xs text-muted-foreground">Bill chỉ thủ quỹ xem được. Khoản này được tính sau khi thủ quỹ xác nhận.</p>
         </form>
     </Sheet>

@@ -97,12 +97,14 @@ class PaymentClaimController extends Controller
         $readable = DuplicateFinder::readable($scan);
         $ai = $readable ? $scan->draft : null;
         $match = $checkDuplicate ? $this->duplicates->forClaim($c) : null;
+        $approve = PaymentClaimService::amountOf($c, $ai['amount'] ?? null);
 
         $warnings = [];
         if ($scan?->status === 'done' && ! ($scan->draft['is_bill'] ?? false)) {
             $warnings[] = 'Ảnh không giống bill chuyển khoản.';
         }
-        if ($ai !== null && (int) $ai['amount'] !== $c->amount) {
+        // Chỉ so khi người gửi có khai số tiền (quên chụp bill), plan/23.
+        if ($ai !== null && $c->amount !== null && (int) $ai['amount'] !== $c->amount) {
             $warnings[] = 'Số tiền AI đọc khác số người gửi khai.';
         }
 
@@ -112,7 +114,11 @@ class PaymentClaimController extends Controller
             'name' => $c->personName(),
             'contact_id' => $c->contact_id,
             'campaign' => $c->campaign ? ['id' => $c->campaign->id, 'name' => $c->campaign->name, 'transfer_code' => $c->campaign->transfer_code] : null,
+            // Số người gửi khai, null khi gửi kèm ảnh (AI đọc).
             'amount' => $c->amount,
+            // Số sẽ duyệt và nó lấy từ đâu: ai | claimed | expected; null thì QTV phải nhập.
+            'approve_amount' => $approve['amount'],
+            'amount_source' => $approve['source'],
             'note' => $c->note,
             'submitted_at' => $c->created_at->toIso8601String(),
             'bill_url' => $scan?->path ? MediaUrl::bill($group, $scan) : null,

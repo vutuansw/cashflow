@@ -6,6 +6,7 @@ use App\Jobs\ReadClaimBill;
 use App\Jobs\SendSepayDigest;
 use App\Models\BillScan;
 use App\Models\Campaign;
+use App\Models\CampaignMember;
 use App\Models\Contact;
 use App\Models\Group;
 use App\Models\PaymentClaim;
@@ -34,15 +35,16 @@ class PaymentClaimService
 
     /**
      * Một người (trong danh bạ) chỉ có một bill đang chờ mỗi chiến dịch: gửi lại
-     * thì thay ảnh cũ.
+     * thì thay ảnh cũ. Có ảnh thì không cần số tiền (AI đọc); quên chụp bill thì
+     * chỉ có số tiền người gửi gõ, không có ảnh (plan/23).
      *
-     * @param  array{contact_id?: ?int, payer_name?: ?string, amount: int, note?: ?string}  $data
+     * @param  array{contact_id?: ?int, payer_name?: ?string, amount?: ?int, note?: ?string}  $data
      * @return array{claim: PaymentClaim, replaced: bool}
      */
-    public function submit(Group $group, Campaign $campaign, array $data, UploadedFile $bill, ?User $user, ?string $ip): array
+    public function submit(Group $group, Campaign $campaign, array $data, ?UploadedFile $bill, ?User $user, ?string $ip): array
     {
         // Lớp chống trùng 2: đúng file ảnh đã có trong nhóm.
-        if (BillScan::query()->where('file_hash', BillScanService::hash($bill))->exists()) {
+        if ($bill !== null && BillScan::query()->where('file_hash', BillScanService::hash($bill))->exists()) {
             throw ValidationException::withMessages(['bill' => 'Bill này đã được gửi trước đó.']);
         }
 
@@ -53,7 +55,7 @@ class PaymentClaimService
             ->where('status', 'pending')
             ->first();
 
-        $scan = $this->scans->store($group, $user, $bill);
+        $scan = $bill === null ? null : $this->scans->store($group, $user, $bill);
         $old = $existing?->scan;
 
         try {
@@ -61,8 +63,9 @@ class PaymentClaimService
                 $attributes = [
                     'contact_id' => $contact?->id,
                     'payer_name' => $contact?->full_name ?? mb_substr(trim((string) ($data['payer_name'] ?? '')), 0, 120),
-                    'amount' => (int) $data['amount'],
-                    'bill_scan_id' => $scan->id,
+                    'amount' => empty($data['amount']) ? null : (int) $data['amount'],
+                    // Gửi lại mà không kèm ảnh: giữ ảnh của bản chờ cũ cho thủ quỹ đối chiếu.
+                    'bill_scan_id' => $scan?->id ?? $existing?->bill_scan_id,
                     'note' => trim((string) ($data['note'] ?? '')) ?: null,
                     'user_id' => $user?->id,
                     'ip' => $ip,
@@ -77,19 +80,23 @@ class PaymentClaimService
                 return PaymentClaim::forceCreate($attributes + ['group_id' => $group->id, 'campaign_id' => $campaign->id, 'status' => 'pending']);
             });
         } catch (\Throwable $e) {
-            $this->images->delete([$scan->path]);
-            $scan->delete();
+            if ($scan !== null) {
+                $this->images->delete([$scan->path]);
+                $scan->delete();
+            }
             throw $e;
         }
 
         // Ảnh cũ bị thay: bỏ file, giữ dòng bill_scans vì vẫn tính lượt AI đã dùng.
-        if ($old !== null && $old->transaction_id === null) {
+        if ($scan !== null && $old !== null && $old->transaction_id === null) {
             $this->images->delete([$old->path]);
             $old->forceFill(['path' => null])->save();
         }
 
         // AI đọc sau khi đã trả lời người gửi, không bắt họ chờ.
-        ReadClaimBill::dispatchAfterResponse($group->id, $scan->id);
+        if ($scan !== null) {
+            ReadClaimBill::dispatchAfterResponse($group->id, $scan->id);
+        }
 
         // Email gộp cho QTV, dùng chung nhịp với giao dịch SePay (plan/03 mục 8).
         if (Cache::add("sepay-digest:{$group->id}", true, now()->addMinutes(15))) {
@@ -143,6 +150,9 @@ class PaymentClaimService
         }
 
         $draft = $this->draft($claim);
+        if (empty($draft['amount'])) {
+            throw ValidationException::withMessages(['claim' => 'Bill này chưa có số tiền, bấm "Nhập số tiền" để duyệt.']);
+        }
 
         return $this->writer->create($group, $user, [
             'type' => 'income',
@@ -155,6 +165,27 @@ class PaymentClaimService
             'description' => $draft['description'],
             'payment_claim_id' => $claim->id,
         ]);
+    }
+
+    /**
+     * Số tiền để duyệt một bill và nó lấy từ đâu (plan/23): AI đọc trên ảnh →
+     * người gửi khai (khi quên chụp bill) → mức người đó phải đóng trong chiến dịch.
+     *
+     * @return array{amount: ?int, source: ?string} source: ai | claimed | expected
+     */
+    public static function amountOf(PaymentClaim $claim, ?int $aiAmount): array
+    {
+        if (! empty($aiAmount)) {
+            return ['amount' => (int) $aiAmount, 'source' => 'ai'];
+        }
+        if ($claim->amount !== null) {
+            return ['amount' => $claim->amount, 'source' => 'claimed'];
+        }
+        $member = $claim->contact_id === null ? null : CampaignMember::query()
+            ->where('campaign_id', $claim->campaign_id)->where('contact_id', $claim->contact_id)->first();
+        $expected = $member === null || $member->exempt ? null : ($member->expected_amount ?? $claim->campaign?->amount_per_member);
+
+        return $expected ? ['amount' => $expected, 'source' => 'expected'] : ['amount' => null, 'source' => null];
     }
 
     public function ignore(User $user, PaymentClaim $claim, ?string $reason): void
@@ -179,7 +210,8 @@ class PaymentClaimService
 
     /**
      * Bản nháp phiếu thu từ bill: số tiền và giờ theo AI đọc, không có thì số
-     * người gửi khai và giờ gửi. Dùng cho Duyệt nhanh và form "Sửa".
+     * người gửi khai, rồi mức người đó phải đóng (plan/23), giờ thì lấy giờ gửi.
+     * Không có số nào thì amount null. Dùng cho Duyệt nhanh và form "Sửa".
      */
     public function draft(PaymentClaim $claim): array
     {
@@ -199,7 +231,7 @@ class PaymentClaimService
         return [
             'is_bill' => true,
             'type' => 'income',
-            'amount' => (int) ($ai['amount'] ?? $claim->amount),
+            'amount' => self::amountOf($claim, $ai['amount'] ?? null)['amount'],
             'occurred_at' => ($at ?? $claim->created_at)->format('Y-m-d H:i'),
             'campaign_id' => $claim->campaign_id,
             'category_id' => $claim->campaign?->category_id,

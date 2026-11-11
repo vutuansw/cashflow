@@ -15,7 +15,6 @@ use App\Services\Campaigns\CampaignService;
 use App\Support\BankReference;
 use App\Support\CurrentGroup;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +22,7 @@ use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
 use Tests\TestCase;
 
-/** Thành viên tự gửi bill, chống trùng bill, ảnh QR để lưu về máy. Xem plan/05 mục 5 và plan/19. */
+/** Thành viên tự gửi bill, chống trùng bill. Xem plan/05 mục 5. */
 class PaymentClaimsTest extends TestCase
 {
     use CreatesGroups, RefreshBothDatabases;
@@ -153,8 +152,69 @@ class PaymentClaimsTest extends TestCase
         $this->assertSame(300000, PaymentClaim::acrossGroups()->sole()->amount);
         $this->assertNull($old->fresh()->path);
 
-        // Thiếu tên và ảnh.
-        $this->send(['contact_id' => null, 'bill' => null])->assertUnprocessable()->assertJsonValidationErrors(['payer_name', 'bill']);
+        // Thiếu tên, không ảnh cũng không số tiền (plan/23).
+        $this->send(['contact_id' => null, 'bill' => null, 'amount' => null])->assertUnprocessable()
+            ->assertJsonValidationErrors(['payer_name'])
+            ->assertJsonPath('errors.amount.0', 'Chọn ảnh bill, hoặc nhập số tiền nếu quên chụp bill.');
+    }
+
+    public function test_gui_kem_anh_khong_khai_so_tien_duyet_theo_ai_hoac_muc_phai_dong(): void
+    {
+        // Có ảnh, không khai số tiền: AI đọc 450.000, duyệt theo AI, không cảnh báo lệch (plan/23).
+        $this->aiReads(['amount' => 450000]);
+        $this->send(['amount' => null])->assertCreated();
+        $claim = PaymentClaim::acrossGroups()->sole();
+        $this->assertNull($claim->amount);
+
+        $this->actingAs($this->ownerOf($this->group));
+        [$item] = $this->claims();
+        $this->assertSame([null, 450000, 'ai', []], [$item['amount'], $item['approve_amount'], $item['amount_source'], $item['warnings']]);
+        $id = $this->postJson($this->adminUrl($this->group, "claims/{$claim->id}/approve"))->assertOk()->json('transaction_id');
+        $this->assertSame(450000, Transaction::acrossGroups()->find($id)->amount);
+
+        // AI không đọc được số tiền: duyệt theo mức người đó phải đóng.
+        auth('web')->logout();
+        $this->aiReads(['is_bank_receipt' => false, 'amount' => null, 'reference_code' => null]);
+        $this->send(['amount' => null])->assertCreated();
+        $claim = PaymentClaim::acrossGroups()->where('status', 'pending')->sole();
+        $this->actingAs($this->ownerOf($this->group));
+        [$item] = $this->claims();
+        $this->assertSame([500000, 'expected'], [$item['approve_amount'], $item['amount_source']]);
+        $id = $this->postJson($this->adminUrl($this->group, "claims/{$claim->id}/approve"))->assertOk()->json('transaction_id');
+        $this->assertSame(500000, Transaction::acrossGroups()->find($id)->amount);
+    }
+
+    public function test_quen_chup_bill_gui_so_tien(): void
+    {
+        $this->send(['bill' => null, 'amount' => 300000, 'note' => 'Chuyển lúc 9h sáng'])->assertCreated();
+        $claim = PaymentClaim::acrossGroups()->sole();
+        $this->assertSame([300000, null], [$claim->amount, $claim->bill_scan_id]);
+        $this->assertSame(0, BillScan::acrossGroups()->count());
+        $this->assertSame([], FakeBillExtractor::$calls); // không có ảnh thì không gọi AI
+
+        // Gửi lại không ảnh: thay bản chờ cũ.
+        $this->send(['bill' => null, 'amount' => 250000])->assertCreated()->assertJsonPath('replaced', true);
+        $this->assertSame(250000, PaymentClaim::acrossGroups()->sole()->amount);
+
+        $this->actingAs($this->ownerOf($this->group));
+        [$item] = $this->claims();
+        $this->assertSame(['none', null, 250000, 'claimed'], [$item['ai']['state'], $item['bill_url'], $item['approve_amount'], $item['amount_source']]);
+        $id = $this->postJson($this->adminUrl($this->group, "claims/{$claim->id}/approve"))->assertOk()->json('transaction_id');
+        $this->assertSame(250000, Transaction::acrossGroups()->find($id)->amount);
+    }
+
+    public function test_khong_co_so_tien_nao_phai_nhap_tay(): void
+    {
+        // Khách ngoài danh bạ, ảnh không đọc được, không khai: không có số để duyệt nhanh.
+        $this->aiReads(['is_bank_receipt' => false, 'amount' => null, 'reference_code' => null]);
+        $this->send(['contact_id' => null, 'payer_name' => 'Người lạ', 'amount' => null])->assertCreated();
+        $claim = PaymentClaim::acrossGroups()->sole();
+
+        $this->actingAs($this->ownerOf($this->group));
+        [$item] = $this->claims();
+        $this->assertSame([null, null], [$item['approve_amount'], $item['amount_source']]);
+        $this->postJson($this->adminUrl($this->group, "claims/{$claim->id}/approve"))->assertUnprocessable()
+            ->assertJsonPath('errors.claim.0', 'Bill này chưa có số tiền, bấm "Nhập số tiền" để duyệt.');
     }
 
     public function test_trung_ma_giao_dich_voi_sepay_dang_cho_chi_ghep(): void
@@ -284,48 +344,6 @@ class PaymentClaimsTest extends TestCase
         ], ['Accept' => 'application/json'])->assertCreated();
         $this->assertSame('approved', $claim->fresh()->status);
         $this->assertNotNull(BillScan::acrossGroups()->sole()->transaction_id);
-    }
-
-    public function test_anh_qr_qua_may_chu_de_luu_ve_may(): void
-    {
-        Http::fake([
-            'qr.sepay.vn/*' => Http::sequence()
-                ->push('PNG-KHACH', 200, ['Content-Type' => 'image/png'])
-                ->push('PNG-MINH', 200, ['Content-Type' => 'image/png'])
-                ->push('lỗi', 500),
-        ]);
-        $url = "/api/g/chi-doan-a12/campaigns/{$this->campaign->slug}/qr.png";
-
-        // Khách: QR không có nội dung, lần sau lấy từ cache.
-        $r = $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/png');
-        $this->assertSame('PNG-KHACH', $r->getContent());
-        $this->assertStringContainsString('QR-QNA12N26.png', $r->headers->get('Content-Disposition'));
-        $this->get($url)->assertOk();
-        Http::assertSentCount(1);
-        Http::assertSent(fn ($req) => $req->url() === 'https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&template=compact');
-
-        // Thành viên: QR có nội dung theo tên mình trong danh bạ, ảnh riêng.
-        $member = $this->memberOf($this->group);
-        Contact::query()->where('user_id', $member->id)->update(['full_name' => 'Lê Thị Hoa']);
-        $this->assertSame('PNG-MINH', $this->actingAs($member)->get($url)->assertOk()->getContent());
-        Http::assertSent(fn ($req) => str_contains($req->url(), '&des=LE+THI+HOA+QNA12N26'));
-
-        // SePay lỗi: 502, trang báo giữ ngón tay lên mã QR để lưu.
-        $this->campaign->update(['amount_per_member' => 300000]);
-        $this->get($url)->assertStatus(502);
-
-        // Chiến dịch đã đóng: không có QR.
-        $this->campaign->update(['status' => 'closed']);
-        $this->get($url)->assertNotFound();
-    }
-
-    public function test_anh_qr_nhom_private_khach_khong_xem_duoc(): void
-    {
-        Http::fake(['qr.sepay.vn/*' => Http::response('PNG', 200, ['Content-Type' => 'image/png'])]);
-        $this->group->update(['visibility' => 'private']);
-
-        $this->get("/api/g/chi-doan-a12/campaigns/{$this->campaign->slug}/qr.png", ['Accept' => 'application/json'])->assertForbidden();
-        Http::assertNothingSent();
     }
 
     public function test_so_ma_giao_dich(): void

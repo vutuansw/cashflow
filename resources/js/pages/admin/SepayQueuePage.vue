@@ -109,7 +109,7 @@ async function approveClaim(c, mode) {
     busy.value = c.id;
     try {
         await adminApi(code.value, `/claims/${c.id}/approve`, { method: 'POST', body: { mode, confirm: mode === 'new' && Boolean(c.duplicate) } });
-        toast(mode === 'merge' ? `Đã gắn bill của ${c.name} vào phiếu.` : `Đã duyệt ${formatMoney(c.ai.amount ?? c.amount)} của ${c.name}.`);
+        toast(mode === 'merge' ? `Đã gắn bill của ${c.name} vào phiếu.` : `Đã duyệt ${formatMoney(c.approve_amount)} của ${c.name}.`);
         await load();
     } catch (e) {
         toast(errorText(e), 'error');
@@ -117,9 +117,11 @@ async function approveClaim(c, mode) {
         busy.value = null;
     }
 }
+// Số tiền trên dòng bill: số người gửi khai (quên chụp bill), không thì số AI đọc, rồi mức phải đóng (plan/23).
+const shownAmount = (c) => c.amount ?? c.ai.amount ?? c.approve_amount;
 const openClaimForm = (c) => router.push(`/${code.value}/admin/transactions/new?claim=${c.id}`);
 const aiText = (c) =>
-    ({ processing: 'AI đang đọc bill…', failed: 'AI không đọc được bill', none: 'Không có ảnh' })[c.ai.state] ??
+    ({ processing: 'AI đang đọc bill…', failed: 'AI không đọc được bill', none: 'Không có ảnh bill, đối chiếu với sao kê' })[c.ai.state] ??
     (c.ai.amount ? null : 'Ảnh không giống bill chuyển khoản');
 </script>
 
@@ -146,9 +148,10 @@ const aiText = (c) =>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-baseline justify-between gap-2">
                             <p class="truncate font-semibold">{{ c.name }}</p>
-                            <p class="shrink-0 font-semibold tabular-nums text-income">+{{ formatMoney(c.amount).replace(' đ', '') }}</p>
+                            <p v-if="shownAmount(c)" class="shrink-0 font-semibold tabular-nums text-income">+{{ formatMoney(shownAmount(c)).replace(' đ', '') }}</p>
+                            <p v-else class="shrink-0 text-sm text-muted-foreground">Chưa có số tiền</p>
                         </div>
-                        <p class="text-xs text-muted-foreground">Gửi lúc {{ formatDateTime(c.submitted_at) }}</p>
+                        <p class="text-xs text-muted-foreground">Gửi lúc {{ formatDateTime(c.submitted_at) }}<template v-if="c.amount === null && c.amount_source === 'expected'"> · số tiền theo mức phải đóng</template><template v-else-if="c.amount !== null"> · người gửi tự nhập số tiền</template></p>
                         <div class="mt-1.5 flex flex-wrap gap-1.5 text-xs">
                             <span v-if="c.campaign" class="chip !bg-primary/15 !text-primary">{{ c.campaign.name }}</span>
                             <span v-if="c.already_paid" class="chip">Đã đóng đủ</span>
@@ -185,7 +188,9 @@ const aiText = (c) =>
                     </template>
                     <template v-else>
                         <button type="button" class="btn-outline !min-h-10 text-sm" @click="openClaimForm(c)">Sửa</button>
-                        <button type="button" class="btn-primary !min-h-10 text-sm" :disabled="busy === c.id || c.ai.state === 'processing'" @click="approveClaim(c, 'new')"><Check class="size-4" /> Duyệt</button>
+                        <!-- Không có số tiền nào (AI không đọc được, không khai, không có mức phải đóng): QTV tự nhập. -->
+                        <button v-if="!c.approve_amount && c.ai.state !== 'processing'" type="button" class="btn-primary !min-h-10 text-sm" @click="openClaimForm(c)">Nhập số tiền</button>
+                        <button v-else type="button" class="btn-primary !min-h-10 text-sm" :disabled="busy === c.id || c.ai.state === 'processing'" @click="approveClaim(c, 'new')"><Check class="size-4" /> Duyệt</button>
                     </template>
                 </div>
                 <div v-else-if="status === 'ignored'" class="mt-3">

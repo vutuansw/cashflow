@@ -87,3 +87,8 @@ Thử thật trên iPhone với MB Bank: trang chép nội dung đúng nhưng MB
 - Bỏ nút **Mở app ngân hàng để chuyển**, lưới app (`BankAppSheet.vue`), API `/campaigns/{slug}/bank-apps`, `BankApps.php` (danh sách app VietQR, deeplink `dl.vietqr.io`).
 - Trang đóng quỹ trên điện thoại giống máy tính: **QR to** ở đầu thẻ chuyển khoản, rồi tên ngân hàng, số tài khoản, chủ tài khoản, các nút **Chép** (số tiền, nội dung, số tài khoản).
 - Riêng điện thoại thêm nút **Lưu ảnh QR** ngay dưới QR, kèm dòng "Lưu ảnh rồi mở app ngân hàng → Quét QR → chọn ảnh". Route `qr.png` giữ nguyên.
+
+## Bỏ nút Lưu ảnh QR (chốt 11/11/2026)
+
+Chủ dự án chốt không cần lưu ảnh QR. Đã bỏ nút **Lưu ảnh QR** và dòng hướng dẫn trên điện thoại, cùng route `/campaigns/{slug}/qr.png` và test của nó. Trang đóng quỹ chỉ còn: QR to, tên ngân hàng, số tài khoản, chủ tài khoản, các nút **Chép**, rồi nút **Tôi đã chuyển khoản, gửi bill**.
+

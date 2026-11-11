@@ -26,7 +26,9 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [16-vao-thang-timeline](16-vao-thang-timeline.plan.md) | Đăng nhập hoặc bấm nhóm: mọi vai trò vào thẳng timeline, không vào trang quản trị |
 | [17-icon-man-hinh-chinh](17-icon-man-hinh-chinh.plan.md) | Gợi ý thêm WePo ra màn hình chính ở trang nhóm, mở từ icon vào thẳng nhóm |
 | [18-gioi-han-dang-ky](18-gioi-han-dang-ky.plan.md) | Giới hạn đăng ký chỉ đếm lần tạo được tài khoản, báo 429 bằng tiếng Việt |
-| [19-app-ngan-hang-khong-tu-dien](19-app-ngan-hang-khong-tu-dien.plan.md) | Bỏ mở app ngân hàng (deeplink VietQR không mở được form chuyển tiền): chỉ còn quét QR, Lưu ảnh QR, nút Chép |
+| [19-app-ngan-hang-khong-tu-dien](19-app-ngan-hang-khong-tu-dien.plan.md) | Bỏ mở app ngân hàng (deeplink VietQR không mở được form chuyển tiền) và nút Lưu ảnh QR: chỉ còn quét QR và nút Chép |
+| [20-gui-bill-de-hon](20-gui-bill-de-hon.plan.md) | Gửi bill: chọn sẵn tên người đang đăng nhập, ô chọn ảnh bill nổi bật, nút gửi bill rõ ràng |
+| [23-gui-bill-bo-o-so-tien](23-gui-bill-bo-o-so-tien.plan.md) | Form gửi bill: bỏ ô số tiền (AI đọc từ ảnh), nút Gửi đi mờ tới khi có ảnh, quên chụp bill thì gõ số tiền |
 
 ---
 

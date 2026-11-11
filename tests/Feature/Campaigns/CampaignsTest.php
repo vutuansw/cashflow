@@ -186,6 +186,37 @@ class CampaignsTest extends TestCase
         $this->actingAs(User::factory()->create())->getJson($url)->assertOk()->assertJsonPath('transfer_content', null);
     }
 
+    public function test_form_gui_bill_chon_san_nguoi_dang_dang_nhap(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        $group->update(['bank_code' => 'MBBank', 'bank_account_no' => '0123456789']);
+        $member = $this->memberOf($group, GroupRole::Member, ['name' => 'Hiền tài khoản']);
+        app(CurrentGroup::class)->set($group);
+        $contactId = Contact::query()->where('user_id', $member->id)->value('id');
+        Contact::query()->whereKey($contactId)->update(['full_name' => 'Nguyễn Minh Hiền']);
+        [$other] = $this->contacts($group, ['Trần Văn Minh']);
+        $inList = app(CampaignService::class)->create($group, $this->ownerOf($group), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 200000]);
+        $notInList = app(CampaignService::class)->create($group, $this->ownerOf($group), ['name' => 'Thu riêng', 'category_id' => $this->fund($group), 'amount_per_member' => 300000], [['contact_id' => $other]]);
+        app(CurrentGroup::class)->set(null);
+
+        // Thành viên gắn danh bạ: chọn sẵn chính họ (plan/20).
+        $this->actingAs($member)->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertOk()
+            ->assertJsonPath('me', ['contact_id' => $contactId, 'name' => 'Nguyễn Minh Hiền', 'expected' => 200000, 'paid' => 0, 'status' => 'unpaid', 'pending_claim' => false]);
+
+        // Không có trong danh sách chiến dịch: vẫn nhận ra, số tiền theo mức chung.
+        $this->getJson("/api/g/{$group->code}/campaigns/{$notInList->slug}")->assertOk()
+            ->assertJsonPath('me.contact_id', $contactId)->assertJsonPath('me.expected', 300000)->assertJsonPath('me.status', 'unpaid');
+
+        // Đăng nhập nhưng không thuộc nhóm, hoặc khách: không có.
+        $this->actingAs(User::factory()->create())->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertJsonPath('me', null);
+        auth('web')->logout();
+        $this->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertJsonPath('me', null);
+
+        // Chiến dịch đã đóng: không gửi bill nữa nên không cần.
+        $inList->update(['status' => 'closed']);
+        $this->actingAs($member)->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertJsonPath('me', null);
+    }
+
     public function test_noi_dung_ck_rut_gon_ten_giu_ma(): void
     {
         $this->assertSame('VU DUC TUAN DT2026', TransferContent::build('Vũ Đức Tuấn', 'DT2026'));

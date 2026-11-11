@@ -13,11 +13,8 @@ use App\Services\Groups\MemberIndex;
 use App\Services\Payments\PaymentClaimService;
 use App\Support\TransferContent;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * Trang đóng quỹ /{ma-nhom}/campaigns/{slug}: tiến độ, QR chuyển khoản, ai
@@ -36,7 +33,8 @@ class CampaignPageController extends Controller
         $pending = $pendingRows->filter()->flip()->all();
         $pendingCount = $pendingRows->count();
         $members = MemberIndex::of($group);
-        $content = $open ? TransferContent::forViewer(GroupViewer::of($request, $group), $campaign) : null;
+        $viewer = GroupViewer::of($request, $group);
+        $content = $open ? TransferContent::forViewer($viewer, $campaign) : null;
 
         // Nội dung CK khác nhau theo người xem: không để proxy/trình duyệt dùng chung.
         return response()->json([
@@ -68,7 +66,38 @@ class CampaignPageController extends Controller
                 'member_id' => $members->contact($p['contact_id'])['member_id'] ?? null,
             ], $data['people']),
             'pending_claims' => $pendingCount,
+            // Thành viên đang xem: form gửi bill chọn sẵn tên họ (plan/20).
+            'me' => $open ? self::me($viewer, $campaign, $data['people'], $pending) : null,
         ])->header('Cache-Control', 'private, no-store');
+    }
+
+    /**
+     * Dòng của chính thành viên đang xem trong danh sách người đóng. Không có trong
+     * danh sách chiến dịch thì dựng từ danh bạ. Khách, chưa gắn danh bạ: null.
+     *
+     * @param  list<array<string, mixed>>  $people
+     * @param  array<int, int>  $pending  contact_id đang có bill chờ duyệt
+     */
+    private static function me(GroupViewer $viewer, Campaign $campaign, array $people, array $pending): ?array
+    {
+        $contactId = $viewer->member?->contact_id;
+        $contact = $contactId ? Contact::query()->find($contactId) : null;
+        if ($contact === null) {
+            return null;
+        }
+
+        $row = collect($people)->firstWhere('contact_id', $contact->id) ?? [
+            'name' => $contact->full_name, 'expected' => $campaign->amount_per_member, 'paid' => 0, 'status' => 'unpaid',
+        ];
+
+        return [
+            'contact_id' => $contact->id,
+            'name' => $row['name'],
+            'expected' => $row['expected'],
+            'paid' => $row['paid'],
+            'status' => $row['status'],
+            'pending_claim' => isset($pending[$contact->id]),
+        ];
     }
 
     /**
@@ -87,13 +116,14 @@ class CampaignPageController extends Controller
         $data = $request->validate([
             'contact_id' => ['nullable', 'integer'],
             'payer_name' => ['required_without:contact_id', 'nullable', 'string', 'max:120'],
-            'amount' => ['required', 'integer', 'min:1000', 'max:999999999999'],
+            // Có ảnh bill thì không cần số tiền (AI đọc), quên chụp bill thì phải gõ số tiền (plan/23).
+            'amount' => ['required_without:bill', 'nullable', 'integer', 'min:1000', 'max:999999999999'],
             'note' => ['nullable', 'string', 'max:500'],
-            'bill' => ['required', 'file', 'mimes:'.implode(',', config('cashflow.images.mimes')), 'max:10240'],
+            'bill' => ['nullable', 'file', 'mimes:'.implode(',', config('cashflow.images.mimes')), 'max:10240'],
             'website' => ['nullable', 'string'],
         ], [
             'payer_name.required_without' => 'Chọn tên bạn hoặc gõ họ tên.',
-            'bill.required' => 'Chọn ảnh bill chuyển khoản.',
+            'amount.required_without' => 'Chọn ảnh bill, hoặc nhập số tiền nếu quên chụp bill.',
         ], ['amount' => 'số tiền', 'bill' => 'ảnh bill', 'note' => 'ghi chú']);
 
         RateLimiter::hit($key, 3600);
@@ -112,41 +142,6 @@ class CampaignPageController extends Controller
         $result = $claims->submit($group, $campaign, $data, $request->file('bill'), $request->user('web'), $request->ip());
 
         return response()->json(['status' => 'pending', 'replaced' => $result['replaced']], 201);
-    }
-
-    /**
-     * Ảnh QR chuyển khoản lấy qua máy chủ mình, để điện thoại lưu được ảnh rồi quét
-     * trong app ngân hàng (plan/19). Ảnh của qr.sepay.vn khác domain nên trình duyệt
-     * không cho tải hay chia sẻ thẳng. Nội dung theo người xem như trang đóng quỹ.
-     */
-    public function qrImage(Request $request, Group $group, string $slug)
-    {
-        $campaign = Campaign::query()->where('slug', $slug)->where('status', 'open')->firstOrFail();
-        abort_if($group->bank_code === null || $group->bank_account_no === null, 404);
-
-        $url = self::qrUrl($group, $campaign, TransferContent::forViewer(GroupViewer::of($request, $group), $campaign));
-        $key = 'sepay-qr:'.md5($url);
-        $png = Cache::get($key);
-
-        if (! is_string($png)) {
-            try {
-                $response = Http::timeout(8)->get($url);
-                $body = $response->body();
-                $ok = $response->successful() && str_starts_with((string) $response->header('Content-Type'), 'image/')
-                    && strlen($body) > 0 && strlen($body) < 1024 * 1024;
-            } catch (Throwable) {
-                $ok = false;
-            }
-            abort_unless($ok, 502, 'Chưa lấy được ảnh QR.');
-            $png = base64_encode($body);
-            Cache::put($key, $png, now()->addDay());
-        }
-
-        return response(base64_decode($png), 200, [
-            'Content-Type' => 'image/png',
-            'Content-Disposition' => 'inline; filename="QR-'.$campaign->transfer_code.'.png"',
-            'Cache-Control' => 'private, no-store',
-        ]);
     }
 
     /** QR VietQR của SePay, không cần khóa. Không có nội dung thì app ngân hàng tự điền tên người chuyển. */
