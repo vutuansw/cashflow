@@ -97,6 +97,18 @@ router.beforeEach(async (to) => {
     return true;
 });
 
+// Sau mỗi lần deploy, vite build xóa file JS cũ. Trang đang mở từ trước (vd. /login) chuyển sang trang khác sẽ
+// tải file cũ, bị 404 và đứng im. Khi đó tải lại hẳn trang đích để lấy bản mới; chặn lặp nếu vừa tải lại < 10 giây.
+const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Unable to preload CSS/i;
+router.onError((error, to) => {
+    if (!CHUNK_ERROR.test(error?.message ?? '')) return;
+    let last = 0;
+    try { last = Number(sessionStorage.getItem('wepo-chunk-reload')) || 0; } catch {}
+    if (Date.now() - last < 10_000) return;
+    try { sessionStorage.setItem('wepo-chunk-reload', String(Date.now())); } catch {}
+    window.location.assign(to.fullPath);
+});
+
 createApp(App).use(router).mount('#app');
 
 // PWA: đăng ký service worker (chỉ cache file tĩnh, xem public/sw.js và plan/06 mục 4).

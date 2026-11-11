@@ -75,4 +75,36 @@ class RegisterTest extends TestCase
             ->assertJsonValidationErrors('website');
         $this->assertGuest();
     }
+
+    /** Lỗi trên server 11/11/2026: khách nhập sai 3 lần (422) là hết lượt, lần đúng sau đó bị 429 "Too Many Attempts.". */
+    public function test_nhap_sai_nhieu_lan_van_dang_ky_duoc(): void
+    {
+        foreach (range(1, 5) as $i) {
+            $this->postJson('/api/register', $this->payload(['password' => 'ngan']))->assertUnprocessable();
+        }
+
+        $this->postJson('/api/register', $this->payload())->assertCreated();
+    }
+
+    public function test_moi_ip_toi_da_10_tai_khoan_moi_gio(): void
+    {
+        foreach (range(1, 10) as $i) {
+            $this->postJson('/api/register', $this->payload(['phone' => '09887770'.str_pad((string) $i, 2, '0', STR_PAD_LEFT), 'email' => null]))->assertCreated();
+            $this->postJson('/api/logout');
+        }
+
+        $this->postJson('/api/register', $this->payload(['phone' => '0988777099', 'email' => null]))->assertStatus(429);
+    }
+
+    public function test_gui_qua_nhieu_lan_bi_chan_va_bao_tieng_viet(): void
+    {
+        foreach (range(1, 30) as $i) {
+            $this->postJson('/api/register', $this->payload(['password' => 'ngan']))->assertUnprocessable();
+        }
+
+        $this->postJson('/api/register', $this->payload())
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Bạn thử quá nhiều lần. Đợi 60 phút rồi thử lại nhé.');
+        $this->assertGuest();
+    }
 }

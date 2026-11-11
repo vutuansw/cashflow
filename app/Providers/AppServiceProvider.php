@@ -32,8 +32,13 @@ class AppServiceProvider extends ServiceProvider
         // Bắt sớm lỗi gán thuộc tính sai tên và truy cập quan hệ chưa nạp (N+1) khi dev.
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        // Đăng ký tài khoản: 3 lần/giờ/IP, xem plan/02 mục 2.
-        RateLimiter::for('register', fn (Request $request) => Limit::perHour(3)->by($request->ip()));
+        // Đăng ký tài khoản (/register và link xin vào nhóm), xem plan/02 mục 2 và plan/18:
+        // chỉ đếm lần tạo được tài khoản (10/giờ/IP, cả nhóm đăng ký chung một Wi-Fi vẫn đủ). Gõ sai rồi sửa (422)
+        // không mất lượt; riêng tổng số lần gửi vẫn chặn ở 30/giờ/IP để chống spam.
+        RateLimiter::for('register', fn (Request $request) => [
+            Limit::perHour(10)->by('created:'.$request->ip())->after(fn ($response) => $response->getStatusCode() === 201),
+            Limit::perHour(30)->by('tries:'.$request->ip()),
+        ]);
 
         // Webhook SePay: 120 request/phút mỗi nhóm, xem plan/05 mục 3.
         RateLimiter::for('sepay', fn (Request $request) => Limit::perMinute(120)->by('sepay:'.$request->route('group')));

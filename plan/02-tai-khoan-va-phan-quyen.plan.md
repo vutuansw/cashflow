@@ -21,7 +21,7 @@ Hai bước riêng, hai màn hình riêng (tách ra ở [11](11-tach-dang-ky-tai
 - Không có email thì quên mật khẩu phải nhờ trưởng nhóm/QTV (mục 1).
 - SĐT đã có tài khoản (kể cả tài khoản do trưởng nhóm cấp) → báo "Số điện thoại này đã có tài khoản", kèm link Đăng nhập và Quên mật khẩu.
 - Nhận `?next=` như trang đăng nhập. Xong thì về `next`, không có thì về `/groups` (chưa thuộc nhóm nào: gợi ý tạo nhóm hoặc gửi SĐT cho trưởng nhóm để được thêm vào).
-- Chống spam: giới hạn 3 lần đăng ký/giờ/IP, trường honeypot.
+- Chống spam: tối đa 10 tài khoản tạo thành công và 30 lần gửi mỗi giờ mỗi IP (nhập sai không mất lượt, xem [plan/18](18-gioi-han-dang-ky.plan.md)), trường honeypot.
 
 ### 2.2. Tạo nhóm `/groups/new`
 

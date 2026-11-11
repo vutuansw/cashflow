@@ -24,6 +24,7 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [14-landing-page](14-landing-page.plan.md) | Trang chủ `/` thành landing page: hero, 5 section ưu việt có ảnh app trong khung iPhone, CTA |
 | [15-noi-quy-nhom](15-noi-quy-nhom.plan.md) | Box "Nội quy" ở trang nhóm, trưởng nhóm/QTV viết trong Cài đặt nhóm |
 | [16-vao-thang-timeline](16-vao-thang-timeline.plan.md) | Đăng nhập hoặc bấm nhóm: mọi vai trò vào thẳng timeline, không vào trang quản trị |
+| [18-gioi-han-dang-ky](18-gioi-han-dang-ky.plan.md) | Giới hạn đăng ký chỉ đếm lần tạo được tài khoản, báo 429 bằng tiếng Việt |
 
 ---
 

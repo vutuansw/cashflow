@@ -12,6 +12,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
@@ -64,4 +65,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Bị giới hạn số lần (throttle): báo tiếng Việt kèm thời gian chờ thay cho "Too Many Attempts.", xem plan/18.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $wait = $seconds >= 60 ? (int) ceil($seconds / 60).' phút' : $seconds.' giây';
+
+            return response()->json(['message' => "Bạn thử quá nhiều lần. Đợi {$wait} rồi thử lại nhé."], 429, $e->getHeaders());
+        });
     })->create();

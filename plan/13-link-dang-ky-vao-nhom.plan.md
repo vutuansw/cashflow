@@ -35,7 +35,7 @@ Ngày: 10/11/2026. Trạng thái: **đã duyệt, đã làm** (10/11/2026).
 | Endpoint | Việc |
 | --- | --- |
 | `GET /api/g/{group}/join` (khách) | Trả tên nhóm, ảnh bìa, link có bật không. Đã đăng nhập thì kèm trạng thái của mình: `member` / `pending` / `none`. |
-| `POST /api/g/{group}/join/register` (khách) | Giống `/api/register` (họ tên, SĐT, email không bắt buộc, mật khẩu, honeypot, 3 lần/giờ/IP). Tạo user, đăng nhập, tạo yêu cầu `pending`. Link đang tắt → 403. |
+| `POST /api/g/{group}/join/register` (khách) | Giống `/api/register` (họ tên, SĐT, email không bắt buộc, mật khẩu, honeypot, giới hạn chung với `/api/register`, xem plan/18). Tạo user, đăng nhập, tạo yêu cầu `pending`. Link đang tắt → 403. |
 | `POST /api/g/{group}/join` (đã đăng nhập) | Người đã có tài khoản xin vào nhóm. Đã là thành viên → báo luôn, đã có yêu cầu chờ → trả yêu cầu đó, không tạo trùng. |
 | `GET /api/g/{group}/admin/join-requests` (QTV) | Danh sách đang chờ: họ tên, SĐT, ngày gửi, có trùng SĐT với ai trong danh bạ không. |
 | `POST .../join-requests/{id}/approve` (QTV) | Tìm dòng danh bạ theo SĐT, không có thì tạo (dòng mới tự vào chiến dịch đang mở như thêm danh bạ thường). Tạo hoặc kích hoạt lại `group_members` vai trò `member`, gắn `contact.user_id`. Phần này tách từ `AccountGranter` ra, bỏ bước tạo mật khẩu tạm vì người dùng đã tự đặt mật khẩu. |
