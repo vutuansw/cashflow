@@ -26,6 +26,7 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [16-vao-thang-timeline](16-vao-thang-timeline.plan.md) | Đăng nhập hoặc bấm nhóm: mọi vai trò vào thẳng timeline, không vào trang quản trị |
 | [17-icon-man-hinh-chinh](17-icon-man-hinh-chinh.plan.md) | Gợi ý thêm WePo ra màn hình chính ở trang nhóm, mở từ icon vào thẳng nhóm |
 | [18-gioi-han-dang-ky](18-gioi-han-dang-ky.plan.md) | Giới hạn đăng ký chỉ đếm lần tạo được tài khoản, báo 429 bằng tiếng Việt |
+| [19-app-ngan-hang-khong-tu-dien](19-app-ngan-hang-khong-tu-dien.plan.md) | Deeplink VietQR không còn tự điền: bỏ nhãn Tự điền, chép sẵn cho mọi app, thêm nút Lưu ảnh QR |
 
 ---
 

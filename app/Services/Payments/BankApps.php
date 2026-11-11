@@ -44,7 +44,10 @@ class BankApps
     }
 
     /**
-     * @return list<array{id: string, name: string, logo: string, autofill: bool}> xếp theo mức phổ biến
+     * Bỏ cờ autofill của VietQR: từ 11/11/2026 không app nào nhận được số tiền,
+     * nội dung qua link nữa dù cờ vẫn bật (plan/19).
+     *
+     * @return list<array{id: string, name: string, logo: string}> xếp theo mức phổ biến
      */
     public function list(string $os): array
     {
@@ -73,7 +76,6 @@ class BankApps
                 'id' => $a['appId'],
                 'name' => mb_substr((string) ($a['appName'] ?? $a['appId']), 0, 60),
                 'logo' => str_starts_with((string) ($a['appLogo'] ?? ''), 'https://') ? $a['appLogo'] : '',
-                'autofill' => (int) ($a['autofill'] ?? 0) === 1,
             ])
             ->values()
             ->all();
@@ -85,7 +87,7 @@ class BankApps
 
     /**
      * Link mở app: https://dl.vietqr.io/pay?app=mb&ba=0123456789@mb&am=200000&tn=CHIDOAN26
-     * App không tự điền thì vẫn mở được app, các tham số bị bỏ qua.
+     * Hiện VietQR bỏ các tham số, chỉ mở app; vẫn gửi đủ để VietQR bật lại thì tự có (plan/19).
      */
     public static function deeplink(string $appId, string $accountNo, string $bankCode, ?int $amount, ?string $content): string
     {

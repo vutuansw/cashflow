@@ -1,13 +1,14 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { CheckCircle2, ChevronDown, CircleDashed, CircleDot, Clock, Copy, Landmark, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
+import { CheckCircle2, ChevronDown, CircleDashed, CircleDot, Clock, Copy, ImageDown, Landmark, Lock, ReceiptText, Share2 } from 'lucide-vue-next';
 import BackButton from '../components/BackButton.vue';
 import BankAppSheet from '../components/BankAppSheet.vue';
 import ClaimSheet from '../components/ClaimSheet.vue';
 import MemberName from '../components/MemberName.vue';
 import { api, ApiError } from '../lib/api.js';
 import { copyText } from '../lib/clipboard.js';
+import { toast } from '../lib/notice.js';
 import { formatMoney } from '../lib/money.js';
 import { formatDate } from '../lib/time.js';
 import { BANKS } from '../lib/banks.js';
@@ -42,9 +43,46 @@ onMounted(async () => {
     }
     // VietQR lỗi thì không có lưới app, trang vẫn dùng QR và các nút Chép.
     if (isPhone && data.value.bank) {
+        preloadQr();
         apps.value = (await api(`/g/${code.value}/campaigns/${route.params.slug}/bank-apps`).catch(() => null))?.apps ?? [];
     }
 });
+
+// Lưu ảnh QR để quét trong app ngân hàng: cách duy nhất điền đủ số tiền, nội dung cho mọi
+// ngân hàng (plan/19). Tải sẵn khi mở trang vì Safari chỉ cho chia sẻ ngay sau lúc bấm nút.
+const qrFile = ref(null);
+async function preloadQr() {
+    try {
+        const r = await fetch(`/api/g/${code.value}/campaigns/${route.params.slug}/qr.png`, { credentials: 'same-origin' });
+        if (!r.ok) return;
+        qrFile.value = new File([await r.blob()], `QR-${data.value.transfer_code}.png`, { type: 'image/png' });
+    } catch {
+        // Không tải được thì nút báo cách giữ ngón tay lên mã QR để lưu.
+    }
+}
+
+async function saveQr() {
+    const file = qrFile.value;
+    if (!file) {
+        toast('Chưa lưu được ảnh, giữ ngón tay lên mã QR bên dưới để lưu.', 'error');
+        return;
+    }
+    if (navigator.canShare?.({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file] });
+            return;
+        } catch (e) {
+            if (e?.name === 'AbortError') return;
+        }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Đã tải ảnh QR về máy.');
+}
 
 const useApps = computed(() => isPhone && apps.value.length > 0);
 const paid = computed(() => (data.value?.people ?? []).filter((p) => p.status === 'paid' || p.status === 'partial'));
@@ -118,6 +156,8 @@ async function share() {
             <section v-if="data.bank" class="card p-4 text-center">
                 <template v-if="useApps">
                     <button type="button" class="btn-primary w-full" @click="choosingApp = true"><Landmark class="size-5" /> Mở app ngân hàng để chuyển</button>
+                    <button type="button" class="btn-outline mt-2 w-full" @click="saveQr"><ImageDown class="size-5" /> Lưu ảnh QR</button>
+                    <p class="mt-1 text-xs text-muted-foreground">Lưu ảnh rồi mở app ngân hàng → Quét QR → chọn ảnh: app điền đủ số tài khoản, số tiền, nội dung.</p>
                     <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
                     <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
                 </template>
@@ -142,8 +182,8 @@ async function share() {
                     </div>
                 </div>
                 <div v-if="useApps" class="mt-3 flex items-center gap-3 rounded-xl border border-border p-2 text-left">
-                    <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="aspect-square w-24 shrink-0 rounded-lg bg-white object-contain" />
-                    <p class="text-xs text-muted-foreground">Mã QR cho người khác quét hộ, hoặc khi bạn mở trang này trên máy tính.</p>
+                    <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="aspect-square w-28 shrink-0 rounded-lg bg-white object-contain" />
+                    <p class="text-xs text-muted-foreground">Mã QR cho người khác quét hộ. Giữ ngón tay lên mã để lưu ảnh.</p>
                 </div>
             </section>
             <p v-else-if="data.status === 'open'" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
@@ -184,7 +224,7 @@ async function share() {
             <button type="button" class="btn-outline w-full" @click="share"><Share2 class="size-4" /> Chia sẻ trang này</button>
 
             <ClaimSheet :open="claiming" :code="code" :campaign="data" @close="claiming = false" @sent="load" />
-            <BankAppSheet :open="choosingApp" :apps="apps" :content="data.transfer_content" @close="choosingApp = false" />
+            <BankAppSheet :open="choosingApp" :apps="apps" :content="data.transfer_content" :account-no="data.bank?.account_no" :amount="data.amount_per_member" @close="choosingApp = false" />
         </div>
         <SiteFooter class="hidden lg:block" />
     </div>

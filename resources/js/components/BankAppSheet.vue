@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue';
 import Sheet from './Sheet.vue';
 import { toast } from '../lib/notice.js';
+import { formatMoney } from '../lib/money.js';
 
-// Lưới app ngân hàng mở bằng deeplink VietQR (plan/05 mục 5b). App "Tự điền sẵn" nhận đủ
-// số tài khoản, số tiền, nội dung; app khác chỉ mở được app nên chép sẵn nội dung trước.
-const props = defineProps({ open: Boolean, apps: Array, content: String });
+// Lưới app ngân hàng mở bằng deeplink VietQR (plan/05 mục 5b). Từ 11/11/2026 VietQR chỉ mở
+// được app, không điền sẵn gì (plan/19), nên chép sẵn nội dung hoặc số tài khoản trước khi mở.
+const props = defineProps({ open: Boolean, apps: Array, content: String, accountNo: String, amount: Number });
 const emit = defineEmits(['close']);
 
 const KEY = 'wepo:bank-app';
@@ -35,15 +36,20 @@ async function openApp(app) {
     }
     last.value = app.id;
 
-    if (!app.autofill && props.content) {
+    // Có nội dung thì chép nội dung (để thủ quỹ nhận ra người đóng), khách thì chép số tài khoản.
+    const money = props.amount ? `, số tiền ${formatMoney(props.amount)}` : '';
+    const copy = props.content
+        ? { text: props.content, done: `Đã chép nội dung. Trong app: nhập số TK${money}, dán nội dung.`, fail: `Nhớ ghi nội dung: ${props.content}` }
+        : { text: props.accountNo, done: `Đã chép số tài khoản. Dán vào app${money}, nội dung để mặc định có tên bạn.`, fail: `Số tài khoản: ${props.accountNo}` };
+    if (copy.text) {
         try {
-            await navigator.clipboard.writeText(props.content);
-            toast('Đã chép nội dung, dán vào ô nội dung chuyển khoản.');
+            await navigator.clipboard.writeText(copy.text);
+            toast(copy.done);
         } catch {
-            toast(`Nhớ ghi nội dung: ${props.content}`);
+            toast(copy.fail);
         }
         // Đợi một chút cho người dùng kịp đọc nhắc trước khi chuyển sang app.
-        setTimeout(() => (location.href = app.url), 900);
+        setTimeout(() => (location.href = app.url), 1000);
         return;
     }
     location.href = app.url;
@@ -52,8 +58,7 @@ async function openApp(app) {
 
 <template>
     <Sheet :open="open" title="Chọn app ngân hàng" @close="emit('close')">
-        <p v-if="content" class="text-sm text-muted-foreground">App có nhãn <b class="text-income">Tự điền</b> điền sẵn số tài khoản, số tiền và nội dung. App khác: nội dung được chép sẵn, bạn dán vào ô nội dung chuyển khoản.</p>
-        <p v-else class="text-sm text-muted-foreground">App có nhãn <b class="text-income">Tự điền</b> điền sẵn số tài khoản và số tiền. Ô nội dung cứ để mặc định có tên bạn, đừng xóa tên.</p>
+        <p class="text-sm text-muted-foreground">App mở ra không tự điền sẵn. {{ content ? 'Nội dung' : 'Số tài khoản' }} được chép sẵn để bạn dán. Muốn điền đủ cả số tiền và nội dung: dùng <b>Lưu ảnh QR</b> rồi quét ảnh trong app.</p>
         <ul class="mt-4 grid grid-cols-4 gap-x-2 gap-y-4">
             <li v-for="app in sorted" :key="app.id">
                 <a :href="app.url" class="flex flex-col items-center gap-1 text-center" @click.prevent="openApp(app)">
@@ -63,7 +68,6 @@ async function openApp(app) {
                         <span v-if="app.id === last" class="absolute -right-1 -top-1 size-3 rounded-full border-2 border-card bg-primary" aria-label="Dùng lần trước"></span>
                     </span>
                     <span class="line-clamp-2 text-xs leading-tight">{{ app.name }}</span>
-                    <span v-if="app.autofill" class="rounded-full bg-income/15 px-1.5 text-[10px] font-semibold text-income">Tự điền</span>
                 </a>
             </li>
         </ul>

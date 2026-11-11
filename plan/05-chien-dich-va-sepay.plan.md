@@ -151,7 +151,7 @@ Ghi chú khi làm (10/11/2026):
 - Xóa phiếu đã gắn bill thành viên thì bill vẫn theo phiếu (khôi phục phiếu là có lại), không quay về hàng chờ.
 - Ảnh bill thành viên đang chờ hoặc đã bỏ qua không bị lệnh dọn bill mồ côi xóa.
 
-**Bỏ:** route `/api/g/{group}/campaigns/{slug}/qr.png` và nút Tải ảnh QR.
+**Bỏ:** route `/api/g/{group}/campaigns/{slug}/qr.png` và nút Tải ảnh QR. *(11/11/2026: làm lại thành nút **Lưu ảnh QR** trên điện thoại vì deeplink không còn tự điền, xem [plan/19](19-app-ngan-hang-khong-tu-dien.plan.md).)*
 
 ## 5b. Mở app ngân hàng trên điện thoại (chốt 10/11/2026)
 
@@ -171,6 +171,8 @@ Trang đóng quỹ trên điện thoại:
 6. VietQR lỗi hoặc không lấy được danh sách → ẩn lưới app, các nút Chép vẫn dùng được.
 
 Cần kiểm trên điện thoại thật khi deploy (M6): cách ghi mã ngân hàng trong `ba`, từng app tự điền có điền đúng nội dung và số tiền không.
+
+**Cập nhật 11/11/2026 ([plan/19](19-app-ngan-hang-khong-tu-dien.plan.md)):** VietQR không còn chuyển số tài khoản, số tiền, nội dung cho app nào (kể cả 5 app có `autofill = 1`), chỉ mở màn hình chính của app. Đã bỏ nhãn **Tự điền**; bấm app nào cũng chép sẵn nội dung (khách thì số tài khoản) rồi mới mở; thêm nút **Lưu ảnh QR** để quét ảnh trong app ngân hàng.
 
 ## 6. Kiểm thử
 

@@ -76,6 +76,7 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
         Route::get('/members/{member}/timeline', [MemberProfileController::class, 'timeline'])->whereNumber('member');
         Route::get('/campaigns/{slug}', [CampaignPageController::class, 'show'])->where('slug', '[a-z0-9-]+');
         Route::get('/campaigns/{slug}/bank-apps', [CampaignPageController::class, 'bankApps'])->where('slug', '[a-z0-9-]+');
+        Route::get('/campaigns/{slug}/qr.png', [CampaignPageController::class, 'qrImage'])->where('slug', '[a-z0-9-]+')->middleware('throttle:30,1,campaign-qr');
         Route::post('/campaigns/{slug}/claims', [CampaignPageController::class, 'claim'])->where('slug', '[a-z0-9-]+');
     });
 

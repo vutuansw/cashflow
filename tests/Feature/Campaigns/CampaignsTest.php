@@ -104,7 +104,6 @@ class CampaignsTest extends TestCase
         $this->assertSame('https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&template=compact', $r['bank']['qr_url']);
         $this->assertArrayNotHasKey('phone', $r['people'][0]);
         $this->assertArrayNotHasKey('qr_download', $r['bank']);
-        $this->get("/api/g/{$group->code}/campaigns/{$campaign->slug}/qr.png")->assertNotFound();
 
         // Đóng chiến dịch: không hiện QR nữa.
         $campaign->update(['status' => 'closed']);

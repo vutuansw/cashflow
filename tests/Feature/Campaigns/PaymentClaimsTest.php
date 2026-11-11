@@ -300,7 +300,8 @@ class PaymentClaimsTest extends TestCase
 
         $r = $this->getJson($url, $iphone)->assertOk()->assertJsonPath('os', 'ios')->json('apps');
         $this->assertSame(['mb', 'vcb'], array_column($r, 'id')); // phổ biến trước
-        $this->assertTrue($r[0]['autofill']);
+        // Cờ autofill của VietQR không còn đúng, không trả cho trang (plan/19).
+        $this->assertArrayNotHasKey('autofill', $r[0]);
         // Khách: không có nội dung, app ngân hàng tự điền tên người chuyển (plan/05 mục 1).
         $this->assertSame('https://dl.vietqr.io/pay?app=mb&ba=0123456789%40mb&am=500000', $r[0]['url']);
 
@@ -311,6 +312,48 @@ class PaymentClaimsTest extends TestCase
         $this->getJson($url, ['User-Agent' => 'Mozilla/5.0 (Linux; Android 14)'])->assertOk()->assertJsonPath('apps', []);
         // Máy tính: không có lưới app.
         $this->getJson($url, ['User-Agent' => 'Mozilla/5.0 (Macintosh)'])->assertOk()->assertJsonPath('os', null)->assertJsonPath('apps', []);
+    }
+
+    public function test_anh_qr_qua_may_chu_de_luu_ve_may(): void
+    {
+        Http::fake([
+            'qr.sepay.vn/*' => Http::sequence()
+                ->push('PNG-KHACH', 200, ['Content-Type' => 'image/png'])
+                ->push('PNG-MINH', 200, ['Content-Type' => 'image/png'])
+                ->push('lỗi', 500),
+        ]);
+        $url = "/api/g/chi-doan-a12/campaigns/{$this->campaign->slug}/qr.png";
+
+        // Khách: QR không có nội dung, lần sau lấy từ cache.
+        $r = $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->assertSame('PNG-KHACH', $r->getContent());
+        $this->assertStringContainsString('QR-QNA12N26.png', $r->headers->get('Content-Disposition'));
+        $this->get($url)->assertOk();
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($req) => $req->url() === 'https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=500000&template=compact');
+
+        // Thành viên: QR có nội dung theo tên mình trong danh bạ, ảnh riêng.
+        $member = $this->memberOf($this->group);
+        Contact::query()->where('user_id', $member->id)->update(['full_name' => 'Lê Thị Hoa']);
+        $this->assertSame('PNG-MINH', $this->actingAs($member)->get($url)->assertOk()->getContent());
+        Http::assertSent(fn ($req) => str_contains($req->url(), '&des=LE+THI+HOA+QNA12N26'));
+
+        // SePay lỗi: 502, trang báo giữ ngón tay lên mã QR để lưu.
+        $this->campaign->update(['amount_per_member' => 300000]);
+        $this->get($url)->assertStatus(502);
+
+        // Chiến dịch đã đóng: không có QR.
+        $this->campaign->update(['status' => 'closed']);
+        $this->get($url)->assertNotFound();
+    }
+
+    public function test_anh_qr_nhom_private_khach_khong_xem_duoc(): void
+    {
+        Http::fake(['qr.sepay.vn/*' => Http::response('PNG', 200, ['Content-Type' => 'image/png'])]);
+        $this->group->update(['visibility' => 'private']);
+
+        $this->get("/api/g/chi-doan-a12/campaigns/{$this->campaign->slug}/qr.png", ['Accept' => 'application/json'])->assertForbidden();
+        Http::assertNothingSent();
     }
 
     public function test_so_ma_giao_dich(): void

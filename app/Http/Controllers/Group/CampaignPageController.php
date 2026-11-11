@@ -14,8 +14,11 @@ use App\Services\Payments\BankApps;
 use App\Services\Payments\PaymentClaimService;
 use App\Support\TransferContent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Trang đóng quỹ /{ma-nhom}/campaigns/{slug}: tiến độ, QR chuyển khoản, ai
@@ -113,8 +116,9 @@ class CampaignPageController extends Controller
     }
 
     /**
-     * App ngân hàng mở được bằng deeplink VietQR, kèm link đã điền sẵn tài
-     * khoản nhóm, số tiền, nội dung theo người xem (plan/05 mục 1, 5b). Máy tính trả rỗng.
+     * App ngân hàng mở được bằng deeplink VietQR (plan/05 mục 5b). Link kèm tài khoản
+     * nhóm, số tiền, nội dung theo người xem, nhưng từ 11/11/2026 VietQR không chuyển
+     * các tham số này cho app nào, chỉ mở được app (plan/19). Máy tính trả rỗng.
      */
     public function bankApps(Request $request, Group $group, string $slug, BankApps $apps)
     {
@@ -131,6 +135,41 @@ class CampaignPageController extends Controller
                 'url' => BankApps::deeplink($a['id'], $group->bank_account_no, $group->bank_code, $campaign->amount_per_member, $content),
             ], $apps->list($os)),
         ])->header('Cache-Control', 'private, no-store');
+    }
+
+    /**
+     * Ảnh QR chuyển khoản lấy qua máy chủ mình, để điện thoại lưu được ảnh rồi quét
+     * trong app ngân hàng (plan/19). Ảnh của qr.sepay.vn khác domain nên trình duyệt
+     * không cho tải hay chia sẻ thẳng. Nội dung theo người xem như trang đóng quỹ.
+     */
+    public function qrImage(Request $request, Group $group, string $slug)
+    {
+        $campaign = Campaign::query()->where('slug', $slug)->where('status', 'open')->firstOrFail();
+        abort_if($group->bank_code === null || $group->bank_account_no === null, 404);
+
+        $url = self::qrUrl($group, $campaign, TransferContent::forViewer(GroupViewer::of($request, $group), $campaign));
+        $key = 'sepay-qr:'.md5($url);
+        $png = Cache::get($key);
+
+        if (! is_string($png)) {
+            try {
+                $response = Http::timeout(8)->get($url);
+                $body = $response->body();
+                $ok = $response->successful() && str_starts_with((string) $response->header('Content-Type'), 'image/')
+                    && strlen($body) > 0 && strlen($body) < 1024 * 1024;
+            } catch (Throwable) {
+                $ok = false;
+            }
+            abort_unless($ok, 502, 'Chưa lấy được ảnh QR.');
+            $png = base64_encode($body);
+            Cache::put($key, $png, now()->addDay());
+        }
+
+        return response(base64_decode($png), 200, [
+            'Content-Type' => 'image/png',
+            'Content-Disposition' => 'inline; filename="QR-'.$campaign->transfer_code.'.png"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /** QR VietQR của SePay, không cần khóa. Không có nội dung thì app ngân hàng tự điền tên người chuyển. */
