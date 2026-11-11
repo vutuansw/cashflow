@@ -155,6 +155,8 @@ Ghi chú khi làm (10/11/2026):
 
 ## 5b. Mở app ngân hàng trên điện thoại (chốt 10/11/2026)
 
+> **Đã bỏ (11/11/2026, [plan/19](19-app-ngan-hang-khong-tu-dien.plan.md)):** deeplink VietQR chỉ mở được app, không mở form chuyển tiền. Trang đóng quỹ chỉ còn QR, nút Lưu ảnh QR (điện thoại) và các nút Chép.
+
 Trên điện thoại không tự quét được mã QR đang hiện trên chính màn hình, nên nút chính là **mở thẳng app ngân hàng**, dùng deeplink VietQR:
 
 `https://dl.vietqr.io/pay?app={appId}&ba={số TK}@{mã ngân hàng}&am={số tiền}&tn={nội dung}`

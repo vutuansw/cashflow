@@ -10,7 +10,6 @@ use App\Models\PaymentClaim;
 use App\Services\Campaigns\CampaignProgress;
 use App\Services\Groups\GroupViewer;
 use App\Services\Groups\MemberIndex;
-use App\Services\Payments\BankApps;
 use App\Services\Payments\PaymentClaimService;
 use App\Support\TransferContent;
 use Illuminate\Http\Request;
@@ -23,7 +22,7 @@ use Throwable;
 /**
  * Trang đóng quỹ /{ma-nhom}/campaigns/{slug}: tiến độ, QR chuyển khoản, ai
  * đã đóng / chưa đóng (chỉ tên, không bao giờ có SĐT). Ai xem được timeline
- * thì xem được, gửi được bill đã chuyển khoản. Xem plan/05 mục 1, 5, 5b.
+ * thì xem được, gửi được bill đã chuyển khoản. Xem plan/05 mục 1, 5 và plan/19.
  */
 class CampaignPageController extends Controller
 {
@@ -113,28 +112,6 @@ class CampaignPageController extends Controller
         $result = $claims->submit($group, $campaign, $data, $request->file('bill'), $request->user('web'), $request->ip());
 
         return response()->json(['status' => 'pending', 'replaced' => $result['replaced']], 201);
-    }
-
-    /**
-     * App ngân hàng mở được bằng deeplink VietQR (plan/05 mục 5b). Link kèm tài khoản
-     * nhóm, số tiền, nội dung theo người xem, nhưng từ 11/11/2026 VietQR không chuyển
-     * các tham số này cho app nào, chỉ mở được app (plan/19). Máy tính trả rỗng.
-     */
-    public function bankApps(Request $request, Group $group, string $slug, BankApps $apps)
-    {
-        $campaign = Campaign::query()->where('slug', $slug)->where('status', 'open')->firstOrFail();
-        abort_if($group->bank_code === null || $group->bank_account_no === null, 404);
-
-        $content = TransferContent::forViewer(GroupViewer::of($request, $group), $campaign);
-        $os = $request->query('os');
-        $os = in_array($os, ['ios', 'android'], true) ? $os : BankApps::os($request->userAgent());
-
-        return response()->json([
-            'os' => $os,
-            'apps' => $os === null ? [] : array_map(fn ($a) => $a + [
-                'url' => BankApps::deeplink($a['id'], $group->bank_account_no, $group->bank_code, $campaign->amount_per_member, $content),
-            ], $apps->list($os)),
-        ])->header('Cache-Control', 'private, no-store');
     }
 
     /**

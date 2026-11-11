@@ -1,4 +1,4 @@
-# App ngân hàng không còn tự điền, thêm "Lưu ảnh QR"
+# Bỏ mở app ngân hàng, chuyển khoản bằng quét QR hoặc chép
 
 Ngày: 11/11/2026. Trạng thái: **đã làm** (11/11/2026), chờ thử trên điện thoại thật.
 
@@ -79,3 +79,11 @@ Ghi lại: VietQR không còn chuyển thông tin cho app nào (kiểm 11/11/202
 
 - 11/11/2026, commit `f7064fd`: lên wepo.hipotech.vn sau khoảng 30 giây. `GET /api/g/nhomdemo/campaigns/thu-quy-2026/qr.png` trả ảnh PNG 200.
 - Còn thử trên điện thoại thật: Lưu ảnh QR lưu được vào thư viện, MB Bank quét ảnh đó điền đủ số tiền và nội dung.
+
+## Bỏ hẳn lưới app ngân hàng (chốt 11/11/2026, sau khi thử trên điện thoại)
+
+Thử thật trên iPhone với MB Bank: trang chép nội dung đúng nhưng MB vẫn chỉ mở màn hình chính, không mở form chuyển tiền. Chủ dự án chốt: **không mở được form thì bỏ tính năng mở app**, người dùng quét mã hoặc chép.
+
+- Bỏ nút **Mở app ngân hàng để chuyển**, lưới app (`BankAppSheet.vue`), API `/campaigns/{slug}/bank-apps`, `BankApps.php` (danh sách app VietQR, deeplink `dl.vietqr.io`).
+- Trang đóng quỹ trên điện thoại giống máy tính: **QR to** ở đầu thẻ chuyển khoản, rồi tên ngân hàng, số tài khoản, chủ tài khoản, các nút **Chép** (số tiền, nội dung, số tài khoản).
+- Riêng điện thoại thêm nút **Lưu ảnh QR** ngay dưới QR, kèm dòng "Lưu ảnh rồi mở app ngân hàng → Quét QR → chọn ảnh". Route `qr.png` giữ nguyên.

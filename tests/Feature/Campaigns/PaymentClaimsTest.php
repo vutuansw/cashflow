@@ -23,7 +23,7 @@ use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
 use Tests\TestCase;
 
-/** Thành viên tự gửi bill, chống trùng bill, deeplink app ngân hàng. Xem plan/05 mục 5, 5b. */
+/** Thành viên tự gửi bill, chống trùng bill, ảnh QR để lưu về máy. Xem plan/05 mục 5 và plan/19. */
 class PaymentClaimsTest extends TestCase
 {
     use CreatesGroups, RefreshBothDatabases;
@@ -284,34 +284,6 @@ class PaymentClaimsTest extends TestCase
         ], ['Accept' => 'application/json'])->assertCreated();
         $this->assertSame('approved', $claim->fresh()->status);
         $this->assertNotNull(BillScan::acrossGroups()->sole()->transaction_id);
-    }
-
-    public function test_deeplink_app_ngan_hang_cache_va_vietqr_loi(): void
-    {
-        Http::fake([
-            'api.vietqr.io/v2/ios-app-deeplinks' => Http::response(['apps' => [
-                ['appId' => 'vcb', 'appName' => 'VCB Digibank', 'appLogo' => 'https://cdn.vietqr.io/vcb.webp', 'monthlyInstall' => 200000, 'autofill' => 0],
-                ['appId' => 'mb', 'appName' => 'MB Bank', 'appLogo' => 'https://cdn.vietqr.io/mb.webp', 'monthlyInstall' => 400000, 'autofill' => 1],
-            ]]),
-            'api.vietqr.io/v2/android-app-deeplinks' => Http::response('lỗi', 500),
-        ]);
-        $url = "/api/g/chi-doan-a12/campaigns/{$this->campaign->slug}/bank-apps";
-        $iphone = ['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'];
-
-        $r = $this->getJson($url, $iphone)->assertOk()->assertJsonPath('os', 'ios')->json('apps');
-        $this->assertSame(['mb', 'vcb'], array_column($r, 'id')); // phổ biến trước
-        // Cờ autofill của VietQR không còn đúng, không trả cho trang (plan/19).
-        $this->assertArrayNotHasKey('autofill', $r[0]);
-        // Khách: không có nội dung, app ngân hàng tự điền tên người chuyển (plan/05 mục 1).
-        $this->assertSame('https://dl.vietqr.io/pay?app=mb&ba=0123456789%40mb&am=500000', $r[0]['url']);
-
-        $this->getJson($url, $iphone)->assertOk();
-        Http::assertSentCount(1); // lấy từ cache
-
-        // VietQR lỗi: danh sách rỗng, trang vẫn chạy.
-        $this->getJson($url, ['User-Agent' => 'Mozilla/5.0 (Linux; Android 14)'])->assertOk()->assertJsonPath('apps', []);
-        // Máy tính: không có lưới app.
-        $this->getJson($url, ['User-Agent' => 'Mozilla/5.0 (Macintosh)'])->assertOk()->assertJsonPath('os', null)->assertJsonPath('apps', []);
     }
 
     public function test_anh_qr_qua_may_chu_de_luu_ve_may(): void
