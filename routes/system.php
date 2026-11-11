@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Route;
 // /api/system: quản trị HIPOTECH, cookie session riêng, xem plan/02 mục 6.
 Route::get('/csrf', [AuthController::class, 'csrf']);
 Route::get('/me', [AuthController::class, 'me']);
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1,system-login');
 Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::middleware(EnsureSystemAdmin::class)->group(function () {
-    Route::put('/me/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1');
+    Route::put('/me/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1,system-password');
     Route::get('/overview', [DashboardController::class, 'overview']);
     Route::get('/ai-costs', [DashboardController::class, 'aiCosts']);
     Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);

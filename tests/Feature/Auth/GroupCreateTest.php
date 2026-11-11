@@ -56,6 +56,17 @@ class GroupCreateTest extends TestCase
         $this->getJson('/api/me')->assertJsonPath('data.groups.0.role', 'owner');
     }
 
+    /** Lỗi trên server 11/11/2026: gõ tên nhóm gọi /group-code nhiều lần, làm lượt tạo nhóm đầu tiên bị 429. */
+    public function test_kiem_tra_ma_nhom_nhieu_lan_khong_lam_het_luot_tao_nhom(): void
+    {
+        $this->actingAs(User::factory()->create());
+        for ($i = 0; $i < 15; $i++) {
+            $this->getJson('/api/group-code?code=chi-doan-a12-'.$i)->assertOk();
+        }
+
+        $this->postJson('/api/groups', $this->payload())->assertCreated();
+    }
+
     public function test_dang_ky_tai_khoan_roi_tao_nhom(): void
     {
         $this->postJson('/api/register', ['name' => 'Nguyễn Văn An', 'phone' => '0988777222', 'password' => 'matkhau123'])->assertCreated();

@@ -31,14 +31,16 @@ Route::get('/app', fn () => [
 ]);
 
 // Tài khoản, xem plan/02 mục 1-2.
+// throttle:x,y không tên thì mọi route dùng CHUNG một bộ đếm cho mỗi người dùng (Laravel đếm theo user id),
+// nên tham số thứ ba đặt tên riêng cho từng route: gõ tên nhóm (group-code) không làm hết lượt tạo nhóm.
 Route::get('/me', [SessionController::class, 'show']);
-Route::get('/group-code', [GroupController::class, 'checkCode'])->middleware('throttle:60,1');
+Route::get('/group-code', [GroupController::class, 'checkCode'])->middleware('throttle:60,1,group-code');
 
 Route::middleware('guest')->group(function () {
     Route::post('/register', RegisterController::class)->middleware('throttle:register');
     Route::post('/login', [SessionController::class, 'store']);
-    Route::post('/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:5,1');
-    Route::post('/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:5,1');
+    Route::post('/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:5,1,forgot-password');
+    Route::post('/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:5,1,reset-password');
 });
 
 Route::middleware('auth')->group(function () {
@@ -48,9 +50,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('password.fresh')->group(function () {
         // Trang cá nhân, xem plan/08 mục 3-4.
         Route::put('/me', [ProfileController::class, 'update']);
-        Route::post('/me/images', [ProfileController::class, 'uploadImage'])->middleware('throttle:10,1');
+        Route::post('/me/images', [ProfileController::class, 'uploadImage'])->middleware('throttle:10,1,profile-image');
         Route::delete('/me/images/{kind}', [ProfileController::class, 'deleteImage'])->whereIn('kind', ['avatar', 'cover']);
-        Route::post('/groups', [GroupController::class, 'store'])->middleware('throttle:10,60');
+        Route::post('/groups', [GroupController::class, 'store'])->middleware('throttle:10,60,group-create');
     });
 });
 
@@ -62,7 +64,7 @@ Route::prefix('/g/{group}')->middleware('group')->group(function () {
     // Link đăng ký vào nhóm /{ma-nhom}/register, xem plan/13.
     Route::get('/join', [JoinController::class, 'show']);
     Route::post('/join/register', [JoinController::class, 'register'])->middleware(['guest', 'throttle:register']);
-    Route::post('/join', [JoinController::class, 'store'])->middleware(['auth', 'password.fresh', 'throttle:10,1']);
+    Route::post('/join', [JoinController::class, 'store'])->middleware(['auth', 'password.fresh', 'throttle:10,1,join-group']);
 
     Route::middleware('group.view')->group(function () {
         Route::get('/summary', [TimelineController::class, 'summary']);
