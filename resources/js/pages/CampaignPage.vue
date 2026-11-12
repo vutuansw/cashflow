@@ -21,6 +21,8 @@ const group = ref(null);
 const error = ref(null);
 const tab = ref('paid');
 const claiming = ref(false);
+// Đã đóng đủ hoặc được miễn: thu gọn QR, bấm "Chuyển khoản hộ người khác" mới mở lại (plan/31).
+const forOthers = ref(false);
 
 async function load() {
     data.value = await api(`/g/${code.value}/campaigns/${route.params.slug}`);
@@ -52,6 +54,16 @@ const percent = computed(() => {
     const target = d.target_amount || d.expected_total;
     return target ? Math.min(100, (d.collected / target) * 100) : 0;
 });
+const me = computed(() => data.value?.me ?? null);
+const settled = computed(() => ['paid', 'exempt'].includes(me.value?.status));
+const showPay = computed(() => !settled.value || forOthers.value);
+// Đóng hộ thì QR để trống nội dung, không ghi tên mình.
+const qrUrl = computed(() => (settled.value ? data.value.bank.qr_url_others : data.value.bank.qr_url));
+const billLabel = computed(() => {
+    if (settled.value) return 'Gửi bill đóng hộ';
+    return me.value?.pending_claim ? 'Gửi lại bill' : 'Tôi đã chuyển khoản, gửi bill';
+});
+
 const bankName = computed(() => BANKS.find((b) => b.code === data.value?.bank?.code)?.name ?? data.value?.bank?.code);
 const accountDisplay = computed(() => (data.value?.bank?.account_no ?? '').replace(/(\d{4})(?=\d)/g, '$1 '));
 
@@ -104,9 +116,34 @@ async function share() {
                 </p>
             </section>
 
-            <!-- Chuyển khoản: quét QR hoặc chép (plan/19). -->
-            <section v-if="data.bank" class="card p-4 text-center">
-                <img :src="data.bank.qr_url" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
+            <!-- Trạng thái của chính người xem (plan/31) -->
+            <template v-if="me">
+                <p v-if="me.status === 'paid'" class="card flex items-start gap-3 border-income/40 bg-income/5 p-3 text-sm">
+                    <CheckCircle2 class="size-5 shrink-0 text-income" />
+                    <span>Bạn đã đóng <b>{{ formatMoney(me.paid) }}</b><template v-if="me.last_paid_at"> ngày {{ formatDate(me.last_paid_at).slice(0, 5) }}</template>. Cảm ơn bạn!</span>
+                </p>
+                <p v-else-if="me.status === 'partial'" class="card flex items-start gap-3 border-amber-400/60 p-3 text-sm">
+                    <CircleDot class="size-5 shrink-0 text-amber-600" />
+                    <span>Bạn đã đóng <b>{{ formatMoney(me.paid) }}</b> / {{ formatMoney(me.expected) }}, còn <b>{{ formatMoney(me.expected - me.paid) }}</b>.</span>
+                </p>
+                <p v-else-if="me.status === 'exempt'" class="card flex items-start gap-3 p-3 text-sm text-muted-foreground">
+                    <CheckCircle2 class="size-5 shrink-0" />
+                    <span>Bạn được miễn đóng chiến dịch này.</span>
+                </p>
+                <p v-if="me.pending_claim" class="card flex items-start gap-3 border-amber-400/60 p-3 text-sm">
+                    <Clock class="size-5 shrink-0 text-amber-600" />
+                    <span>Bill của bạn đang chờ thủ quỹ xác nhận.</span>
+                </p>
+            </template>
+
+            <button v-if="data.status === 'open' && settled && !forOthers" type="button" class="mx-auto flex min-h-10 items-center gap-1 text-sm font-medium text-primary" @click="forOthers = true">
+                Chuyển khoản hộ người khác <ChevronDown class="size-4" />
+            </button>
+
+            <!-- Chuyển khoản: quét QR hoặc chép (plan/19). Đã đóng đủ thì chỉ hiện khi đóng hộ (plan/31). -->
+            <section v-if="data.bank && showPay" class="card p-4 text-center">
+                <p v-if="settled" class="mb-3 text-sm font-medium">Chuyển khoản hộ người khác</p>
+                <img :src="qrUrl" alt="Mã QR chuyển khoản" class="mx-auto aspect-square w-52 rounded-xl bg-white object-contain" />
                 <p class="mt-3 font-semibold">{{ bankName }} · {{ accountDisplay }}</p>
                 <p class="text-sm text-muted-foreground">{{ data.bank.account_name }}</p>
                 <div class="mt-3 space-y-2 text-left text-sm">
@@ -115,7 +152,12 @@ async function share() {
                         <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(String(data.amount_per_member), 'Đã chép số tiền.')"><Copy class="size-4" /> Chép</button>
                     </div>
                     <!-- Nội dung CK chỉ có khi biết người xem (plan/05 mục 1); khách thì để app ngân hàng tự điền tên người chuyển. -->
-                    <div v-if="data.transfer_content" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                    <!-- Đóng hộ: nội dung ghi tên người được đóng hộ, chỉ chép mã chiến dịch. -->
+                    <div v-if="settled && data.transfer_code" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
+                        <span>Nội dung: ghi <b>tên người được đóng hộ</b> + <b class="font-mono">{{ data.transfer_code }}</b></span>
+                        <button type="button" class="inline-flex min-h-9 shrink-0 items-center gap-1 font-semibold text-primary" @click="copyText(data.transfer_code, 'Đã chép mã chiến dịch.')"><Copy class="size-4" /> Chép</button>
+                    </div>
+                    <div v-else-if="data.transfer_content" class="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2">
                         <span>Nội dung: <b class="font-mono">{{ data.transfer_content }}</b></span>
                         <button type="button" class="inline-flex min-h-9 items-center gap-1 font-semibold text-primary" @click="copyText(data.transfer_content, 'Đã chép nội dung chuyển khoản.')"><Copy class="size-4" /> Chép</button>
                     </div>
@@ -125,12 +167,12 @@ async function share() {
                     </div>
                 </div>
             </section>
-            <p v-else-if="data.status === 'open'" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
+            <p v-else-if="data.status === 'open' && showPay" class="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Nhóm chưa khai báo tài khoản nhận quỹ, hỏi thủ quỹ để chuyển khoản nhé.</p>
 
             <!-- Đã chuyển rồi: gửi bill cho thủ quỹ. Nút nền màu chính cho dễ thấy (plan/20). -->
-            <div v-if="data.status === 'open'" class="text-center">
+            <div v-if="data.status === 'open' && showPay" class="text-center">
                 <button type="button" class="btn-primary w-full" @click="claiming = true">
-                    <ReceiptText class="size-5" /> Tôi đã chuyển khoản, gửi bill
+                    <ReceiptText class="size-5" /> {{ billLabel }}
                 </button>
                 <p class="mt-1 text-xs text-muted-foreground">Gửi ảnh bill để thủ quỹ ghi nhận cho bạn</p>
             </div>
@@ -164,7 +206,7 @@ async function share() {
 
             <button type="button" class="btn-outline w-full" @click="share"><Share2 class="size-4" /> Chia sẻ trang này</button>
 
-            <ClaimSheet :open="claiming" :code="code" :campaign="data" @close="claiming = false" @sent="load" />
+            <ClaimSheet :open="claiming" :code="code" :campaign="data" :for-others="settled" @close="claiming = false" @sent="load" />
         </div>
         <SiteFooter class="hidden lg:block" />
     </div>

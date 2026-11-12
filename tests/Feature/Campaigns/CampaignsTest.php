@@ -4,9 +4,11 @@ namespace Tests\Feature\Campaigns;
 
 use App\Enums\GroupRole;
 use App\Models\Campaign;
+use App\Models\CampaignMember;
 use App\Models\Category;
 use App\Models\Contact;
 use App\Models\Group;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Campaigns\CampaignService;
 use App\Support\CurrentGroup;
@@ -201,7 +203,8 @@ class CampaignsTest extends TestCase
 
         // Thành viên gắn danh bạ: chọn sẵn chính họ (plan/20).
         $this->actingAs($member)->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertOk()
-            ->assertJsonPath('me', ['contact_id' => $contactId, 'name' => 'Nguyễn Minh Hiền', 'expected' => 200000, 'paid' => 0, 'status' => 'unpaid', 'pending_claim' => false]);
+            ->assertJsonPath('me', ['contact_id' => $contactId, 'name' => 'Nguyễn Minh Hiền', 'expected' => 200000, 'paid' => 0, 'status' => 'unpaid', 'last_paid_at' => null, 'pending_claim' => false])
+            ->assertJsonPath('bank.qr_url_others', null);
 
         // Không có trong danh sách chiến dịch: vẫn nhận ra, số tiền theo mức chung.
         $this->getJson("/api/g/{$group->code}/campaigns/{$notInList->slug}")->assertOk()
@@ -215,6 +218,47 @@ class CampaignsTest extends TestCase
         // Chiến dịch đã đóng: không gửi bill nữa nên không cần.
         $inList->update(['status' => 'closed']);
         $this->actingAs($member)->getJson("/api/g/{$group->code}/campaigns/{$inList->slug}")->assertJsonPath('me', null);
+    }
+
+    public function test_da_dong_du_thi_co_ngay_dong_va_qr_dong_ho_khong_ghi_ten(): void
+    {
+        $group = $this->makeGroup(['visibility' => 'public']);
+        $group->update(['bank_code' => 'MBBank', 'bank_account_no' => '0123456789']);
+        $member = $this->memberOf($group, GroupRole::Member);
+        app(CurrentGroup::class)->set($group);
+        $contactId = Contact::query()->where('user_id', $member->id)->value('id');
+        Contact::query()->whereKey($contactId)->update(['full_name' => 'Vũ Đức Tuấn']);
+        $campaign = app(CampaignService::class)->create($group, $this->ownerOf($group), ['name' => 'Thu quỹ 2026', 'category_id' => $this->fund($group), 'amount_per_member' => 200000]);
+        $pay = fn (int $amount, string $at) => Transaction::create([
+            'type' => 'income', 'category_id' => $this->fund($group), 'campaign_id' => $campaign->id, 'contact_id' => $contactId,
+            'amount' => $amount, 'occurred_at' => $at, 'title' => 'Đóng quỹ',
+        ]);
+        $pay(50000, '2026-11-10 09:00:00');
+        app(CurrentGroup::class)->set(null);
+        $url = "/api/g/{$group->code}/campaigns/{$campaign->slug}";
+
+        // Đóng thiếu: chưa thu gọn QR.
+        $this->actingAs($member)->getJson($url)->assertOk()
+            ->assertJsonPath('me.status', 'partial')->assertJsonPath('me.paid', 50000)
+            ->assertJsonPath('bank.qr_url_others', null);
+
+        app(CurrentGroup::class)->set($group);
+        $pay(150000, '2026-11-11 08:30:00');
+        app(CurrentGroup::class)->set(null);
+
+        $r = $this->getJson($url)->assertOk()
+            ->assertJsonPath('me.status', 'paid')->assertJsonPath('me.paid', 200000)
+            ->json();
+        $this->assertStringStartsWith('2026-11-11', $r['me']['last_paid_at']);
+        // QR của mình vẫn ghi tên; QR đóng hộ người khác thì không.
+        $this->assertStringContainsString('VU+DUC+TUAN', $r['bank']['qr_url']);
+        $this->assertNotNull($r['bank']['qr_url_others']);
+        $this->assertStringNotContainsString('des=', $r['bank']['qr_url_others']);
+        $this->assertStringContainsString('amount=200000', $r['bank']['qr_url_others']);
+
+        // Được miễn: cũng thu gọn.
+        CampaignMember::query()->where('campaign_id', $campaign->id)->where('contact_id', $contactId)->update(['exempt' => true]);
+        $this->getJson($url)->assertJsonPath('me.status', 'exempt')->assertJsonPath('bank.qr_url_others', fn ($v) => $v !== null);
     }
 
     public function test_noi_dung_ck_rut_gon_ten_giu_ma(): void

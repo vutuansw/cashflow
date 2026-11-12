@@ -12,7 +12,8 @@ import { fold } from '../lib/text.js';
 // Thành viên đã chuyển khoản tự gửi ảnh bill, vào hàng chờ cho thủ quỹ xác nhận. Xem plan/05 mục 5.
 // Thành viên đăng nhập được chọn sẵn tên, ảnh bill lên đầu form cho dễ thấy (plan/20).
 // Gửi kèm ảnh thì không hỏi số tiền (AI đọc); quên chụp bill thì gõ số tiền thay ảnh (plan/23).
-const props = defineProps({ open: Boolean, code: String, campaign: Object });
+// forOthers: mở từ "Chuyển khoản hộ người khác" khi mình đã đóng đủ (plan/31), không chọn sẵn tên mình.
+const props = defineProps({ open: Boolean, code: String, campaign: Object, forOthers: Boolean });
 const emit = defineEmits(['close', 'sent']);
 
 const { state, submit } = useForm();
@@ -48,7 +49,11 @@ watch(
         state.errors = {};
         amount.value = props.campaign?.amount_per_member ?? null;
         // Đã đăng nhập và gắn danh bạ: chọn sẵn chính họ, vẫn đổi được để đóng hộ người khác.
-        if (!person.value && !manual.value && props.campaign?.me) choose(props.campaign.me);
+        if (props.forOthers) {
+            if (isMe.value) person.value = null;
+        } else if (!person.value && !manual.value && props.campaign?.me) {
+            choose(props.campaign.me);
+        }
     },
 );
 

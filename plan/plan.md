@@ -36,6 +36,7 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [28-xoa-thanh-vien-tao-nham](28-xoa-thanh-vien-tao-nham.plan.md) | Xóa được người thêm nhầm vào danh bạ khi đang có chiến dịch mở hoặc đã thu hồi tài khoản; chỉ chặn khi có lịch sử thu chi hoặc tài khoản đang dùng |
 | [29-anh-chia-se-link-nhom](29-anh-chia-se-link-nhom.plan.md) | Share link nhóm ra ảnh bìa nhóm (JPEG 1200×630, giữ trọn bìa trên nền mờ), chưa có bìa thì ảnh WePo; link thành viên ra ảnh thành viên |
 | [30-nut-tham-gia-nhom-va-them-bang-sdt](30-nut-tham-gia-nhom-va-them-bang-sdt.plan.md) | Nút Tham gia nhóm trên trang nhóm công khai, Tạo tài khoản từ trang nhóm dẫn về link nhóm; QTV thêm thành viên bằng SĐT ở Danh bạ |
+| [31-da-dong-quy-tren-trang-chien-dich](31-da-dong-quy-tren-trang-chien-dich.plan.md) | Trang đóng quỹ báo "Bạn đã đóng", đang chờ duyệt, đóng thiếu, được miễn; đã đóng đủ thì thu gọn QR vào link "Chuyển khoản hộ người khác" (QR không ghi tên mình) |
 
 ---
 

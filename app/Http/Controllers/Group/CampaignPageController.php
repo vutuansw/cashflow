@@ -35,6 +35,10 @@ class CampaignPageController extends Controller
         $members = MemberIndex::of($group);
         $viewer = GroupViewer::of($request, $group);
         $content = $open ? TransferContent::forViewer($viewer, $campaign) : null;
+        $me = $open ? self::me($viewer, $campaign, $data['people'], $pending) : null;
+        // Đã đóng đủ hoặc được miễn: trang thu gọn QR, mở lại khi "Chuyển khoản hộ người khác" (plan/31).
+        // QR này để trống nội dung, không điền tên người xem để không bị ghi nhầm là họ đóng thêm.
+        $forOthers = in_array($me['status'] ?? null, ['paid', 'exempt'], true);
 
         // Nội dung CK khác nhau theo người xem: không để proxy/trình duyệt dùng chung.
         return response()->json([
@@ -54,6 +58,7 @@ class CampaignPageController extends Controller
                 'account_no' => $group->bank_account_no,
                 'account_name' => $group->bank_account_name,
                 'qr_url' => self::qrUrl($group, $campaign, $content),
+                'qr_url_others' => $forOthers ? self::qrUrl($group, $campaign, null) : null,
             ] : null,
             'collected' => $data['collected'],
             'expected_total' => $data['expected_total'],
@@ -67,7 +72,7 @@ class CampaignPageController extends Controller
             ], $data['people']),
             'pending_claims' => $pendingCount,
             // Thành viên đang xem: form gửi bill chọn sẵn tên họ (plan/20).
-            'me' => $open ? self::me($viewer, $campaign, $data['people'], $pending) : null,
+            'me' => $me,
         ])->header('Cache-Control', 'private, no-store');
     }
 
@@ -87,7 +92,7 @@ class CampaignPageController extends Controller
         }
 
         $row = collect($people)->firstWhere('contact_id', $contact->id) ?? [
-            'name' => $contact->full_name, 'expected' => $campaign->amount_per_member, 'paid' => 0, 'status' => 'unpaid',
+            'name' => $contact->full_name, 'expected' => $campaign->amount_per_member, 'paid' => 0, 'status' => 'unpaid', 'last_paid_at' => null,
         ];
 
         return [
@@ -96,6 +101,8 @@ class CampaignPageController extends Controller
             'expected' => $row['expected'],
             'paid' => $row['paid'],
             'status' => $row['status'],
+            // Ngày đóng gần nhất, để trang báo "Bạn đã đóng … ngày …" (plan/31).
+            'last_paid_at' => $row['last_paid_at'] ?? null,
             'pending_claim' => isset($pending[$contact->id]),
         ];
     }
