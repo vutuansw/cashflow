@@ -8,6 +8,7 @@ import FormField from '../../components/FormField.vue';
 import SegmentedControl from '../../components/SegmentedControl.vue';
 import Sheet from '../../components/Sheet.vue';
 import TempPasswordCard from '../../components/TempPasswordCard.vue';
+import UserAvatar from '../../components/UserAvatar.vue';
 import { adminApi } from '../../lib/api.js';
 import { copyText } from '../../lib/clipboard.js';
 import { pending } from '../../lib/pending.js';
@@ -147,7 +148,7 @@ async function save() {
 }
 
 async function remove() {
-    if (!confirm(`Xóa ${editing.value.full_name} khỏi danh bạ?`)) return;
+    if (!confirm(`Xóa ${editing.value.full_name} khỏi danh bạ? Người này cũng bị bỏ khỏi danh sách phải đóng của các chiến dịch.`)) return;
     const res = await submit(() => adminApi(code.value, `/contacts/${editing.value.id}`, { method: 'DELETE' }).then(() => true)).catch(ignore);
     if (!res) {
         if (state.errors.contact) toast(state.errors.contact, 'error');
@@ -169,6 +170,40 @@ async function grant() {
     if (!res) return;
     granted.value = res;
     load();
+}
+
+// Thêm thành viên bằng SĐT (plan/30 mục 2): tra số trước, rồi thêm thẳng với vai trò Thành viên.
+const byPhone = ref(null); // null | { phone, full_name, found, added }
+const phoneForm = useForm();
+
+function openByPhone() {
+    byPhone.value = { phone: '', full_name: '', found: null, added: null };
+    phoneForm.state.errors = {};
+}
+// Sửa số sau khi đã tra thì phải tra lại.
+watch(() => byPhone.value?.phone, () => {
+    if (byPhone.value) byPhone.value.found = null;
+});
+
+async function lookupPhone() {
+    const query = new URLSearchParams({ phone: byPhone.value.phone });
+    const res = await phoneForm.submit(() => adminApi(code.value, `/members/lookup?${query}`)).catch(ignore);
+    if (res && byPhone.value) byPhone.value.found = res;
+}
+
+async function addByPhone() {
+    const b = byPhone.value;
+    const body = { phone: b.found.phone, full_name: b.full_name.trim() || null };
+    const res = await phoneForm.submit(() => adminApi(code.value, '/members/by-phone', { method: 'POST', body })).catch(ignore);
+    if (!res) return;
+    load();
+    loadJoins();
+    if (res.temp_password) {
+        b.added = res;
+        return;
+    }
+    toast(`Đã thêm ${res.member.name} vào nhóm.`);
+    byPhone.value = null;
 }
 
 function birthday(value) {
@@ -200,10 +235,11 @@ function birthday(value) {
             <p class="text-sm text-muted-foreground">{{ shownJoins.length }} người chờ duyệt</p>
             <button v-if="shownJoins.length > 1" type="button" class="btn-soft px-3 text-primary" :disabled="approvingAll" @click="approveAll"><CheckCheck class="size-4" /> {{ approvingAll ? 'Đang duyệt...' : `Duyệt tất cả (${shownJoins.length})` }}</button>
         </div>
-        <div v-else class="mt-3 flex items-center justify-between gap-2">
+        <div v-else class="mt-3 flex flex-wrap items-center justify-between gap-2">
             <p class="text-sm text-muted-foreground">{{ loading ? 'Đang tải...' : `${contacts.length} người` }}</p>
-            <div class="flex gap-2">
+            <div class="ml-auto flex flex-wrap justify-end gap-2">
                 <RouterLink :to="`/${code}/admin/contacts/import`" class="btn-soft px-3"><ClipboardPaste class="size-4" /> Nhập nhanh</RouterLink>
+                <button type="button" class="btn-soft px-3 text-primary" @click="openByPhone"><Phone class="size-4" /> Thêm bằng SĐT</button>
                 <button type="button" class="btn-soft px-3 text-primary" @click="openEdit()"><Plus class="size-4" /> Thêm người</button>
             </div>
         </div>
@@ -279,6 +315,38 @@ function birthday(value) {
                 </label>
                 <button class="btn-primary w-full" :disabled="state.busy">Lưu</button>
                 <button v-if="editing?.id && !editing.account" type="button" class="btn-outline w-full text-expense" @click="remove">Xóa khỏi danh bạ</button>
+            </form>
+        </Sheet>
+
+        <Sheet :open="byPhone !== null" title="Thêm bằng số điện thoại" @close="byPhone = null">
+            <div v-if="byPhone?.added" class="space-y-3">
+                <p class="text-sm">Đã thêm <span class="font-semibold">{{ byPhone.added.member.name }}</span> vào nhóm. Gửi lời nhắn này để họ đăng nhập:</p>
+                <TempPasswordCard :password="byPhone.added.temp_password" :message="byPhone.added.share_message" />
+            </div>
+            <form v-else-if="byPhone" class="space-y-4" @submit.prevent="byPhone.found ? addByPhone() : lookupPhone()">
+                <FormField v-model="byPhone.phone" label="Số điện thoại" type="tel" inputmode="tel" hint="Số đã dùng WePo thì vào nhóm ngay, chưa dùng thì tạo tài khoản mới." :error="phoneForm.state.errors.phone" required />
+
+                <template v-if="byPhone.found">
+                    <p v-if="byPhone.found.status === 'member'" class="card p-3 text-sm">{{ byPhone.found.name }} đã ở trong nhóm.</p>
+                    <div v-else-if="byPhone.found.status === 'account'" class="card flex items-center gap-3 p-3">
+                        <UserAvatar :url="byPhone.found.avatar_url" :name="byPhone.found.name" class="!size-10" />
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate font-medium">{{ byPhone.found.name }}</span>
+                            <span class="text-sm text-muted-foreground">Đã có tài khoản WePo, giữ nguyên mật khẩu của họ.</span>
+                        </span>
+                    </div>
+                    <template v-else>
+                        <p class="text-sm text-muted-foreground">Số này chưa có tài khoản WePo. Thêm xong sẽ có mật khẩu tạm để bạn gửi cho họ.</p>
+                        <FormField v-if="!byPhone.found.contact" v-model="byPhone.full_name" label="Họ tên" autocomplete="off" :error="phoneForm.state.errors.full_name" required />
+                    </template>
+                    <p v-if="byPhone.found.contact && byPhone.found.status !== 'member'" class="text-sm text-primary">Đã có trong danh bạ: {{ byPhone.found.contact.full_name }}. Thêm sẽ gắn vào người này.</p>
+                </template>
+
+                <button v-if="!byPhone.found" class="btn-primary w-full" :disabled="phoneForm.state.busy">{{ phoneForm.state.busy ? 'Đang tìm...' : 'Tìm' }}</button>
+                <button v-else-if="byPhone.found.status !== 'member'" class="btn-primary w-full" :disabled="phoneForm.state.busy">
+                    <UserPlus class="size-4" /> {{ byPhone.found.status === 'account' ? 'Thêm vào nhóm' : 'Thêm và cấp tài khoản' }}
+                </button>
+                <p class="text-xs text-muted-foreground">Người được thêm có vai trò Thành viên, không cần họ đồng ý.</p>
             </form>
         </Sheet>
 

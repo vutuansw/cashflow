@@ -33,6 +33,9 @@ Trạng thái: **ĐANG BÀN, CHƯA THỰC THI**. Bản nháp ngày 09/11/2026. C
 | [24-gop-trang-ca-nhan](24-gop-trang-ca-nhan.plan.md) | Gộp trang cá nhân: chỉ còn trang thành viên, chủ trang sửa ảnh, thông tin, lời giới thiệu ngay tại đó; bỏ trang /profile |
 | [26-ai-nhan-dien-thu-chi-va-nguoi](26-ai-nhan-dien-thu-chi-va-nguoi.plan.md) | AI đọc bill: bill chuyển vào STK quỹ luôn là phiếu thu, không lấy tên chủ TK quỹ làm người đóng, so tên trong nội dung chặt hơn |
 | [27-tu-cap-nhat-ban-moi](27-tu-cap-nhat-ban-moi.plan.md) | Sau deploy, app mở từ icon iPhone tự lấy bản mới ở lần chuyển trang kế tiếp (so mã build với server khi app quay lại màn hình) |
+| [28-xoa-thanh-vien-tao-nham](28-xoa-thanh-vien-tao-nham.plan.md) | Xóa được người thêm nhầm vào danh bạ khi đang có chiến dịch mở hoặc đã thu hồi tài khoản; chỉ chặn khi có lịch sử thu chi hoặc tài khoản đang dùng |
+| [29-anh-chia-se-link-nhom](29-anh-chia-se-link-nhom.plan.md) | Share link nhóm ra ảnh bìa nhóm (JPEG 1200×630, giữ trọn bìa trên nền mờ), chưa có bìa thì ảnh WePo; link thành viên ra ảnh thành viên |
+| [30-nut-tham-gia-nhom-va-them-bang-sdt](30-nut-tham-gia-nhom-va-them-bang-sdt.plan.md) | Nút Tham gia nhóm trên trang nhóm công khai, Tạo tài khoản từ trang nhóm dẫn về link nhóm; QTV thêm thành viên bằng SĐT ở Danh bạ |
 
 ---
 

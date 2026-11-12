@@ -3,7 +3,13 @@
 namespace Tests\Feature\GroupAdmin;
 
 use App\Enums\GroupRole;
+use App\Models\Campaign;
+use App\Models\CampaignMember;
+use App\Models\Category;
 use App\Models\Contact;
+use App\Models\GroupMember;
+use App\Models\PaymentClaim;
+use App\Models\Transaction;
 use App\Support\CurrentGroup;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesGroups;
@@ -113,5 +119,74 @@ class ContactsTest extends TestCase
 
         $this->actingAs($owner)->deleteJson($this->adminUrl($group, "contacts/{$ownerContact->id}"))
             ->assertJsonValidationErrors('contact');
+    }
+
+    public function test_xoa_duoc_nguoi_them_nham_khi_dang_co_chien_dich_mo(): void
+    {
+        $group = $this->makeGroup();
+        $this->actingAs($this->ownerOf($group));
+        $campaign = $this->openCampaign($group);
+
+        $id = $this->postJson($this->adminUrl($group, 'contacts'), ['full_name' => 'Nhập Nhầm'])->assertCreated()->json('id');
+        $this->assertTrue(CampaignMember::where('campaign_id', $campaign->id)->where('contact_id', $id)->exists());
+
+        $this->deleteJson($this->adminUrl($group, "contacts/{$id}"))->assertNoContent();
+
+        $this->assertFalse(Contact::acrossGroups()->whereKey($id)->exists());
+        $this->assertFalse(CampaignMember::where('contact_id', $id)->exists());
+    }
+
+    public function test_xoa_duoc_nguoi_da_thu_hoi_tai_khoan(): void
+    {
+        $group = $this->makeGroup();
+        $owner = $this->ownerOf($group);
+        $user = $this->memberOf($group);
+        $member = GroupMember::where('group_id', $group->id)->where('user_id', $user->id)->firstOrFail();
+        $contactId = $member->contact_id;
+
+        $this->actingAs($owner)->deleteJson($this->adminUrl($group, "contacts/{$contactId}"))
+            ->assertJsonValidationErrors('contact')
+            ->assertJsonPath('errors.contact.0', fn ($m) => str_contains($m, 'Thu hồi tài khoản'));
+
+        $this->deleteJson($this->adminUrl($group, "members/{$member->id}"))->assertNoContent();
+        $this->deleteJson($this->adminUrl($group, "contacts/{$contactId}"))->assertNoContent();
+
+        $this->assertFalse(Contact::acrossGroups()->whereKey($contactId)->exists());
+        $this->assertNull($member->fresh()->contact_id);
+        $this->assertNotNull($user->fresh());
+    }
+
+    public function test_khong_xoa_nguoi_da_co_giao_dich_hoac_bao_dong_tien(): void
+    {
+        $group = $this->makeGroup();
+        $this->actingAs($this->ownerOf($group));
+        $campaign = $this->openCampaign($group);
+
+        $paid = $this->postJson($this->adminUrl($group, 'contacts'), ['full_name' => 'Đã Đóng'])->json('id');
+        $claimed = $this->postJson($this->adminUrl($group, 'contacts'), ['full_name' => 'Đã Báo'])->json('id');
+
+        app(CurrentGroup::class)->set($group);
+        $transaction = Transaction::create([
+            'type' => 'income', 'category_id' => $campaign->category_id, 'campaign_id' => $campaign->id, 'contact_id' => $paid,
+            'amount' => 100000, 'occurred_at' => now(), 'title' => 'Đóng quỹ',
+        ]);
+        $transaction->delete(); // xóa mềm vẫn tính là lịch sử
+        PaymentClaim::create(['campaign_id' => $campaign->id, 'contact_id' => $claimed, 'payer_name' => 'Đã Báo', 'amount' => 100000]);
+
+        foreach ([$paid, $claimed] as $id) {
+            $this->deleteJson($this->adminUrl($group, "contacts/{$id}"))
+                ->assertJsonValidationErrors('contact')
+                ->assertJsonPath('errors.contact.0', fn ($m) => str_contains($m, 'lịch sử thu chi'));
+        }
+    }
+
+    private function openCampaign($group): Campaign
+    {
+        app(CurrentGroup::class)->set($group);
+
+        return Campaign::create([
+            'category_id' => Category::where('type', 'income')->value('id'),
+            'name' => 'Quỹ năm', 'slug' => 'quy-nam', 'transfer_code' => 'QN'.$group->id.'X',
+        ]);
     }
 }

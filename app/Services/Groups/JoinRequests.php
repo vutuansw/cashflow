@@ -118,6 +118,20 @@ class JoinRequests
         });
     }
 
+    /**
+     * QTV đã tự thêm người này bằng SĐT (plan/30 mục 2): yêu cầu xin vào đang chờ
+     * (nếu có) tính là đã duyệt, để không còn nằm trong danh sách chờ.
+     */
+    public function approvePending(Group $group, User $user, Contact $contact, User $admin): void
+    {
+        $this->pendingFor($group, $user)?->update([
+            'status' => 'approved',
+            'contact_id' => $contact->id,
+            'decided_by' => $admin->id,
+            'decided_at' => now(),
+        ]);
+    }
+
     public function reject(GroupJoinRequest $request, User $admin): void
     {
         $this->ensurePending($request);

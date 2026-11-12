@@ -188,6 +188,9 @@ Route::prefix('/g/{group}/admin')
 
         Route::get('/members', [MemberController::class, 'index']);
         Route::post('/members', [MemberController::class, 'store']);
+        // Thêm thành viên bằng SĐT (plan/30 mục 2): giới hạn để không dùng ô này dò SĐT hàng loạt.
+        Route::get('/members/lookup', [MemberController::class, 'lookup'])->middleware('throttle:30,1,member-lookup');
+        Route::post('/members/by-phone', [MemberController::class, 'storeByPhone'])->middleware('throttle:30,1,member-by-phone');
         Route::put('/members/{memberId}', [MemberController::class, 'update'])->whereNumber('memberId');
         Route::post('/members/{memberId}/reset-password', [MemberController::class, 'resetPassword'])->whereNumber('memberId');
         Route::delete('/members/{memberId}', [MemberController::class, 'destroy'])->whereNumber('memberId');

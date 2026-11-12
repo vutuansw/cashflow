@@ -88,12 +88,16 @@ class ImageStore
         return $path;
     }
 
-    /** @param  iterable<?string>  $paths */
+    /**
+     * Xóa ảnh, kèm ảnh share `_og.jpg` của nó nếu đã từng tạo (plan/29).
+     *
+     * @param  iterable<?string>  $paths
+     */
     public function delete(iterable $paths): void
     {
         $paths = array_values(array_filter(is_array($paths) ? $paths : iterator_to_array($paths)));
         if ($paths !== []) {
-            self::disk()->delete($paths);
+            self::disk()->delete([...$paths, ...array_map(ShareImage::pathFor(...), $paths)]);
         }
     }
 

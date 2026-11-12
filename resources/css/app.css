@@ -107,6 +107,22 @@ select.chip {
 select.chip {
   background-position: right 0.6rem center;
 }
+
+/*
+| Ô ngày/giờ trên iPhone: Safari iOS cho ô này một bề rộng tối thiểu riêng (theo chữ
+| "ngày 12 thg 11, 2026"), lớn hơn nửa màn hình, nên đặt hai ô cạnh nhau thì ô tràn
+| ra ngoài và đè lên nhau. Bỏ giao diện gốc để ô co theo cột, chữ canh trái như ô khác.
+*/
+input.field[type='date'],
+input.field[type='time'],
+input.field[type='datetime-local'] {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+}
+input.field::-webkit-date-and-time-value {
+  text-align: left;
+}
 /* Ô do AI đọc bill điền sẵn: viền nhấn tới khi người dùng sửa (plan/04 mục 1). */
 @utility ai-field { @apply border-primary ring-2 ring-primary/20; }
 @utility btn {

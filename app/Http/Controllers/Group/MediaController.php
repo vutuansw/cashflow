@@ -12,6 +12,7 @@ use App\Models\TransactionPhoto;
 use App\Models\User;
 use App\Services\Groups\GroupViewer;
 use App\Services\Media\ImageStore;
+use App\Services\Media\ShareImage;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,7 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
  * - ảnh bài đăng thành viên: như ảnh sự kiện, bài chờ duyệt/bị ẩn chỉ người đăng và QTV (plan/21);
  * - ảnh bill chứng từ: chỉ QTV;
  * - ảnh bìa nhóm: công khai, kể cả nhóm private (màn hình mời đăng nhập vẫn hiện);
- * - ảnh đại diện, ảnh bìa trang cá nhân: công khai qua tên file ngẫu nhiên (plan/08 mục 4).
+ * - ảnh đại diện, ảnh bìa trang cá nhân: công khai qua tên file ngẫu nhiên (plan/08 mục 4);
+ * - ảnh share (og:image) JPEG 1200×630 của ảnh bìa nhóm và ảnh cá nhân: công khai như ảnh gốc (plan/29).
  */
 class MediaController extends Controller
 {
@@ -77,6 +79,26 @@ class MediaController extends Controller
         return $this->file($path, true);
     }
 
+    /** Ảnh share (og:image) của ảnh bìa nhóm: công khai như ảnh bìa, kể cả nhóm private (plan/29). */
+    public function groupShare(Group $group, string $name, ShareImage $share)
+    {
+        return $this->share($group->cover_path, $name, $share);
+    }
+
+    /** Ảnh share của ảnh đại diện/bìa cá nhân (plan/29). */
+    public function profileShare(int $user, string $kind, string $name, ShareImage $share)
+    {
+        return $this->share(User::query()->whereKey($user)->value($kind.'_path'), $name, $share);
+    }
+
+    /** Chỉ trả ảnh share của đúng file gốc đang dùng; tạo ở lần xin đầu tiên. */
+    private function share(?string $source, string $name, ShareImage $share): Response
+    {
+        abort_if($source === null || pathinfo($source, PATHINFO_FILENAME) !== $name, 404);
+
+        return $this->file($share->ensure($source), true, 'image/jpeg');
+    }
+
     /** Ảnh đại diện/bìa trang cá nhân: công khai, chỉ trả đúng file đang dùng. Xem plan/08 mục 4. */
     public function profile(int $user, string $kind, string $name)
     {
@@ -86,14 +108,14 @@ class MediaController extends Controller
         return $this->file($path, true);
     }
 
-    private function file(?string $path, bool $public): Response
+    private function file(?string $path, bool $public, string $type = 'image/webp'): Response
     {
         $disk = ImageStore::disk();
         abort_if($path === null || ! $disk->exists($path), 404);
 
         // Tên file ngẫu nhiên và không bao giờ ghi đè nên cache lâu được; nhóm private thì không cho proxy giữ.
         $response = new BinaryFileResponse($disk->path($path), 200, [
-            'Content-Type' => 'image/webp',
+            'Content-Type' => $type,
             'X-Robots-Tag' => 'noindex',
             'X-Content-Type-Options' => 'nosniff',
         ], $public);

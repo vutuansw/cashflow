@@ -41,6 +41,22 @@ class MediaUrl
         return $path === null ? null : "/media/{$group->code}/brand/cover/".pathinfo($path, PATHINFO_FILENAME);
     }
 
+    /** Ảnh share (og:image) JPEG 1200×630 của ảnh bìa nhóm, xem plan/29. */
+    public static function groupShare(Group $group): ?string
+    {
+        $path = $group->cover_path;
+
+        return $path === null ? null : "/media/{$group->code}/brand/og/".pathinfo($path, PATHINFO_FILENAME).'.jpg';
+    }
+
+    /** Ảnh share của ảnh đại diện hoặc ảnh bìa cá nhân, xem plan/29. */
+    public static function profileShare(User $user, string $kind): ?string
+    {
+        $path = $kind === 'avatar' ? $user->avatar_path : $user->cover_path;
+
+        return $path === null ? null : "/media/u/{$user->id}/og/{$kind}/".pathinfo($path, PATHINFO_FILENAME).'.jpg';
+    }
+
     /**
      * Ảnh đại diện/bìa trang cá nhân, công khai như ảnh nhóm. Mã nhóm dài ít
      * nhất 3 ký tự nên tiền tố /media/u không trùng nhóm nào. Xem plan/08 mục 4.

@@ -88,7 +88,7 @@ watch([type, query], () => {
         <section class="card mt-3 space-y-3 p-3">
             <template v-if="type !== 'campaign'">
                 <SegmentedControl v-model="kind" :options="kindOptions" label="Kỳ báo cáo" />
-                <div v-if="custom" class="grid grid-cols-2 gap-2">
+                <div v-if="custom" class="grid grid-cols-2 gap-2 *:min-w-0">
                     <input v-model="from" type="date" class="field" aria-label="Từ ngày" />
                     <input v-model="to" type="date" class="field" aria-label="Đến ngày" />
                 </div>

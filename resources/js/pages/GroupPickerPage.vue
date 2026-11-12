@@ -58,7 +58,10 @@ async function signOut() {
                 </li>
             </ul>
         </template>
-        <p v-if="!session.me?.groups.length && !session.me?.pending_groups?.length" class="card mt-6 p-4 text-muted-foreground">Bạn chưa thuộc nhóm nào. Tạo nhóm mới, hoặc gửi số điện thoại của bạn cho trưởng nhóm để được thêm vào nhóm.</p>
+        <p v-if="!session.me?.groups.length && !session.me?.pending_groups?.length" class="card mt-6 p-4 text-muted-foreground">
+            <!-- Vào nhóm có sẵn chỉ qua link nhóm do ban quản trị gửi (plan/30 mục 1) -->
+            Bạn chưa thuộc nhóm nào. Nhờ ban quản trị gửi <span class="font-medium text-foreground">link nhóm</span>, mở link rồi bấm <span class="font-medium text-foreground">Tham gia nhóm</span>. Hoặc tạo nhóm mới.
+        </p>
 
         <RouterLink to="/groups/new" class="btn-outline mt-6 w-full"><Plus class="size-5" /> Tạo nhóm mới</RouterLink>
 

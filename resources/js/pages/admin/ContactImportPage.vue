@@ -86,7 +86,7 @@ async function save() {
 
             <ul class="mt-3 space-y-2">
                 <li v-for="(row, i) in rows" :key="i" class="card p-3" :class="{ 'border-expense': row.errors.length }">
-                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div class="grid grid-cols-2 gap-2 *:min-w-0 sm:grid-cols-4">
                         <input v-model="row.full_name" class="field col-span-2 sm:col-span-1" placeholder="Họ tên" />
                         <input v-model="row.phone" class="field" placeholder="SĐT" inputmode="tel" />
                         <input v-model="row.birthday" type="date" class="field" />

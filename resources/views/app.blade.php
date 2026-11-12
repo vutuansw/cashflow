@@ -14,9 +14,18 @@
     <meta property="og:title" content="{{ $meta['title'] }}">
     <meta property="og:description" content="{{ $meta['description'] }}">
     <meta property="og:url" content="{{ url()->current() }}">
+    {{-- Ảnh share luôn 1200×630; có sẵn kích thước thì Facebook/Messenger hiện ảnh ngay lần share đầu (plan/29). --}}
     @if ($meta['image'])
     <meta property="og:image" content="{{ $meta['image'] }}">
+    <meta property="og:image:secure_url" content="{{ $meta['image'] }}">
+    <meta property="og:image:type" content="{{ $meta['image_type'] }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ $meta['image_alt'] }}">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $meta['title'] }}">
+    <meta name="twitter:description" content="{{ $meta['description'] }}">
+    <meta name="twitter:image" content="{{ $meta['image'] }}">
     @endif
     @if ($meta['demo_group'] ?? null)
     <meta name="wepo-demo-group" content="{{ $meta['demo_group'] }}">

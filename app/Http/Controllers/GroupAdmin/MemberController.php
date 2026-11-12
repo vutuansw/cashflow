@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Services\Accounts\AccountGranter;
+use App\Services\Accounts\PhoneMemberAdder;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -51,6 +52,32 @@ class MemberController extends Controller
 
         return response()->json([
             'member' => $this->present($member->load('contact')),
+            'temp_password' => $result['temp_password'],
+            'share_message' => $granter->shareMessage($group, $member->user, $result['temp_password']),
+        ], 201);
+    }
+
+    /** Tra SĐT trước khi thêm: đã ở nhóm / đã có tài khoản WePo / chưa có (plan/30 mục 2). */
+    public function lookup(Request $request, Group $group, PhoneMemberAdder $adder)
+    {
+        $data = $request->validate(['phone' => ['required', 'string', 'max:20']]);
+
+        return $adder->lookup($group, $data['phone']);
+    }
+
+    /** Thêm thẳng bằng SĐT với vai trò Thành viên, trả giống store() (plan/30 mục 2). */
+    public function storeByPhone(Request $request, Group $group, PhoneMemberAdder $adder, AccountGranter $granter)
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'string', 'max:20'],
+            'full_name' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $result = $adder->add($group, $data['phone'], $data['full_name'] ?? null, $request->user());
+        $member = $result['member'];
+
+        return response()->json([
+            'member' => $this->present($member->load(['user', 'contact'])),
             'temp_password' => $result['temp_password'],
             'share_message' => $granter->shareMessage($group, $member->user, $result['temp_password']),
         ], 201);

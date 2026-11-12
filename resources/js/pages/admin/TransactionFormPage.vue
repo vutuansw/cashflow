@@ -401,7 +401,7 @@ const title = computed(() => (id.value ? (isIncome.value ? 'Sửa phiếu thu' :
                 <p v-if="state.errors.campaign_id" class="mt-1 text-sm text-expense">{{ state.errors.campaign_id }}</p>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-2 *:min-w-0">
                 <FormField label="Ngày" required :ai="isAi('date') && aiTag" :error="state.errors.occurred_at"><input v-model="form.date" type="date" class="field" :class="{ 'ai-field': isAi('date') }" required /></FormField>
                 <FormField label="Giờ"><input v-model="form.time" type="time" class="field" :class="{ 'ai-field': isAi('date') }" /></FormField>
             </div>

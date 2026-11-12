@@ -26,6 +26,8 @@ async function register() {
 
 <template>
     <AuthLayout title="Tạo tài khoản miễn phí" subtitle="Dùng cho mọi hội nhóm, quỹ lớp bạn tham gia">
+        <!-- Người được gửi nhầm link đăng ký chung thay cho link nhóm (plan/30 mục 1) -->
+        <p v-if="!next" class="mb-4 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">Muốn vào nhóm có sẵn? Mở <span class="font-medium text-foreground">link nhóm</span> do ban quản trị gửi để vừa tạo tài khoản vừa xin vào nhóm.</p>
         <form class="space-y-4" @submit.prevent="register">
             <FormField v-model="form.name" label="Họ tên" autocomplete="name" :error="state.errors.name" required />
             <div>

@@ -5,7 +5,7 @@ import AuthLayout from '../../layouts/AuthLayout.vue';
 import FormField from '../../components/FormField.vue';
 import { api } from '../../lib/api.js';
 import { ignore, useForm } from '../../lib/form.js';
-import { nextPath, withNext } from '../../lib/next.js';
+import { nextPath, registerPathFor } from '../../lib/next.js';
 import { homePath, setMe } from '../../lib/session.js';
 
 const route = useRoute();
@@ -31,7 +31,7 @@ async function login() {
         </form>
         <div class="mt-6 flex justify-between text-sm">
             <RouterLink to="/forgot-password" class="font-medium text-primary">Quên mật khẩu?</RouterLink>
-            <RouterLink :to="withNext('/register', next)" class="font-medium text-primary">Tạo tài khoản</RouterLink>
+            <RouterLink :to="registerPathFor(next, router)" class="font-medium text-primary">Tạo tài khoản</RouterLink>
         </div>
     </AuthLayout>
 </template>

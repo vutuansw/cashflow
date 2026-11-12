@@ -6,6 +6,7 @@ use App\Enums\GroupRole;
 use App\Models\Contact;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Services\Groups\JoinRequests;
 use Illuminate\Support\Facades\Hash;
 use Tests\Concerns\CreatesGroups;
 use Tests\Concerns\RefreshBothDatabases;
@@ -116,5 +117,117 @@ class MembersTest extends TestCase
         $this->actingAs($this->ownerOf($a))
             ->postJson($this->adminUrl($a, "members/{$rowB->id}/reset-password"))
             ->assertNotFound();
+    }
+
+    // --- Thêm thành viên bằng SĐT (plan/30 mục 2) ---
+
+    public function test_them_bang_sdt_nguoi_da_co_tai_khoan_giu_mat_khau(): void
+    {
+        $existing = User::factory()->create(['name' => 'Phạm Thu Hà', 'phone' => '0912000222', 'password' => 'cuacuatoi']);
+        $group = $this->makeGroup();
+        $this->actingAs($this->ownerOf($group));
+
+        $this->getJson($this->adminUrl($group, 'members/lookup?phone=0912 000 222'))
+            ->assertOk()
+            ->assertJsonPath('status', 'account')
+            ->assertJsonPath('name', 'Phạm Thu Hà')
+            ->assertJsonPath('contact', null);
+
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '+84912000222'])
+            ->assertCreated()
+            ->assertJsonPath('member.role', 'member')
+            ->assertJsonPath('member.name', 'Phạm Thu Hà')
+            ->assertJsonPath('temp_password', null);
+
+        $this->assertTrue(Hash::check('cuacuatoi', $existing->fresh()->password));
+        $contact = Contact::acrossGroups()->where('group_id', $group->id)->where('user_id', $existing->id)->firstOrFail();
+        $this->assertSame('Phạm Thu Hà', $contact->full_name);
+
+        $this->getJson($this->adminUrl($group, 'members/lookup?phone=0912000222'))->assertJsonPath('status', 'member');
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000222'])
+            ->assertJsonValidationErrors('phone');
+    }
+
+    public function test_them_bang_sdt_nguoi_chua_co_tai_khoan_ra_mat_khau_tam(): void
+    {
+        $group = $this->makeGroup();
+        $this->actingAs($this->ownerOf($group));
+
+        $this->getJson($this->adminUrl($group, 'members/lookup?phone=0912000333'))
+            ->assertOk()->assertJsonPath('status', 'none')->assertJsonPath('name', null);
+
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000333'])
+            ->assertJsonValidationErrors('full_name');
+
+        $password = $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000333', 'full_name' => 'Đỗ Minh Khoa'])
+            ->assertCreated()
+            ->assertJsonPath('member.name', 'Đỗ Minh Khoa')
+            ->json('temp_password');
+
+        $this->assertNotNull($password);
+        $this->assertTrue(User::wherePhone('0912000333')->firstOrFail()->must_change_password);
+    }
+
+    public function test_them_bang_sdt_gan_vao_dong_danh_ba_san_co(): void
+    {
+        User::factory()->create(['name' => 'Tên Tài Khoản', 'phone' => '0912000111']);
+        $group = $this->makeGroup();
+        $contact = $this->contactIn($group, ['status' => 'left']);
+        $this->actingAs($this->ownerOf($group));
+
+        $this->getJson($this->adminUrl($group, 'members/lookup?phone=0912000111'))
+            ->assertJsonPath('status', 'account')
+            ->assertJsonPath('contact.id', $contact->id)
+            ->assertJsonPath('contact.full_name', 'Lê Văn Bình');
+
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000111'])->assertCreated();
+
+        $this->assertSame(1, Contact::acrossGroups()->where('group_id', $group->id)->wherePhone('0912000111')->count());
+        $this->assertSame('active', $contact->fresh()->status);
+        $this->assertNotNull($contact->fresh()->user_id);
+    }
+
+    public function test_them_bang_sdt_chua_co_tai_khoan_nhung_co_trong_danh_ba_lay_ten_danh_ba(): void
+    {
+        $group = $this->makeGroup();
+        $this->contactIn($group);
+        $this->actingAs($this->ownerOf($group));
+
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000111'])
+            ->assertCreated()
+            ->assertJsonPath('member.name', 'Lê Văn Bình');
+        $this->assertSame(1, Contact::acrossGroups()->where('group_id', $group->id)->wherePhone('0912000111')->count());
+    }
+
+    public function test_them_bang_sdt_duyet_luon_yeu_cau_dang_cho(): void
+    {
+        $user = User::factory()->create(['phone' => '0912000444']);
+        $group = $this->makeGroup();
+        $owner = $this->ownerOf($group);
+        $request = app(JoinRequests::class)->request($group, $user);
+
+        $this->actingAs($owner)->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000444'])->assertCreated();
+
+        $request->refresh();
+        $this->assertSame('approved', $request->status);
+        $this->assertSame($owner->id, $request->decided_by);
+        $this->getJson($this->adminUrl($group, 'join-requests'))->assertJsonCount(0, 'requests');
+    }
+
+    public function test_them_bang_sdt_chi_qtv_cua_nhom(): void
+    {
+        $group = $this->makeGroup();
+        $other = $this->makeGroup();
+        User::factory()->create(['phone' => '0912000555']);
+
+        $this->actingAs($this->memberOf($group))
+            ->getJson($this->adminUrl($group, 'members/lookup?phone=0912000555'))->assertForbidden();
+        $this->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000555'])->assertForbidden();
+
+        $this->actingAs($this->ownerOf($other))
+            ->postJson($this->adminUrl($group, 'members/by-phone'), ['phone' => '0912000555'])->assertForbidden();
+
+        $this->actingAs($this->ownerOf($group))
+            ->getJson($this->adminUrl($group, 'members/lookup?phone=123'))->assertJsonValidationErrors('phone');
     }
 }

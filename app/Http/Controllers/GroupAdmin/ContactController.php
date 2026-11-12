@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\GroupAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\CampaignMember;
 use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\PaymentClaim;
 use App\Models\Transaction;
 use App\Services\Contacts\ContactImportParser;
+use App\Services\Transactions\GroupStats;
 use App\Support\PhoneHash;
 use App\Support\VietnameseText;
 use Illuminate\Http\Request;
@@ -65,19 +66,35 @@ class ContactController extends Controller
         return $this->present($contact, $member);
     }
 
-    public function destroy(Group $group, Contact $contact)
+    /**
+     * Chỉ chặn khi xóa làm mất dữ liệu tiền hoặc tài khoản đang dùng (plan/29).
+     * Dòng campaign_members (có tên trong danh sách phải đóng, chưa đóng) tự
+     * xóa theo khóa ngoại; contacts.user_id của tài khoản đã thu hồi không tính.
+     */
+    public function destroy(Group $group, Contact $contact, GroupStats $stats)
     {
-        $inUse = $contact->user_id !== null
-            || Transaction::withTrashed()->where('contact_id', $contact->id)->exists()
-            || CampaignMember::where('contact_id', $contact->id)->exists();
+        $hasMoney = Transaction::withTrashed()->where('contact_id', $contact->id)->exists()
+            || PaymentClaim::where('contact_id', $contact->id)->exists();
 
-        if ($inUse) {
+        if ($hasMoney) {
             throw ValidationException::withMessages([
-                'contact' => 'Người này đã có tài khoản hoặc lịch sử thu chi. Đánh dấu "Đã rời nhóm" thay vì xóa.',
+                'contact' => "{$contact->full_name} đã có lịch sử thu chi nên không xóa được. Đánh dấu \"Đã rời nhóm\" để ẩn khỏi các chiến dịch mới.",
+            ]);
+        }
+
+        $hasAccount = GroupMember::where('group_id', $group->id)
+            ->where('contact_id', $contact->id)
+            ->where('status', 'active')
+            ->exists();
+
+        if ($hasAccount) {
+            throw ValidationException::withMessages([
+                'contact' => "{$contact->full_name} đang có tài khoản trong nhóm. Thu hồi tài khoản ở trang Tài khoản & vai trò trước, rồi xóa.",
             ]);
         }
 
         $contact->delete();
+        $stats->forget($group);
 
         return response()->noContent();
     }

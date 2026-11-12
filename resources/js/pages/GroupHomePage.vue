@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronDown, ChevronRight, Clock, Lock, LogOut, MessageSquareText, Settings, Share2, UserRound, Users, Wallet } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, Clock, Lock, LogOut, MessageSquareText, Settings, Share2, UserPlus, UserRound, Users, Wallet } from 'lucide-vue-next';
 import CampaignDayCard from '../components/CampaignDayCard.vue';
 import DropdownMenu from '../components/DropdownMenu.vue';
 import GroupHeader from '../components/GroupHeader.vue';
@@ -106,6 +106,8 @@ function removed(post) {
 }
 
 const login = () => router.push({ path: '/login', query: { next: route.fullPath } });
+// Khách hoặc người chưa là thành viên: nút Tham gia nhóm dẫn tới link nhóm /{ma-nhom}/register (plan/30 mục 1).
+const canJoin = computed(() => !viewer.value.is_member && !viewer.value.join_pending && !!viewer.value.join_link_enabled);
 // Đăng xuất ngay ở trang nhóm (plan/16), về trang đăng nhập như ở trang chọn nhóm.
 async function signOut() {
     await logout();
@@ -179,7 +181,8 @@ onBeforeUnmount(() => observer?.disconnect());
                     </DropdownMenu>
                 </template>
 
-                <!-- Bên phải hàng avatar thành viên: điện thoại chỉ hiện biểu tượng -->
+                <!-- Bên phải hàng avatar thành viên: điện thoại chỉ hiện biểu tượng. Nút Tham gia nhóm chỉ nằm ở dải mời
+                     bên dưới, không lặp lại ở đây (plan/30 mục 1). -->
                 <button v-if="group.can_view" type="button" class="btn-soft !min-h-8 max-sm:!size-8 max-sm:!rounded-full max-sm:!p-0 sm:!min-h-9" aria-label="Chia sẻ" title="Chia sẻ" @click="share"><Share2 class="size-4" /> <span class="hidden sm:inline">Chia sẻ</span></button>
                 <RouterLink v-if="viewer.can_manage" :to="`/${code}/admin`" class="btn-soft !min-h-8 max-sm:!size-8 max-sm:!rounded-full max-sm:!p-0 sm:!min-h-9" aria-label="Quản trị" title="Quản trị"><Settings class="size-4" /> <span class="hidden sm:inline">Quản trị</span></RouterLink>
 
@@ -189,6 +192,15 @@ onBeforeUnmount(() => observer?.disconnect());
                     <RouterLink v-if="openCampaign" :to="`/${code}/campaigns/${openCampaign.slug}`" class="whitespace-nowrap border-b-[3px] border-transparent px-3 py-3 text-muted-foreground hover:text-foreground">Chiến dịch</RouterLink>
                 </template>
             </GroupHeader>
+
+            <!-- Nhóm công khai, chưa là thành viên: mời tham gia qua link nhóm (plan/30 mục 1) -->
+            <div v-if="canJoin && group.can_view" class="mx-auto mt-4 max-w-5xl px-4">
+                <div class="card flex flex-wrap items-center gap-3 p-3 text-sm">
+                    <UserPlus class="size-5 shrink-0 text-primary" />
+                    <span class="min-w-0 flex-1">Bạn chưa ở trong nhóm này. Tham gia để đóng quỹ, đăng bài và xem trang của mình.</span>
+                    <RouterLink :to="`/${code}/register`" class="btn-primary !min-h-10 px-4 max-sm:w-full">Tham gia nhóm</RouterLink>
+                </div>
+            </div>
 
             <!-- Đã xin vào nhóm qua link, đang chờ duyệt (plan/13); nhóm công khai vẫn xem như khách -->
             <div v-if="viewer.join_pending && group.can_view" class="mx-auto mt-4 max-w-5xl px-4">
@@ -205,7 +217,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         {{ viewer.logged_in ? 'Tài khoản của bạn không thuộc nhóm này. Nhờ quản trị viên cấp tài khoản cho bạn.' : 'Đăng nhập bằng tài khoản quản trị viên đã cấp để xem thu chi của nhóm.' }}
                     </p>
                     <button v-if="!viewer.logged_in" type="button" class="btn-primary mt-4 w-full" @click="login">Đăng nhập</button>
-                    <RouterLink v-if="!viewer.join_pending && viewer.join_link_enabled" :to="`/${code}/register`" class="btn-outline mt-3 w-full">Xin vào nhóm</RouterLink>
+                    <RouterLink v-if="!viewer.join_pending && viewer.join_link_enabled" :to="`/${code}/register`" class="btn-outline mt-3 w-full">Tham gia nhóm</RouterLink>
                 </div>
             </div>
 
